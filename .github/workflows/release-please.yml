@@ -1,0 +1,76 @@
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # The default GITHUB_TOKEN cannot open the release PR: "Allow GitHub
+      # Actions to create and approve pull requests" is off at the org level.
+      # A token minted from the mctl-agents App sidesteps the setting, and a PR
+      # opened with an App token raises pull_request events, so the release PR
+      # gets normal CI and the Claude review.
+      - name: Generate release token
+        id: release-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.AGENTS_APP_ID }}
+          private-key: ${{ secrets.AGENTS_APP_PRIVATE_KEY }}
+          owner: mctlhq
+          repositories: portfolio
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          token: ${{ steps.release-token.outputs.token }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      # Deploy the way every other onboarded mctlhq service does: hand the tag
+      # to mctl-gitops, which builds ghcr.io/mctlhq/portfolio from this repo's
+      # Dockerfile and commits the new image.tag to
+      # platform-gitops/services/labs/portfolio/values.yaml for ArgoCD.
+      #
+      # Gated on the MCTL_ONBOARDED repository variable: before the service is
+      # onboarded through mctl_deploy_service there is no values.yaml to bump,
+      # so a dispatch would push an image and then fail. The first release only
+      # creates the tag; the operator onboards from that tag and then sets
+      # MCTL_ONBOARDED=true so every later release deploys itself.
+      - name: Generate Platform App token
+        if: ${{ steps.release.outputs.release_created == 'true' && vars.MCTL_ONBOARDED == 'true' }}
+        id: app
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.AGENTS_APP_ID }}
+          private-key: ${{ secrets.AGENTS_APP_PRIVATE_KEY }}
+          owner: mctlhq
+          repositories: mctl-gitops
+
+      - name: Dispatch centralized release-deploy
+        if: ${{ steps.release.outputs.release_created == 'true' && vars.MCTL_ONBOARDED == 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          TAG: ${{ steps.release.outputs.tag_name }}
+        run: |
+          gh workflow run release-deploy.yaml \
+            --repo mctlhq/mctl-gitops \
+            --ref main \
+            -f repo=mctlhq/portfolio \
+            -f git_ref="$TAG" \
+            -f image_name=ghcr.io/mctlhq/portfolio \
+            -f image_tag="$TAG" \
+            -f team_name=labs \
+            -f component_name=portfolio
+
+      - name: Note skipped dispatch
+        if: ${{ steps.release.outputs.release_created == 'true' && vars.MCTL_ONBOARDED != 'true' }}
+        run: echo "::notice::Release ${{ steps.release.outputs.tag_name }} tagged; deploy dispatch skipped because MCTL_ONBOARDED is not 'true' (service not onboarded yet)."

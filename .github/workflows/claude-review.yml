@@ -1,0 +1,31 @@
+name: Claude PR review
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+jobs:
+  claude-review:
+    uses: mctlhq/.github/.github/workflows/claude-review.yml@b0fc8003261139d919fdb91a565a60571e57d7c1
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    with:
+      # dependabot and mctl-agents are listed so their PRs get reviewed
+      # automatically. Without the slug claude-code-action hard-fails with
+      # "Workflow initiated by non-human actor", and since branch protection
+      # requires an approving review, those PRs then sit unmergeable until a
+      # maintainer triggers a review by hand. mctl-agents is the App that
+      # runs release-please here, so every release PR needs it.
+      allowed-bots: "mctl-claude-remote,github-actions,dependabot,mctl-agents"
+      conventions: |
+        This site is a DevLoop artifact: flag any number typed into templates or content instead of read from src/data/metrics.json, any third-party URL that would be requested by the browser at runtime, any user-facing string present in only one of EN/RU, and any client-side script other than the single inline preference script.
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      CLAUDE_CODE_OAUTH_TOKEN_2: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN_2 }}
