@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.10](https://github.com/mctlhq/portfolio/compare/0.1.9...0.1.10) (2026-09-11)
+
+
+### Features
+
+* **agents:** issue-42-p9-production-evidence-cutover-journal-a ([7751e2c](https://github.com/mctlhq/portfolio/commit/7751e2c0b4cb27b16ebc5a3f5edbc220323923a1))
+* **journal:** record the production cutover, ADR-0003 and the live hosts ([15845f5](https://github.com/mctlhq/portfolio/commit/15845f5e2e403e575a35fd84c14b828d6810a7f2))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-42-p9-production-evidence-cutover-journal-a ([802a621](https://github.com/mctlhq/portfolio/commit/802a62177df870823f190cedbfb23e2b19904cf1))
+* **agents:** address P1/P2 codex findings on issue-42-p9-production-evidence-cutover-journal-a ([36469fa](https://github.com/mctlhq/portfolio/commit/36469fa79395a5f8debbe19d200c7210bcff54ba))
+* **agents:** address P1/P2 codex findings on issue-42-p9-production-evidence-cutover-journal-a ([ea6aa7c](https://github.com/mctlhq/portfolio/commit/ea6aa7c0dea934fd0773ed7d952034e8da77988e))
+
 ## [0.1.9](https://github.com/mctlhq/portfolio/compare/0.1.8...0.1.9) (2026-09-11)
 
 
