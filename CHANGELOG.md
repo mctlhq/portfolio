@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.3](https://github.com/mctlhq/portfolio/compare/0.1.2...0.1.3) (2026-09-11)
+
+
+### Features
+
+* **agents:** issue-6-p4-home-page ([807543c](https://github.com/mctlhq/portfolio/commit/807543c04d5f4adb61acd222f7036ed343db1dcc))
+* **agents:** issue-6-p4-home-page ([2abdcd5](https://github.com/mctlhq/portfolio/commit/2abdcd579b44f9664ff3d162909b4f3cf8e8c392))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-6-p4-home-page ([fa3c1a1](https://github.com/mctlhq/portfolio/commit/fa3c1a18f65f96115893183a8c21effca7193105))
+
+
+### Documentation
+
+* the name is a translated string, in the reader's script ([39a3d1d](https://github.com/mctlhq/portfolio/commit/39a3d1dcce89f54f39c6d21b030303a77de9e4d4))
+* the name is a translated string, in the reader's script ([a5a00fc](https://github.com/mctlhq/portfolio/commit/a5a00fc61f185e8e1a897c49e2b41a2882d21bee))
+
 ## [0.1.2](https://github.com/mctlhq/portfolio/compare/0.1.1...0.1.2) (2026-09-11)
 
 
