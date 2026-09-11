@@ -177,11 +177,6 @@ pre,
   color: var(--surface-fg);
   text-decoration: none;
 }
-.cta:hover {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
 /* Content links: every <a> inside <main> that carries no styling of its own.
    Chosen over putting class="mctl-prose" on <main> -- see design.md: main a
    (0,1,1) via .mctl-prose would beat .cta (0,1,0) and restyle CTAs; and
@@ -201,6 +196,12 @@ main a:hover {
 }
 .project-links a:visited {
   color: var(--surface-fg);
+}
+/* Declared after :visited (LVHA order) so hover still wins over visited on
+   a visited CTA -- equal specificity, source order decides. */
+.cta:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* Collapsible blocks. */

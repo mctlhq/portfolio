@@ -83,6 +83,8 @@ async function resolveInternal(distDir, href) {
  * from "reached it and got a bad status". */
 class NetworkError extends Error {}
 
+const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+
 async function fetchOnce(url) {
   let res;
   try {
@@ -95,7 +97,11 @@ async function fetchOnce(url) {
 
 async function fetchWithRetry(url) {
   try {
-    return await fetchOnce(url);
+    const status = await fetchOnce(url);
+    if (RETRYABLE_STATUSES.has(status)) {
+      return await fetchOnce(url); // one retry
+    }
+    return status;
   } catch (err) {
     if (!(err instanceof NetworkError)) throw err;
     return await fetchOnce(url); // one retry
@@ -188,7 +194,7 @@ async function main() {
     }
   }
 
-  if (networkUnreachable) {
+  if (networkUnreachable && problems.length === 0) {
     process.exitCode = 0;
     return;
   }
