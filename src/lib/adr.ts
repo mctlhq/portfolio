@@ -8,9 +8,11 @@ type AdrSection = (typeof ADR_SECTIONS)[number];
 
 const HEADING_RE = /^##[ \t]+(.*)$/gm;
 const EN_SPAN_RE = /<span class="l en">([^<]*)<\/span>/;
+const RU_SPAN_RE = /<span class="l ru">([^<]*)<\/span>/;
 
 interface SectionBlock {
   key: AdrSection | null;
+  headingLine: string;
   content: string;
 }
 
@@ -18,9 +20,17 @@ function isAdrSection(key: string): key is AdrSection {
   return (ADR_SECTIONS as readonly string[]).includes(key);
 }
 
+/**
+ * Identifies a section only from its English span -- a heading with no
+ * English span (plain text, or only a Russian span) is never treated as a
+ * match. Whether the heading also carries the required Russian span is
+ * checked separately in adrBodyProblems, so an English-only heading is
+ * still reported as a problem rather than silently accepted.
+ */
 function sectionKeyOf(headingLine: string): AdrSection | null {
   const spanMatch = EN_SPAN_RE.exec(headingLine);
-  const text = (spanMatch ? spanMatch[1] : headingLine).trim();
+  if (!spanMatch) return null;
+  const text = spanMatch[1].trim();
   return isAdrSection(text) ? text : null;
 }
 
@@ -31,7 +41,7 @@ function splitSections(body: string): SectionBlock[] {
     const match = matches[i];
     const start = (match.index ?? 0) + match[0].length;
     const end = i + 1 < matches.length ? (matches[i + 1].index ?? body.length) : body.length;
-    blocks.push({ key: sectionKeyOf(match[1]), content: body.slice(start, end) });
+    blocks.push({ key: sectionKeyOf(match[1]), headingLine: match[1], content: body.slice(start, end) });
   }
   return blocks;
 }
@@ -73,6 +83,9 @@ export function adrBodyProblems(id: string, body: string): string[] {
 
   for (const block of blocks) {
     if (block.key === null) continue;
+    if (!RU_SPAN_RE.test(block.headingLine)) {
+      problems.push(`${label}: heading "${block.key}" is missing its Russian (.l.ru) span`);
+    }
     const hasEn = /class="l en"/.test(block.content);
     const hasRu = /class="l ru"/.test(block.content);
     if (!hasEn) problems.push(`${label}: section "${block.key}" is missing an English (.l.en) block`);

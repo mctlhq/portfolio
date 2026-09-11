@@ -19,23 +19,92 @@ const stamp = z
   })
   .transform((s) => new Date(s));
 
-const projects = defineCollection({
-  loader: glob({
+const projectsSchema = z.strictObject({
+  slug: z.string().regex(/^[a-z0-9-]+$/),
+  lang: z.enum(['en', 'ru']),
+  name: z.string().min(1),
+  group: z.enum(['platform', 'product']),
+  order: z.number().int().nonnegative(),
+  repo: githubUrl,
+  stack: z.array(z.string().min(1)).min(1),
+  summary: z.string().min(1).refine((s) => !s.includes('\n'), 'summary is one line'),
+  links: z.array(z.strictObject({ label: z.string().min(1), url: httpsUrl })).optional(),
+});
+
+type ProjectData = z.infer<typeof projectsSchema>;
+
+/**
+ * Checks that every project `slug` has exactly one `en` and one `ru` entry,
+ * and that the two agree on every field that is not itself the
+ * language-specific content: `group`, `order`, `repo`, `stack` and each
+ * link's `url`. `name`, `summary`, `links[].label` and the body are allowed
+ * to differ because they carry the language-specific text.
+ */
+function checkProjectParity(entries: readonly { id: string; data: ProjectData }[]): void {
+  const problems: string[] = [];
+  const bySlug = new Map<string, { id: string; data: ProjectData }[]>();
+  for (const entry of entries) {
+    const list = bySlug.get(entry.data.slug) ?? [];
+    list.push(entry);
+    bySlug.set(entry.data.slug, list);
+  }
+
+  for (const [slug, list] of bySlug) {
+    const en = list.filter((entry) => entry.data.lang === 'en');
+    const ru = list.filter((entry) => entry.data.lang === 'ru');
+    if (en.length !== 1 || ru.length !== 1) {
+      const found = list.map((entry) => `${entry.id} (${entry.data.lang})`).join(', ') || 'none';
+      problems.push(`project "${slug}": expected exactly one en and one ru file, found ${found}`);
+      continue;
+    }
+    const linkUrls = (data: ProjectData) => (data.links ?? []).map((link) => link.url);
+    const agrees =
+      en[0].data.group === ru[0].data.group &&
+      en[0].data.order === ru[0].data.order &&
+      en[0].data.repo === ru[0].data.repo &&
+      JSON.stringify(en[0].data.stack) === JSON.stringify(ru[0].data.stack) &&
+      JSON.stringify(linkUrls(en[0].data)) === JSON.stringify(linkUrls(ru[0].data));
+    if (!agrees) {
+      problems.push(
+        `project "${slug}": ${en[0].id}.md and ${ru[0].id}.md disagree on group, order, repo, stack, or links[].url`,
+      );
+    }
+  }
+
+  if (problems.length > 0) {
+    throw new Error(`Project validation failed:\n${problems.map((p) => `- ${p}`).join('\n')}`);
+  }
+}
+
+/**
+ * Wraps the base glob loader for `projects` to run one extra pass, after
+ * every file has synced, that checks the whole store for en/ru parity
+ * (checkProjectParity): every slug must have exactly one entry per
+ * language, and the two must agree on every field that is not
+ * language-specific. Mirrors adrLoader below, which does the equivalent
+ * check for the adr collection.
+ */
+function projectsLoader(): Loader {
+  const base = glob({
     pattern: '*.{en,ru}.md',
     base: './src/content/projects',
     generateId: idFromFile,
-  }),
-  schema: z.strictObject({
-    slug: z.string().regex(/^[a-z0-9-]+$/),
-    lang: z.enum(['en', 'ru']),
-    name: z.string().min(1),
-    group: z.enum(['platform', 'product']),
-    order: z.number().int().nonnegative(),
-    repo: githubUrl,
-    stack: z.array(z.string().min(1)).min(1),
-    summary: z.string().min(1).refine((s) => !s.includes('\n'), 'summary is one line'),
-    links: z.array(z.strictObject({ label: z.string().min(1), url: httpsUrl })).optional(),
-  }),
+  });
+  return {
+    ...base,
+    name: 'projects-with-parity-check',
+    load: async (ctx) => {
+      await base.load(ctx);
+      checkProjectParity(
+        ctx.store.entries().map(([id, entry]) => ({ id, data: entry.data as ProjectData })),
+      );
+    },
+  };
+}
+
+const projects = defineCollection({
+  loader: projectsLoader(),
+  schema: projectsSchema,
 });
 
 const journal = defineCollection({
