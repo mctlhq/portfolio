@@ -17,6 +17,12 @@
 // It is the only place that can see the built markup, so it also covers the
 // accessibility, weight and no-raster criteria that a source-level test in
 // npm test cannot verify against emitted HTML.
+//
+// checkColophonPages() (issue #9, P7) extends this for dist/colophon/**: the
+// cycle table's two totals and row count against an independent scan of
+// src/content/journal/*.md, one page per public journal/ADR entry and none
+// for a private one, data-release parity with package.json on every page,
+// and no absolute-URL subresource in any dist/**/*.html or dist/**/*.css.
 
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -164,6 +170,156 @@ async function checkApproachPage() {
   return { problems, svgBytes };
 }
 
+const JOURNAL_DIR = path.join(ROOT, 'src', 'content', 'journal');
+const ADR_DIR = path.join(ROOT, 'src', 'content', 'adr');
+const VISIBILITY_RE = /^visibility:\s*(public|private)\s*$/m;
+const WHAT_RE = /^\s*-\s+what:/gm;
+const ABSOLUTE_URL_RE = /^(https?:)?\/\//i;
+
+async function idsByVisibility(dir) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const publicIds = [];
+  const privateIds = [];
+  let whatTotal = 0;
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
+    const id = entry.name.replace(/\.md$/, '');
+    const text = await readFile(path.join(dir, entry.name), 'utf8');
+    const visibilityMatch = VISIBILITY_RE.exec(text);
+    const visibility = visibilityMatch ? visibilityMatch[1] : null;
+    if (visibility === 'public') {
+      publicIds.push(id);
+      whatTotal += (text.match(WHAT_RE) ?? []).length;
+    } else if (visibility === 'private') {
+      privateIds.push(id);
+    }
+  }
+  return { publicIds, privateIds, whatTotal };
+}
+
+async function fileExists(file) {
+  try {
+    await stat(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Checks dist/colophon/** (issue #9, P7) against the criteria that only the
+ * built output can prove: the cycle table and its totals are derived from
+ * the journal (not typed), every public journal/ADR entry has its own page
+ * and no private one does, the footer release matches package.json across
+ * every page, and no page issues an absolute-URL subresource request. Scans
+ * src/content/journal and src/content/adr independently of the page's own
+ * getCollection() calls, so the two can only agree when the page really is
+ * generated from the content. Returns an array of problem strings.
+ */
+async function checkColophonPages(allFiles) {
+  const problems = [];
+
+  const journal = await idsByVisibility(JOURNAL_DIR);
+  const adr = await idsByVisibility(ADR_DIR);
+
+  const indexPath = path.join(DIST_DIR, 'colophon', 'index.html');
+  if (!(await fileExists(indexPath))) {
+    problems.push(`check-dist: ${path.relative(ROOT, indexPath)} does not exist`);
+  } else {
+    const html = await readFile(indexPath, 'utf8');
+    const cycleCountMatch = html.match(/data-cycle-count="(\d+)"/);
+    const interventionCountMatch = html.match(/data-intervention-count="(\d+)"/);
+    const cycleRowCount = countOccurrences(html, 'data-cycle-row');
+
+    if (!cycleCountMatch || Number(cycleCountMatch[1]) !== journal.publicIds.length) {
+      problems.push(
+        `check-dist: dist/colophon/index.html data-cycle-count is ${cycleCountMatch?.[1] ?? '(missing)'}, expected ${journal.publicIds.length} (public journal files)`,
+      );
+    }
+    if (!interventionCountMatch || Number(interventionCountMatch[1]) !== journal.whatTotal) {
+      problems.push(
+        `check-dist: dist/colophon/index.html data-intervention-count is ${interventionCountMatch?.[1] ?? '(missing)'}, expected ${journal.whatTotal} ("- what:" items across public journal files)`,
+      );
+    }
+    if (cycleRowCount !== journal.publicIds.length) {
+      problems.push(
+        `check-dist: dist/colophon/index.html has ${cycleRowCount} data-cycle-row occurrences, expected ${journal.publicIds.length}`,
+      );
+    }
+  }
+
+  for (const id of journal.publicIds) {
+    const p = path.join(DIST_DIR, 'colophon', 'journal', id, 'index.html');
+    if (!(await fileExists(p))) {
+      problems.push(`check-dist: ${path.relative(ROOT, p)} does not exist for public journal entry "${id}"`);
+    }
+  }
+  for (const id of journal.privateIds) {
+    const p = path.join(DIST_DIR, 'colophon', 'journal', id, 'index.html');
+    if (await fileExists(p)) {
+      problems.push(`check-dist: ${path.relative(ROOT, p)} exists for private journal entry "${id}"`);
+    }
+  }
+  for (const id of adr.publicIds) {
+    const p = path.join(DIST_DIR, 'colophon', 'adr', id, 'index.html');
+    if (!(await fileExists(p))) {
+      problems.push(`check-dist: ${path.relative(ROOT, p)} does not exist for public ADR entry "${id}"`);
+    }
+  }
+  for (const id of adr.privateIds) {
+    const p = path.join(DIST_DIR, 'colophon', 'adr', id, 'index.html');
+    if (await fileExists(p)) {
+      problems.push(`check-dist: ${path.relative(ROOT, p)} exists for private ADR entry "${id}"`);
+    }
+  }
+
+  const privateIds = [...journal.privateIds, ...adr.privateIds];
+  const htmlFiles = allFiles.filter((file) => file.endsWith('.html'));
+  const cssFiles = allFiles.filter((file) => file.endsWith('.css'));
+
+  let pkgVersion = null;
+  try {
+    pkgVersion = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8')).version;
+  } catch {
+    problems.push('check-dist: could not read package.json to compare against data-release');
+  }
+
+  const SUBRESOURCE_RE = /<(link|script|img|source)\b[^>]*\s(?:href|src)="([^"]*)"[^>]*>/gi;
+
+  for (const file of htmlFiles) {
+    const html = await readFile(file, 'utf8');
+    const rel = path.relative(ROOT, file);
+
+    for (const id of privateIds) {
+      if (html.includes(id)) {
+        problems.push(`check-dist: ${rel} contains the private id "${id}"`);
+      }
+    }
+
+    const releaseMatch = html.match(/data-release>([^<]*)</);
+    if (pkgVersion !== null && releaseMatch && releaseMatch[1] !== pkgVersion) {
+      problems.push(`check-dist: ${rel} data-release is "${releaseMatch[1]}", expected package.json version "${pkgVersion}"`);
+    }
+
+    for (const match of html.matchAll(SUBRESOURCE_RE)) {
+      const [, tag, url] = match;
+      if (ABSOLUTE_URL_RE.test(url)) {
+        problems.push(`check-dist: ${rel} has a <${tag}> pointing at an absolute/protocol-relative URL: ${url}`);
+      }
+    }
+  }
+
+  for (const file of cssFiles) {
+    const css = await readFile(file, 'utf8');
+    const rel = path.relative(ROOT, file);
+    for (const match of css.matchAll(/url\(\s*['"]?(https?:)?\/\/[^)]*\)/gi)) {
+      problems.push(`check-dist: ${rel} contains an absolute-URL url(...): ${match[0]}`);
+    }
+  }
+
+  return { problems, cycleCount: journal.publicIds.length, interventionTotal: journal.whatTotal };
+}
+
 async function main() {
   let stats;
   try {
@@ -218,6 +374,9 @@ async function main() {
   const approachResult = await checkApproachPage();
   problems.push(...approachResult.problems);
 
+  const colophonResult = await checkColophonPages(allFiles);
+  problems.push(...colophonResult.problems);
+
   if (problems.length > 0) {
     for (const problem of problems) {
       console.error(problem);
@@ -229,7 +388,8 @@ async function main() {
   const enTotal = countOccurrences(await readFile(indexPath, 'utf8'), 'class="l en"');
   const ruTotal = countOccurrences(await readFile(indexPath, 'utf8'), 'class="l ru"');
   const svgBytesMsg = approachResult.svgBytes !== null ? `, approach.astro <svg> total ${approachResult.svgBytes} bytes (cap ${MAX_SVG_BYTES})` : '';
-  console.log(`check-dist: OK -- dist/index.html is ${indexBytes} bytes (cap ${MAX_INDEX_BYTES}), class="l en" x${enTotal}, class="l ru" x${ruTotal}, no .js under dist/${svgBytesMsg}`);
+  const colophonMsg = `, colophon: ${colophonResult.cycleCount} cycles, ${colophonResult.interventionTotal} interventions`;
+  console.log(`check-dist: OK -- dist/index.html is ${indexBytes} bytes (cap ${MAX_INDEX_BYTES}), class="l en" x${enTotal}, class="l ru" x${ruTotal}, no .js under dist/${svgBytesMsg}${colophonMsg}`);
 }
 
 await main();

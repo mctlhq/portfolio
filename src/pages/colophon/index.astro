@@ -1,0 +1,82 @@
+---
+import Base from '../../layouts/Base.astro';
+import Lang from '../../i18n/Lang.astro';
+import CycleTable from '../../components/CycleTable.astro';
+import { ui } from '../../i18n/ui';
+import { getCollection } from 'astro:content';
+import { publicEntries } from '../../lib/content';
+import { byNewestFirst, totalInterventions } from '../../lib/journal';
+import { byAdrId, padAdrId } from '../../lib/adr';
+
+const journal = publicEntries(await getCollection('journal')).sort(byNewestFirst);
+const adrs = publicEntries(await getCollection('adr')).sort(byAdrId);
+const cycleCount = journal.length;
+const interventionsTotal = totalInterventions(journal.map((entry) => entry.data));
+
+const adrStatusLabel = {
+  proposed: ui.adrStatusProposed,
+  accepted: ui.adrStatusAccepted,
+  superseded: ui.adrStatusSuperseded,
+  deprecated: ui.adrStatusDeprecated,
+} as const;
+---
+
+<Base title={ui.colophonPageTitle.en}>
+  <main>
+    <h1><Lang en={ui.navColophon.en} ru={ui.navColophon.ru} /></h1>
+    <p class="subline"><Lang en={ui.colophonIntro.en} ru={ui.colophonIntro.ru} /></p>
+
+    <section class="colophon-section">
+      <h2><Lang en={ui.colophonChainHeading.en} ru={ui.colophonChainHeading.ru} /></h2>
+      <ul class="l en">
+        {ui.colophonChainItems.en.map((item) => <li>{item}</li>)}
+      </ul>
+      <ul class="l ru" lang="ru">
+        {ui.colophonChainItems.ru.map((item) => <li>{item}</li>)}
+      </ul>
+    </section>
+
+    <section class="colophon-section">
+      <h2><Lang en={ui.colophonCyclesHeading.en} ru={ui.colophonCyclesHeading.ru} /></h2>
+      <CycleTable entries={journal} />
+      <p class="cycle-totals">
+        <span data-cycle-count={cycleCount}>{cycleCount}</span>{' '}
+        <Lang en={ui.colophonTotalCycles.en} ru={ui.colophonTotalCycles.ru} />
+        {', '}
+        <span data-intervention-count={interventionsTotal}>{interventionsTotal}</span>{' '}
+        <Lang en={ui.colophonTotalInterventions.en} ru={ui.colophonTotalInterventions.ru} />
+      </p>
+    </section>
+
+    <section class="colophon-section">
+      <h2><Lang en={ui.colophonDecisionsHeading.en} ru={ui.colophonDecisionsHeading.ru} /></h2>
+      <div class="table-scroll" role="region" tabindex="0" aria-label={`${ui.adrTableCaption.en} / ${ui.adrTableCaption.ru}`}>
+        <table class="adr-index">
+          <caption><Lang en={ui.adrTableCaption.en} ru={ui.adrTableCaption.ru} /></caption>
+          <thead>
+            <tr>
+              <th scope="col"><Lang en={ui.adrColId.en} ru={ui.adrColId.ru} /></th>
+              <th scope="col"><Lang en={ui.adrColTitle.en} ru={ui.adrColTitle.ru} /></th>
+              <th scope="col"><Lang en={ui.adrColStatus.en} ru={ui.adrColStatus.ru} /></th>
+              <th scope="col"><Lang en={ui.adrColDate.en} ru={ui.adrColDate.ru} /></th>
+            </tr>
+          </thead>
+          <tbody>
+            {adrs.map((entry) => (
+              <tr>
+                <td>{padAdrId(entry.data.id)}</td>
+                <td>
+                  <a href={`/colophon/adr/${entry.id}/`}>
+                    <Lang en={entry.data.title.en} ru={entry.data.title.ru} />
+                  </a>
+                </td>
+                <td><Lang en={adrStatusLabel[entry.data.status].en} ru={adrStatusLabel[entry.data.status].ru} /></td>
+                <td>{entry.data.date}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</Base>

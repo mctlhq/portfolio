@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ADR_SECTIONS, adrBodyProblems, checkAdrBodies } from '../src/lib/adr.ts';
+import { ADR_SECTIONS, adrBodyProblems, byAdrId, checkAdrBodies, padAdrId } from '../src/lib/adr.ts';
 
 function section(name: string, heading: string, ru: string, en = 'English prose.', ruBody = 'Русский текст.') {
   return (
@@ -116,4 +116,17 @@ test('checkAdrBodies reports a frontmatter id that disagrees with the filename p
       return true;
     },
   );
+});
+
+test('byAdrId sorts entries ascending by numeric id', () => {
+  const entries = [{ data: { id: 5 } }, { data: { id: 1 } }, { data: { id: 2 } }];
+  assert.deepEqual(
+    entries.slice().sort(byAdrId).map((e) => e.data.id),
+    [1, 2, 5],
+  );
+});
+
+test('padAdrId renders a numeric id in four-digit form', () => {
+  assert.equal(padAdrId(1), '0001');
+  assert.equal(padAdrId(25), '0025');
 });
