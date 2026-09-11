@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.7](https://github.com/mctlhq/portfolio/compare/0.1.6...0.1.7) (2026-09-11)
+
+
+### Features
+
+* **agents:** issue-11-p8b-metrics-provenance-and-the-no-analyt ([3e9fac6](https://github.com/mctlhq/portfolio/commit/3e9fac63088491debc1c2b6e317cab9ea4f9379b))
+* **agents:** issue-11-p8b-metrics-provenance-and-the-no-analyt ([59fb558](https://github.com/mctlhq/portfolio/commit/59fb5589749f257d02e0ad40a62149e6b560d3e9))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-11-p8b-metrics-provenance-and-the-no-analyt ([7639703](https://github.com/mctlhq/portfolio/commit/763970307fba33d1dea46d228e33ee079aef5481))
+* **agents:** remove stray NUL bytes from check-no-metrics.mjs ([211fb02](https://github.com/mctlhq/portfolio/commit/211fb02d713b3f472b09bc27a7144869b7ef2f01))
+
 ## [0.1.6](https://github.com/mctlhq/portfolio/compare/0.1.5...0.1.6) (2026-09-11)
 
 
