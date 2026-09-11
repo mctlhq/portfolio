@@ -57,6 +57,17 @@ One DevLoop cycle at a time in this repository.
 - Base images are pinned by tag **and** digest (`node:24-alpine@sha256:…`,
   `nginx:1.30-alpine@sha256:…`); Dependabot keeps them current.
 - Health endpoints `/healthz` and `/readyz` return 200 from nginx.
+- Regenerate `package-lock.json` with `npm install --package-lock-only`, never
+  with a plain `npm install`. Packages that ship native bindings as
+  `optionalDependencies` — `@astrojs/compiler`, rollup, esbuild, swc, sharp —
+  get every platform but the current one pruned out of the lockfile by an
+  ordinary install, and `npm ci` in the Dockerfile then refuses the whole tree
+  with `EUSAGE ... not in sync`. The implementer always runs on linux/x64, so
+  an ordinary install there produces a lockfile that builds nowhere else.
+  `--package-lock-only` resolves from registry metadata without installing and
+  records all platforms. Check before pushing: every
+  `<pkg>-binding-<platform>` the dependency declares should appear in the
+  lockfile, not just the linux/x64 one.
 
 ## Journal and ADRs
 
