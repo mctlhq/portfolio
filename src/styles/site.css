@@ -253,6 +253,54 @@ pre,
   margin: 0;
 }
 
+/* Approach page: the DevLoop cycle diagram. Narrow-first so a context
+ * without media query evaluation (print) gets the readable vertical
+ * variant. Colours are all currentColor / design tokens (no literal),
+ * so the diagram follows the page's theme toggle. */
+.cycle {
+  margin: 0 0 var(--mctl-space-6);
+}
+.cycle-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--surface-fg);
+}
+.cycle-wide {
+  display: none;
+}
+.cycle-node rect {
+  fill: var(--surface-elevated);
+  stroke: var(--surface-line-strong);
+  stroke-width: 1;
+}
+.cycle-node.is-gate rect {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+.cycle-node text {
+  fill: currentColor;
+  font-family: var(--font-display);
+  font-size: 14px;
+}
+.cycle-edges path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+@media (min-width: 600px) {
+  .cycle-narrow {
+    display: none;
+  }
+  .cycle-wide {
+    display: block;
+  }
+  .cycle-node text {
+    font-size: 13px;
+  }
+}
+
 /* Tap targets: every interactive element on the page is at least 44px tall
  * at any viewport width, per the 360px acceptance criterion. */
 .site-nav a,

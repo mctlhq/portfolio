@@ -1,3 +1,32 @@
+// The nine "What I run" items also open the approach page's longer "Proven
+// open source" list (thirteen items: these nine plus four more). Declared as
+// module-level consts, not re-typed, so detailsRunItems and
+// detailsStackItems below share one source array and cannot drift --
+// test/approach.test.ts asserts the prefix relationship anyway.
+const RUN_ITEMS_EN = [
+  'k3s on Hetzner, provisioned with OpenTofu',
+  'ArgoCD, Argo Workflows and Argo Rollouts',
+  'HashiCorp Vault with External Secrets',
+  'CloudNativePG',
+  'VictoriaMetrics, Grafana and Loki',
+  'Traefik and cert-manager',
+  'Temporal',
+  'Backstage',
+  'Cloudflare',
+] as const;
+const RUN_ITEMS_RU = [
+  'k3s на Hetzner, разворачивается OpenTofu',
+  'ArgoCD, Argo Workflows и Argo Rollouts',
+  'HashiCorp Vault с External Secrets',
+  'CloudNativePG',
+  'VictoriaMetrics, Grafana и Loki',
+  'Traefik и cert-manager',
+  'Temporal',
+  'Backstage',
+  'Cloudflare',
+] as const;
+const STACK_EXTRA = ['Claude Agent SDK', 'release-please', 'Astro', 'nginx'] as const;
+
 // Bilingual string dictionary. Every user-facing string on the site lives
 // here as { en, ru }; astro check catches a typo'd key via UiKey.
 export const ui = {
@@ -54,28 +83,8 @@ export const ui = {
   detailsContactSummary: { en: 'Contact', ru: 'Контакты' },
 
   detailsRunItems: {
-    en: [
-      'k3s on Hetzner, provisioned with OpenTofu',
-      'ArgoCD, Argo Workflows and Argo Rollouts',
-      'HashiCorp Vault with External Secrets',
-      'CloudNativePG',
-      'VictoriaMetrics, Grafana and Loki',
-      'Traefik and cert-manager',
-      'Temporal',
-      'Backstage',
-      'Cloudflare',
-    ],
-    ru: [
-      'k3s на Hetzner, разворачивается OpenTofu',
-      'ArgoCD, Argo Workflows и Argo Rollouts',
-      'HashiCorp Vault с External Secrets',
-      'CloudNativePG',
-      'VictoriaMetrics, Grafana и Loki',
-      'Traefik и cert-manager',
-      'Temporal',
-      'Backstage',
-      'Cloudflare',
-    ],
+    en: [...RUN_ITEMS_EN],
+    ru: [...RUN_ITEMS_RU],
   },
   detailsWorkItems: {
     en: [
@@ -106,6 +115,70 @@ export const ui = {
   workDetailsSummary: { en: 'Details', ru: 'Подробнее' },
   workMetricsLabel: { en: 'Repository metrics', ru: 'Метрики репозитория' },
   workPageTitle: { en: 'Work — Dmitrii Mashkov', ru: 'Work — Dmitrii Mashkov' },
+
+  approachPageTitle: { en: 'Approach — Dmitrii Mashkov', ru: 'Approach — Dmitrii Mashkov' },
+  approachIntro: {
+    en: 'Inside the platform this cycle is called the DevLoop. A change starts as a written issue and ends as a deployment that the platform observed — every step leaves a record a person can audit.',
+    ru: 'Внутри платформы этот цикл называется DevLoop. Изменение начинается как написанный issue и заканчивается деплоем, который платформа наблюдала — каждый шаг оставляет след, который человек может проверить.',
+  },
+
+  cycleNodes: {
+    en: [
+      'Issue',
+      'Investigate',
+      'Proposal',
+      'Approve',
+      'Implement',
+      'Review gate',
+      'Shepherd merge',
+      'Release',
+      'Deploy',
+      'Monitor',
+    ],
+    ru: [
+      'Issue',
+      'Исследование',
+      'Предложение',
+      'Одобрение',
+      'Реализация',
+      'Ревью-гейт',
+      'Мерж шефердом',
+      'Релиз',
+      'Деплой',
+      'Наблюдение',
+    ],
+  },
+  cycleTitle: { en: 'The DevLoop cycle', ru: 'Цикл DevLoop' },
+  cycleDesc: {
+    en: 'A closed loop of ten steps: Issue, Investigate, Proposal, Approve, Implement, Review gate, Shepherd merge, Release, Deploy, Monitor, and back to Issue. Approve and Review gate are drawn with a dashed outline because they are the two gates: Approve is a human decision, Review gate is automated.',
+    ru: 'Замкнутый цикл из десяти шагов: Issue, Исследование, Предложение, Одобрение, Реализация, Ревью-гейт, Мерж шефердом, Релиз, Деплой, Наблюдение и снова Issue. Одобрение и Ревью-гейт нарисованы пунктиром, потому что это две контрольные точки: Одобрение — решение человека, Ревью-гейт — автоматический.',
+  },
+
+  detailsGatesSummary: { en: 'Gates', ru: 'Контрольные точки' },
+  detailsGatesItems: {
+    en: [
+      'The implementer never reads the issue; it reads only the approved proposal, so a proposal must contain every acceptance criterion before approval.',
+      'Approval is a durable signal into the workflow, not an edit of a file.',
+      'Every pull request passes an automated reviewer; unresolved high-severity findings block the merge.',
+      'The main branch accepts merge commits only, requires a review, and has no administrator bypass.',
+    ],
+    ru: [
+      'Имплементер никогда не читает issue; он читает только одобренное предложение, поэтому предложение должно содержать каждый критерий приёмки до одобрения.',
+      'Одобрение — это устойчивый сигнал в воркфлоу, а не правка файла.',
+      'Каждый pull request проходит автоматического ревьюера; незакрытые находки высокой серьёзности блокируют мерж.',
+      'Ветка main принимает только merge-коммиты, требует ревью и не имеет обхода для администратора.',
+    ],
+  },
+
+  detailsNumbersSummary: { en: 'Numbers', ru: 'Числа' },
+  statDevloopProposals: { en: 'DevLoop proposals', ru: 'Предложений DevLoop' },
+  statReleasesCount: { en: 'Releases', ru: 'Релизов' },
+
+  detailsStackSummary: { en: 'Proven open source', ru: 'Проверенный open source' },
+  detailsStackItems: {
+    en: [...RUN_ITEMS_EN, ...STACK_EXTRA],
+    ru: [...RUN_ITEMS_RU, ...STACK_EXTRA],
+  },
 } as const;
 
 export type UiKey = keyof typeof ui;

@@ -1,0 +1,53 @@
+---
+import Base from '../layouts/Base.astro';
+import Lang from '../i18n/Lang.astro';
+import Stat from '../components/Stat.astro';
+import Details from '../components/Details.astro';
+import CycleDiagram from '../components/CycleDiagram.astro';
+import { ui } from '../i18n/ui';
+import { snapshotDate, type Metrics } from '../lib/metrics';
+import raw from '../data/metrics.json';
+
+const metrics = raw as Metrics;
+const date = snapshotDate(metrics.generated_at);
+---
+
+<Base title={ui.approachPageTitle.en}>
+  <main>
+    <h1><Lang en={ui.navApproach.en} ru={ui.navApproach.ru} /></h1>
+    <p class="subline"><Lang en={ui.approachIntro.en} ru={ui.approachIntro.ru} /></p>
+
+    <figure class="cycle">
+      <CycleDiagram />
+    </figure>
+
+    <Details summaryEn={ui.detailsGatesSummary.en} summaryRu={ui.detailsGatesSummary.ru}>
+      <ul class="l en">
+        {ui.detailsGatesItems.en.map((item) => <li>{item}</li>)}
+      </ul>
+      <ul class="l ru" lang="ru">
+        {ui.detailsGatesItems.ru.map((item) => <li>{item}</li>)}
+      </ul>
+    </Details>
+
+    <Details summaryEn={ui.detailsNumbersSummary.en} summaryRu={ui.detailsNumbersSummary.ru}>
+      <div class="stats">
+        <Stat value={metrics.sources.mctl.devloop_proposals} labelEn={ui.statDevloopProposals.en} labelRu={ui.statDevloopProposals.ru} />
+        <Stat value={metrics.sources.mctl.services} labelEn={ui.statServices.en} labelRu={ui.statServices.ru} />
+        <Stat value={metrics.sources.github.releases} labelEn={ui.statReleasesCount.en} labelRu={ui.statReleasesCount.ru} />
+        <p class="stat-caption">
+          <Lang en={`${ui.statCaptionPrefix.en} ${date}`} ru={`${ui.statCaptionPrefix.ru} ${date}`} />
+        </p>
+      </div>
+    </Details>
+
+    <Details summaryEn={ui.detailsStackSummary.en} summaryRu={ui.detailsStackSummary.ru}>
+      <ul class="l en">
+        {ui.detailsStackItems.en.map((item) => <li>{item}</li>)}
+      </ul>
+      <ul class="l ru" lang="ru">
+        {ui.detailsStackItems.ru.map((item) => <li>{item}</li>)}
+      </ul>
+    </Details>
+  </main>
+</Base>
