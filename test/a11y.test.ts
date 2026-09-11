@@ -58,3 +58,35 @@ test('site.css declares no animation or transition anywhere', () => {
 test('Lang.astro emits lang="ru" on the Russian span', () => {
   assert.match(langAstro, /<span class="l ru" lang="ru">/);
 });
+
+test('site.css declares a color for "main a" and "main a:visited" (content link contrast, issue #46)', () => {
+  const ruleRe = /([^{}]+)\{([^}]*)\}/g;
+  let m;
+  const declared = new Set();
+  while ((m = ruleRe.exec(siteCss))) {
+    const selectors = m[1].split(',').map((s) => s.trim().replace(/\s+/g, ' '));
+    const hasColour = /color:\s*[^;]+;/.test(m[2]);
+    if (!hasColour) continue;
+    for (const selector of ['main a', 'main a:visited']) {
+      if (selectors.includes(selector)) declared.add(selector);
+    }
+  }
+  assert.ok(declared.has('main a'), 'no "main a { color: ... }" rule found');
+  assert.ok(declared.has('main a:visited'), 'no "main a:visited { color: ... }" rule found');
+});
+
+test('site.css pins .cta:visited and .project-links a:visited to their unvisited colour', () => {
+  const ruleRe = /([^{}]+)\{([^}]*)\}/g;
+  let m;
+  const declared = new Set();
+  while ((m = ruleRe.exec(siteCss))) {
+    const selectors = m[1].split(',').map((s) => s.trim().replace(/\s+/g, ' '));
+    const hasColour = /color:\s*[^;]+;/.test(m[2]);
+    if (!hasColour) continue;
+    for (const selector of ['.cta:visited', '.project-links a:visited']) {
+      if (selectors.includes(selector)) declared.add(selector);
+    }
+  }
+  assert.ok(declared.has('.cta:visited'), 'no ".cta:visited { color: ... }" rule found');
+  assert.ok(declared.has('.project-links a:visited'), 'no ".project-links a:visited { color: ... }" rule found');
+});

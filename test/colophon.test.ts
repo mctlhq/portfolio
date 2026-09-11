@@ -109,6 +109,18 @@ test('Footer.astro imports package.json and renders pkg.version with no semver l
   assert.doesNotMatch(footer, /\d+\.\d+\.\d+/);
 });
 
+test('Footer.astro points "Source on GitHub" at the repo itself, not the bare org', () => {
+  assert.match(footer, /import\s*\{\s*REPO_URL\s*,\s*releaseTagUrl\s*\}\s*from\s+['"]\.\.\/lib\/links['"]/);
+  assert.match(footer, /<a href=\{REPO_URL\}>/);
+  assert.doesNotMatch(footer, /href="https:\/\/github\.com\/mctlhq"/);
+});
+
+test('Footer.astro renders the release line with an explicit space and no colon separator, and wraps data-release in a tag/version link', () => {
+  assert.match(footer, /footerReleaseLabel\.ru\s*\}\s*\/>\{'\s'\}/);
+  assert.doesNotMatch(footer, /footerReleaseLabel\.ru\s*\}\s*\/>:/);
+  assert.match(footer, /<a href=\{releaseTagUrl\(pkg\.version\)\}><span data-release>\{pkg\.version\}<\/span><\/a>/);
+});
+
 test('none of the new colophon .astro files reference var(--font-editorial) or class="lede"', () => {
   for (const [name, source] of [
     ['colophon/index.astro', indexAstro],

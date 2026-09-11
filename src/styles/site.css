@@ -182,6 +182,27 @@ pre,
   border-color: var(--accent);
 }
 
+/* Content links: every <a> inside <main> that carries no styling of its own.
+   Chosen over putting class="mctl-prose" on <main> -- see design.md: main a
+   (0,1,1) via .mctl-prose would beat .cta (0,1,0) and restyle CTAs; and
+   Base.astro has no <main> to put the class on. */
+main a,
+main a:visited {
+  color: var(--accent);
+}
+main a:hover {
+  color: var(--accent-highlight);
+}
+/* :visited raises specificity to (0,1,2), which would otherwise beat .cta
+   (0,1,0) and .project-links a (0,1,1). Pin both so a visited CTA or work
+   link keeps its current colour. */
+.cta:visited {
+  color: var(--surface-fg);
+}
+.project-links a:visited {
+  color: var(--surface-fg);
+}
+
 /* Collapsible blocks. */
 .block {
   border-top: 1px solid var(--surface-line);
@@ -434,6 +455,7 @@ table.cycles td:nth-child(8) {
     --surface-fg: #111;
     --surface-fg-muted: #444;
     --surface-line: #bbb;
+    --accent: var(--mctl-accent-terracotta-light-primary); /* 5.62:1 on #fff, vs 3.64:1 for the dark primary */
   }
   .site-header,
   .toggle-group,

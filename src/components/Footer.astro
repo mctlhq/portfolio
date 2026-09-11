@@ -1,6 +1,7 @@
 ---
 import Lang from '../i18n/Lang.astro';
 import { ui } from '../i18n/ui';
+import { REPO_URL, releaseTagUrl } from '../lib/links';
 import pkg from '../../package.json';
 
 // package.json's version -- bumped by release-please on every release -- is
@@ -8,14 +9,14 @@ import pkg from '../../package.json';
 ---
 
 <footer class="site-footer">
-  <a href="https://github.com/mctlhq">
+  <a href={REPO_URL}>
     <Lang en={ui.footerGithubLabel.en} ru={ui.footerGithubLabel.ru} />
   </a>
   <a href="/colophon/">
     <Lang en={ui.footerColophonLabel.en} ru={ui.footerColophonLabel.ru} />
   </a>
   <span>
-    <Lang en={ui.footerReleaseLabel.en} ru={ui.footerReleaseLabel.ru} />:
-    <span data-release>{pkg.version}</span>
+    <Lang en={ui.footerReleaseLabel.en} ru={ui.footerReleaseLabel.ru} />{' '}
+    <a href={releaseTagUrl(pkg.version)}><span data-release>{pkg.version}</span></a>
   </span>
 </footer>

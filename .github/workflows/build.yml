@@ -19,7 +19,9 @@ jobs:
 
       - run: npm ci --no-audit --no-fund
 
-      - run: npm test
+      - run: npm run build
+
+      - run: node scripts/check-links.mjs dist
 
   build:
     runs-on: ubuntu-latest

@@ -15,10 +15,11 @@
 
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const MCTL_CSS_PATH = path.join(ROOT, 'public/assets/mctl/mctl.css');
+const SITE_CSS_PATH = path.join(ROOT, 'src/styles/site.css');
 
 const TEXT_MIN_RATIO = 4.5;
 const FOCUS_RING_MIN_RATIO = 3;
@@ -34,6 +35,7 @@ const SEMANTIC_TOKENS = {
     'surface-fg': 'mctl-surface-dark-fg',
     'surface-fg-muted': 'mctl-surface-dark-fg-muted',
     accent: 'mctl-accent-terracotta-dark-primary',
+    'accent-highlight': 'mctl-accent-terracotta-dark-highlight',
     'accent-fg': 'mctl-accent-terracotta-dark-fg',
   },
   light: {
@@ -42,8 +44,18 @@ const SEMANTIC_TOKENS = {
     'surface-fg': 'mctl-surface-light-fg',
     'surface-fg-muted': 'mctl-surface-light-fg-muted',
     accent: 'mctl-accent-terracotta-light-primary',
+    'accent-highlight': 'mctl-accent-terracotta-light-highlight',
     'accent-fg': 'mctl-accent-terracotta-light-fg',
   },
+};
+
+// var(--x) custom property -> semantic token name, for the subset that
+// main a / main a:visited / main a:hover / .cta:visited / .project-links
+// a:visited actually declare a `color:` in terms of.
+const VAR_TO_SEMANTIC = {
+  '--accent': 'accent',
+  '--accent-highlight': 'accent-highlight',
+  '--surface-fg': 'surface-fg',
 };
 
 // Pairs site.css actually renders. `kind` picks the threshold: 'text' is a
@@ -63,7 +75,7 @@ const PAIRS = [
 // Named exemptions only, never a lowered threshold: { theme, fg, bg, reason }.
 const EXEMPTIONS = [];
 
-function hexToRgb(hex) {
+export function hexToRgb(hex) {
   const clean = hex.replace('#', '');
   return {
     r: parseInt(clean.slice(0, 2), 16),
@@ -81,14 +93,14 @@ function relativeLuminance(hex) {
   return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
 }
 
-function contrastRatio(hex1, hex2) {
+export function contrastRatio(hex1, hex2) {
   const l1 = relativeLuminance(hex1);
   const l2 = relativeLuminance(hex2);
   const [lighter, darker] = l1 > l2 ? [l1, l2] : [l2, l1];
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-function parseTokens(css) {
+export function parseTokens(css) {
   const tokens = new Map();
   const re = /--(mctl-[a-z0-9-]+):\s*(#[0-9a-fA-F]{6})\s*;/g;
   let m;
@@ -102,9 +114,104 @@ function isExempt(theme, fg, bg) {
   return EXEMPTIONS.some((e) => e.theme === theme && e.fg === fg && e.bg === bg);
 }
 
+/**
+ * Resolves a CSS `color:` declaration value to a hex colour for a given
+ * theme: `var(--accent)` / `var(--accent-highlight)` / `var(--surface-fg)`
+ * resolve through SEMANTIC_TOKENS + the raw mctl.css tokens; a literal
+ * `#rrggbb` resolves to itself regardless of theme; anything else (unknown
+ * var, missing token) resolves to null.
+ */
+export function resolveColour(value, theme, tokens) {
+  const trimmed = value.trim();
+  const hexMatch = /^#[0-9a-fA-F]{6}$/.exec(trimmed);
+  if (hexMatch) return trimmed;
+
+  const varMatch = /^var\((--[a-z0-9-]+)\)$/.exec(trimmed);
+  if (!varMatch) return null;
+  const semantic = VAR_TO_SEMANTIC[varMatch[1]];
+  if (!semantic) return null;
+  const rawName = SEMANTIC_TOKENS[theme]?.[semantic];
+  if (!rawName) return null;
+  return tokens.get(rawName) ?? null;
+}
+
+// The three content-link selectors, and the browser default that would
+// apply (dark surface, since that is the site's only authored data-theme --
+// see site.css's print-block comment) if the rule covering that selector
+// were reverted/removed.
+const LINK_STATES = [
+  { selector: 'main a', state: 'link', defaultHex: '#0000EE', defaultRatio: '2.10' },
+  { selector: 'main a:visited', state: 'visited', defaultHex: '#551A8B', defaultRatio: '1.79' },
+  { selector: 'main a:hover', state: 'hover', defaultHex: '#0000EE', defaultRatio: '2.10' },
+];
+
+/** Finds the `color:` declaration value of the CSS rule block in `siteCss`
+ * whose comma-separated selector list contains `selector` exactly. Returns
+ * null if no such rule, or no `color:` declaration, is found. */
+function findDeclaredColour(siteCss, selector) {
+  const withoutComments = siteCss.replace(/\/\*[\s\S]*?\*\//g, '');
+  const ruleRe = /([^{}]+)\{([^}]*)\}/g;
+  let m;
+  while ((m = ruleRe.exec(withoutComments))) {
+    const selectors = m[1].split(',').map((s) => s.trim().replace(/\s+/g, ' '));
+    if (!selectors.includes(selector)) continue;
+    const colourMatch = /color:\s*([^;]+);/.exec(m[2]);
+    if (colourMatch) return colourMatch[1].trim();
+  }
+  return null;
+}
+
+/**
+ * Checks the three content-link states (`main a`, `main a:visited`,
+ * `main a:hover`) declared in `siteCss` against the same 4.5:1 text
+ * threshold as PAIRS above, over both surface-bg and surface-elevated, in
+ * both themes. Returns an array of problem strings (empty when every state
+ * resolves to a colour and every resulting pair clears its threshold).
+ */
+export function linkColourProblems(siteCss, tokens) {
+  const problems = [];
+
+  for (const { selector, state, defaultHex, defaultRatio } of LINK_STATES) {
+    const declared = findDeclaredColour(siteCss, selector);
+    if (declared === null) {
+      problems.push(
+        `check-contrast: no "${selector} { color: ... }" rule found in src/styles/site.css -- reverting to the browser default for the ${state} state would render ${defaultHex} at ${defaultRatio}:1 on dark, below the 4.5:1 minimum`,
+      );
+      continue;
+    }
+
+    for (const theme of ['dark', 'light']) {
+      const resolved = resolveColour(declared, theme, tokens);
+      if (!resolved) {
+        problems.push(
+          `check-contrast: [${theme}] could not resolve "${selector}" color declaration "${declared}" to a hex colour`,
+        );
+        continue;
+      }
+      for (const bg of ['surface-bg', 'surface-elevated']) {
+        const bgRaw = SEMANTIC_TOKENS[theme][bg];
+        const bgHex = tokens.get(bgRaw);
+        if (!bgHex) {
+          problems.push(`check-contrast: [${theme}] could not resolve ${bg} (${bgRaw}) from public/assets/mctl/mctl.css`);
+          continue;
+        }
+        const ratio = contrastRatio(resolved, bgHex);
+        if (ratio < TEXT_MIN_RATIO) {
+          problems.push(
+            `check-contrast: [${theme}] "${selector}" (${resolved}) over ${bg} (${bgHex}) is ${ratio.toFixed(2)}:1, below the ${TEXT_MIN_RATIO}:1 minimum for a text pair`,
+          );
+        }
+      }
+    }
+  }
+
+  return problems;
+}
+
 async function main() {
   const css = await readFile(MCTL_CSS_PATH, 'utf8');
   const tokens = parseTokens(css);
+  const siteCss = await readFile(SITE_CSS_PATH, 'utf8');
 
   const problems = [];
   const report = [];
@@ -133,6 +240,27 @@ async function main() {
     }
   }
 
+  // Content-link states (main a / main a:visited / main a:hover): same
+  // report-then-problems shape as the PAIRS loop above, over both themes and
+  // both surfaces.
+  for (const { selector } of LINK_STATES) {
+    const declared = findDeclaredColour(siteCss, selector);
+    if (declared === null) continue; // absence is already captured by linkColourProblems below
+    for (const theme of ['dark', 'light']) {
+      const resolved = resolveColour(declared, theme, tokens);
+      if (!resolved) continue;
+      for (const bg of ['surface-bg', 'surface-elevated']) {
+        const bgHex = tokens.get(SEMANTIC_TOKENS[theme][bg]);
+        if (!bgHex) continue;
+        const ratio = contrastRatio(resolved, bgHex);
+        report.push(
+          `check-contrast: [${theme}] "${selector}" (${resolved}) over ${bg} (${bgHex}) = ${ratio.toFixed(2)}:1 (min ${TEXT_MIN_RATIO}:1, text)`,
+        );
+      }
+    }
+  }
+  problems.push(...linkColourProblems(siteCss, tokens));
+
   for (const line of report) {
     console.log(line);
   }
@@ -147,4 +275,6 @@ async function main() {
   console.log(`check-contrast: OK -- ${report.length} pairs checked, all at or above their minimum`);
 }
 
-await main();
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  await main();
+}

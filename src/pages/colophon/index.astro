@@ -7,6 +7,7 @@ import { getCollection } from 'astro:content';
 import { publicEntries } from '../../lib/content';
 import { byNewestFirst, totalInterventions } from '../../lib/journal';
 import { byAdrId, padAdrId } from '../../lib/adr';
+import { splitByLinks } from '../../lib/links';
 
 const journal = publicEntries(await getCollection('journal')).sort(byNewestFirst);
 const adrs = publicEntries(await getCollection('adr')).sort(byAdrId);
@@ -32,10 +33,22 @@ const adrStatusLabel = {
     <section class="colophon-section">
       <h2><Lang en={ui.colophonChainHeading.en} ru={ui.colophonChainHeading.ru} /></h2>
       <ul class="l en">
-        {ui.colophonChainItems.en.map((item) => <li>{item}</li>)}
+        {ui.colophonChainItems.en.map((item) => (
+          <li>
+            {splitByLinks(item).map((segment) =>
+              segment.href ? <a href={segment.href}>{segment.text}</a> : segment.text,
+            )}
+          </li>
+        ))}
       </ul>
       <ul class="l ru" lang="ru">
-        {ui.colophonChainItems.ru.map((item) => <li>{item}</li>)}
+        {ui.colophonChainItems.ru.map((item) => (
+          <li>
+            {splitByLinks(item).map((segment) =>
+              segment.href ? <a href={segment.href}>{segment.text}</a> : segment.text,
+            )}
+          </li>
+        ))}
       </ul>
     </section>
 
