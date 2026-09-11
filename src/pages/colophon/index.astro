@@ -21,7 +21,10 @@ const adrStatusLabel = {
 } as const;
 ---
 
-<Base title={ui.colophonPageTitle.en}>
+<Base
+  title={ui.colophonPageTitle.en}
+  description="How this site is built and deployed: the DevLoop cycle table with lead times and manual interventions, and the architecture decision records."
+>
   <main>
     <h1><Lang en={ui.navColophon.en} ru={ui.navColophon.ru} /></h1>
     <p class="subline"><Lang en={ui.colophonIntro.en} ru={ui.colophonIntro.ru} /></p>
