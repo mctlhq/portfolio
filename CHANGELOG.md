@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.6](https://github.com/mctlhq/portfolio/compare/0.1.5...0.1.6) (2026-09-11)
+
+
+### Features
+
+* **agents:** issue-9-p7-colophon-page-journal-and-adr-routes ([9c307a3](https://github.com/mctlhq/portfolio/commit/9c307a36ad0f8fb0928764494d90e15d098edc6b))
+* **agents:** issue-9-p7-colophon-page-journal-and-adr-routes ([4bb03bf](https://github.com/mctlhq/portfolio/commit/4bb03bfce43b30aa200043bdcbaeb6ad06f58bc1))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-9-p7-colophon-page-journal-and-adr-routes ([f55840d](https://github.com/mctlhq/portfolio/commit/f55840d11ed08dd4f1d7d623399ffdb70d9a2044))
+
 ## [0.1.5](https://github.com/mctlhq/portfolio/compare/0.1.4...0.1.5) (2026-09-11)
 
 
