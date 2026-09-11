@@ -1,0 +1,28 @@
+/* @mctlhq/css 0.5.0 — global.css. */
+/*
+ * Minimal, safe base styles. Deliberately not an aggressive reset — it only
+ * sets box-sizing and styles <body>, so it can be dropped into existing
+ * sites without clobbering their element styles. Pair with theme.css.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-bg);
+  color: var(--surface-fg);
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-body);
+  line-height: var(--mctl-typography-line-height-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-fg);
+}

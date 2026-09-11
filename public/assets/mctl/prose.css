@@ -1,0 +1,104 @@
+/* @mctlhq/css 0.5.0 — prose.css. */
+/*
+ * Editorial / documentation typography. Scoped under `.mctl-prose` so it only
+ * affects opted-in markdown content (VitePress, docs pages) and never leaks.
+ */
+.mctl-prose {
+  color: var(--surface-fg);
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-body);
+  line-height: var(--mctl-typography-line-height-lede);
+}
+
+.mctl-prose h1,
+.mctl-prose h2,
+.mctl-prose h3,
+.mctl-prose h4 {
+  font-weight: var(--mctl-typography-font-weight-semibold);
+  line-height: var(--mctl-typography-line-height-section-title);
+  letter-spacing: var(--mctl-typography-letter-spacing-hero);
+  margin: var(--mctl-space-7) 0 var(--mctl-space-4);
+}
+
+.mctl-prose h1 {
+  font-size: var(--mctl-typography-font-size-section-title);
+}
+
+/*
+ * Editorial lede — a standfirst paragraph in the Instrument Serif voice.
+ * Sized at the lede step (not body) and rendered upright at full contrast so
+ * the delicate serif stays legible; italic at body size reads poorly.
+ */
+.mctl-prose .mctl-lede,
+.mctl-lede {
+  font-family: var(--font-editorial);
+  font-style: normal;
+  font-size: var(--mctl-typography-font-size-lede);
+  line-height: var(--mctl-typography-line-height-lede);
+  color: var(--surface-fg);
+  margin: var(--mctl-space-4) 0;
+}
+
+.mctl-prose h2 {
+  font-size: var(--mctl-typography-font-size-lede);
+  padding-bottom: var(--mctl-space-3);
+  border-bottom: 1px solid var(--surface-line);
+}
+
+.mctl-prose p,
+.mctl-prose ul,
+.mctl-prose ol {
+  margin: var(--mctl-space-4) 0;
+}
+
+.mctl-prose a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid var(--surface-line-strong);
+}
+
+.mctl-prose a:hover {
+  border-bottom-color: var(--accent);
+}
+
+.mctl-prose em {
+  font-family: var(--font-editorial);
+  font-style: italic;
+}
+
+.mctl-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--syntax-key);
+  background: var(--surface-card);
+  padding: 0.1em 0.35em;
+  border-radius: var(--mctl-radius-sm);
+}
+
+.mctl-prose pre {
+  font-family: var(--font-mono);
+  background: var(--surface-card);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--mctl-radius-md);
+  padding: var(--mctl-space-4);
+  overflow-x: auto;
+}
+
+.mctl-prose pre code {
+  color: inherit;
+  background: none;
+  padding: 0;
+}
+
+.mctl-prose blockquote {
+  margin: var(--mctl-space-5) 0;
+  padding-left: var(--mctl-space-4);
+  border-left: 2px solid var(--accent);
+  color: var(--surface-fg-muted);
+}
+
+.mctl-prose hr {
+  border: none;
+  border-top: 1px solid var(--surface-line);
+  margin: var(--mctl-space-7) 0;
+}

@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
+    "prebuild": "npm run vendor",
     "build": "astro build",
     "preview": "astro preview",
-    "check": "astro check"
+    "check": "astro check",
+    "vendor": "node scripts/vendor-assets.mjs"
   },
   "dependencies": {
     "astro": "^7.0.0"
