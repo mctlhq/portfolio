@@ -19,7 +19,7 @@ const ruLinks = ru.data.links ?? [];
 
 for (const chip of en.data.stack) {
   if (!(chip in stackChipRu) && !stackChipUntranslated.has(chip)) {
-    console.warn(
+    throw new Error(
       `ProjectCard (${en.data.slug}): stack chip "${chip}" has no Russian ` +
         'translation in stackChipRu and is not listed in stackChipUntranslated ' +
         '(src/i18n/ui.ts). Add one or the other.',
