@@ -120,3 +120,51 @@ export const stackChipRu: Record<string, string> = {
   'design tokens': 'дизайн-токены',
   'upstream fork': 'форк upstream',
 };
+
+// Chips intentionally left untranslated because they are a language, product
+// or tool name (e.g. "TypeScript", "PostgreSQL") rather than a plain word.
+// `stack` in the projects content schema is a free-form string array, so this
+// set cannot be enforced by TypeScript; ProjectCard checks every chip against
+// `stackChipRu` and this set and warns at build time when a chip is in
+// neither, so a forgotten translation cannot ship silently.
+export const stackChipUntranslated: ReadonlySet<string> = new Set([
+  'AlertManager',
+  'Argo Workflows',
+  'ArgoCD',
+  'Backstage',
+  'CSS',
+  'Claude API',
+  'Claude Agent SDK',
+  'Cloudflare Workers',
+  'Express',
+  'Fastify',
+  'Go',
+  'Helm',
+  'Hono',
+  'MCP',
+  'MTProto',
+  'Node.js',
+  'OAuth 2.0',
+  'OAuth 2.0 PKCE',
+  'OIDC PKCE',
+  'OpenAPI',
+  'OpenTofu',
+  'Playwright',
+  'PostgreSQL',
+  'Python',
+  'R2',
+  'React',
+  'SQLite',
+  'Storybook',
+  'Telegram Mini App',
+  'Temporal',
+  'Turborepo',
+  'TypeScript',
+  'Vault',
+  'Vue',
+  'Vue 3',
+  'chi',
+  'k3s',
+  'mcp-go',
+  'pnpm',
+]);

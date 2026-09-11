@@ -2,7 +2,7 @@
 import type { CollectionEntry } from 'astro:content';
 import { render } from 'astro:content';
 import Lang from '../i18n/Lang.astro';
-import { ui, stackChipRu } from '../i18n/ui';
+import { ui, stackChipRu, stackChipUntranslated } from '../i18n/ui';
 import { formatStat } from '../lib/metrics';
 
 interface Props {
@@ -16,6 +16,16 @@ const { Content: BodyRu } = await render(ru);
 const repoLabel = en.data.repo?.replace(/^https:\/\//, '').replace(/\/$/, '');
 const links = en.data.links ?? [];
 const ruLinks = ru.data.links ?? [];
+
+for (const chip of en.data.stack) {
+  if (!(chip in stackChipRu) && !stackChipUntranslated.has(chip)) {
+    console.warn(
+      `ProjectCard (${en.data.slug}): stack chip "${chip}" has no Russian ` +
+        'translation in stackChipRu and is not listed in stackChipUntranslated ' +
+        '(src/i18n/ui.ts). Add one or the other.',
+    );
+  }
+}
 ---
 
 <article class="project" id={en.data.slug}>
