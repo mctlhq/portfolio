@@ -103,23 +103,6 @@ test('every public journal file has the required frontmatter keys, single-quoted
   }
 });
 
-test('the public journal file count matches the visibility: public grep, and the derived totals are reported', () => {
-  let publicCount = 0;
-  let whatTotal = 0;
-  for (const name of journalFiles) {
-    const source = readFileSync(`${JOURNAL_DIR}${name}`, 'utf8');
-    if (/^visibility:\s*public\s*$/m.test(source)) {
-      publicCount += 1;
-      whatTotal += (source.match(/^\s*-\s+what:/gm) ?? []).length;
-    }
-  }
-  assert.equal(
-    publicCount,
-    journalFiles.filter((name) => /^visibility:\s*public\s*$/m.test(readFileSync(`${JOURNAL_DIR}${name}`, 'utf8'))).length,
-    `derived public cycle count ${publicCount}, intervention total ${whatTotal}`,
-  );
-});
-
 test('Footer.astro imports package.json and renders pkg.version with no semver literal', () => {
   assert.match(footer, /import\s+pkg\s+from\s+['"]\.\.\/\.\.\/package\.json['"]/);
   assert.match(footer, /\{pkg\.version\}/);
