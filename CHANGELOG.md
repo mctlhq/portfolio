@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.5](https://github.com/mctlhq/portfolio/compare/0.1.4...0.1.5) (2026-09-11)
+
+
+### Features
+
+* **agents:** issue-8-p6-approach-page-with-the-devloop-cycle ([7f63bb0](https://github.com/mctlhq/portfolio/commit/7f63bb01744d4ca21116d1f890449fc313f880a9))
+* **agents:** issue-8-p6-approach-page-with-the-devloop-cycle ([1662b53](https://github.com/mctlhq/portfolio/commit/1662b536d2da5f68cb210b4632a274c2758ffbdb))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-8-p6-approach-page-with-the-devloop-cycle ([6ad9630](https://github.com/mctlhq/portfolio/commit/6ad963071a3850cd439c7202b672a058e182721c))
+
 ## [0.1.4](https://github.com/mctlhq/portfolio/compare/0.1.3...0.1.4) (2026-09-11)
 
 
