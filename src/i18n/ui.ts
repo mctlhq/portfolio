@@ -56,8 +56,11 @@ export const ui = {
   footerColophonLabel: { en: 'Colophon', ru: 'Колофон' },
   footerReleaseLabel: { en: 'Release', ru: 'Релиз' },
 
-  // The name is identical in both languages; the <title> element can hold
-  // only one string, so both sides of the pair are the Latin form.
+  // heroName is the prose pair rendered in the hero (Latin on the English
+  // side, Cyrillic on the Russian side). homeTitle is the single-string
+  // <title> value and stays Latin on both sides -- a browser tab is a
+  // filing label, not prose, and <title> can hold only one string.
+  heroName: { en: 'Dmitrii Mashkov', ru: 'Дмитрий Машков' },
   homeTitle: { en: 'Dmitrii Mashkov', ru: 'Dmitrii Mashkov' },
 
   heroThesis: {
