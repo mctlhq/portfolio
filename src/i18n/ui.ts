@@ -27,10 +27,71 @@ export const ui = {
   footerColophonLabel: { en: 'Colophon', ru: 'Колофон' },
   footerReleaseLabel: { en: 'Release', ru: 'Релиз' },
 
-  homeTitle: { en: 'Dmitrii Mashkov', ru: 'Дмитрий Машков' },
-  homeLede: {
-    en: 'Software engineer working on developer platforms and automation.',
-    ru: 'Инженер-программист, работающий над платформами для разработчиков и автоматизацией.',
+  // The name is identical in both languages; the <title> element can hold
+  // only one string, so both sides of the pair are the Latin form.
+  homeTitle: { en: 'Dmitrii Mashkov', ru: 'Dmitrii Mashkov' },
+
+  heroThesis: {
+    en: 'Platform engineering with AI on proven open source. Software built the agentic way.',
+    ru: 'Платформенная инженерия с AI на проверенных open-source решениях. Разработка агентским способом.',
+  },
+  heroSubline: {
+    en: "I build and run an internal developer platform where a GitHub issue becomes a reviewed proposal, an agent's pull request, a release and a deployment — with humans at the gates, not at the keyboard.",
+    ru: 'Я строю и эксплуатирую внутреннюю платформу разработки, где GitHub-issue становится проверенным предложением, pull request агента, релизом и деплоем — люди стоят на контрольных точках, а не за клавиатурой.',
+  },
+
+  statRepositories: { en: 'Repositories', ru: 'Репозитории' },
+  statCommits: { en: 'Commits', ru: 'Коммиты' },
+  statReleases: { en: 'Releases', ru: 'Релизы' },
+  statServices: { en: 'Services in production', ru: 'Сервисов в проде' },
+  statCaptionPrefix: { en: 'Snapshot', ru: 'Снимок' },
+
+  ctaWork: { en: 'See the work', ru: 'Смотреть работы' },
+  ctaColophon: { en: 'How this site is built', ru: 'Как сделан этот сайт' },
+
+  detailsRunSummary: { en: 'What I run', ru: 'Что я эксплуатирую' },
+  detailsWorkSummary: { en: 'How I work', ru: 'Как я работаю' },
+  detailsContactSummary: { en: 'Contact', ru: 'Контакты' },
+
+  detailsRunItems: {
+    en: [
+      'k3s on Hetzner, provisioned with OpenTofu',
+      'ArgoCD, Argo Workflows and Argo Rollouts',
+      'HashiCorp Vault with External Secrets',
+      'CloudNativePG',
+      'VictoriaMetrics, Grafana and Loki',
+      'Traefik and cert-manager',
+      'Temporal',
+      'Backstage',
+      'Cloudflare',
+    ],
+    ru: [
+      'k3s на Hetzner, разворачивается OpenTofu',
+      'ArgoCD, Argo Workflows и Argo Rollouts',
+      'HashiCorp Vault с External Secrets',
+      'CloudNativePG',
+      'VictoriaMetrics, Grafana и Loki',
+      'Traefik и cert-manager',
+      'Temporal',
+      'Backstage',
+      'Cloudflare',
+    ],
+  },
+  detailsWorkItems: {
+    en: [
+      'An issue is written so that an agent can turn it into requirements, a design and a task list.',
+      'A human checks the proposal against the issue and approves it — or sends it back.',
+      'An agent implements on a branch and opens a pull request; an automated reviewer gates it.',
+      'A shepherd merges when the gate is clean; a release tags it; the platform deploys it.',
+      'Every cycle is logged with timestamps, so lead time and manual interventions are measured, not claimed.',
+    ],
+    ru: [
+      'Issue пишется так, чтобы агент мог превратить его в требования, дизайн и список задач.',
+      'Человек сверяет предложение с issue и одобряет его — или возвращает.',
+      'Агент реализует в ветке и открывает pull request; автоматический ревьюер выступает контрольной точкой.',
+      'Шеферд мержит, когда контроль чист; релиз ставит тег; платформа деплоит.',
+      'Каждый цикл записан с таймстампами, поэтому lead time и ручные вмешательства измеряются, а не декларируются.',
+    ],
   },
 
   notFoundTitle: { en: 'Not found', ru: 'Страница не найдена' },

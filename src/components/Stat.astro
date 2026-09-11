@@ -1,0 +1,17 @@
+---
+import Lang from '../i18n/Lang.astro';
+import { formatStat } from '../lib/metrics';
+
+interface Props {
+  value: number | null;
+  labelEn: string;
+  labelRu: string;
+}
+
+const { value, labelEn, labelRu } = Astro.props;
+---
+
+<div class="stat">
+  <span class="stat-value" data-stat>{formatStat(value)}</span>
+  <span class="stat-label"><Lang en={labelEn} ru={labelRu} /></span>
+</div>

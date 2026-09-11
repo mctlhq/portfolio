@@ -1,0 +1,18 @@
+{
+  "generated_at": null,
+  "sources": {
+    "github": {
+      "collected_at": null,
+      "method": "placeholder",
+      "repos": null,
+      "commits": null,
+      "releases": null
+    },
+    "mctl": {
+      "collected_at": null,
+      "method": "placeholder",
+      "services": null,
+      "devloop_proposals": null
+    }
+  }
+}
