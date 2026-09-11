@@ -68,6 +68,15 @@ One DevLoop cycle at a time in this repository.
   disabled. Russian is a CSS-driven toggle (`.l.en` / `.l.ru` pairs). Every
   user-facing string exists in both languages; proper nouns, hostnames,
   commands and identifiers stay untranslated.
+- The name is a translated string, not a proper noun exempt from it. English
+  renders `Dmitrii Mashkov`, Russian renders `Дмитрий Машков`. They are the
+  same person and different scripts, so the hero is an `.l.en` / `.l.ru` pair
+  like any other copy, and it is set in Onest — `Instrument Serif` ships no
+  Cyrillic and would drop the Russian half onto a fallback family. The
+  `<title>` element holds one string and stays Latin; a browser tab is a
+  filing label, not prose. A Russian reader shown a transliteration of a
+  Russian name reads a page that was translated rather than written, and the
+  name is the one string on the site where that matters most.
 - Zero third-party browser requests in production. Design tokens
   (`@mctlhq/css` 0.5.0) and fonts (Onest, Instrument Serif, JetBrains Mono —
   all SIL OFL) are vendored at build time with their licences.
