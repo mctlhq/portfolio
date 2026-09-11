@@ -233,6 +233,16 @@ pre,
     display: block !important;
     content-visibility: visible !important;
   }
+  /* The rule above forces every non-summary child of a collapsed .block to
+   * display:block so print carries the full content, but .l.en/.l.ru pairs
+   * (see the language toggle at the top of this file) can be direct children
+   * of a .block (e.g. the two <ul> lists in each home-page <details>). Without
+   * this override both languages would print at once. Higher specificity than
+   * the block-forcing rule above lets it win even though both use !important. */
+  :root[data-lang='en'] .block > .l.ru,
+  :root[data-lang='ru'] .block > .l.en {
+    display: none !important;
+  }
   a[href^='http']::after {
     content: ' (' attr(href) ')';
     font-size: var(--mctl-typography-font-size-xs);
