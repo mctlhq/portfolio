@@ -13,12 +13,20 @@ const ISO_WITH_OFFSET =
 
 export const EM_DASH = '—';
 
+export interface MetricRepo {
+  commits: number | null;
+  releases: number | null;
+  first_commit_at: string | null;
+  last_commit_at: string | null;
+}
+
 export interface MetricSourceGithub {
   collected_at: string | null;
   method: string;
   repos: number | null;
   commits: number | null;
   releases: number | null;
+  per_repo: Record<string, MetricRepo>;
 }
 
 export interface MetricSourceMctl {
@@ -26,6 +34,7 @@ export interface MetricSourceMctl {
   method: string;
   services: number | null;
   devloop_proposals: number | null;
+  stale: boolean;
 }
 
 export interface Metrics {
@@ -57,6 +66,46 @@ export function snapshotDate(generatedAt: string | null): string {
   return generatedAt.slice(0, 10);
 }
 
+const REPO_URL_RE = /^https:\/\/github\.com\/([^/\s]+)\/([^/\s]+?)\/?$/;
+
+/**
+ * `'https://github.com/mctlhq/mctl-api'` -> `'mctlhq/mctl-api'`; a trailing
+ * slash is tolerated; `undefined` or anything that is not a github.com
+ * repository URL of the `owner/name` shape gives `null`.
+ */
+export function repoKey(repoUrl: string | undefined): string | null {
+  if (!repoUrl) {
+    return null;
+  }
+  const match = REPO_URL_RE.exec(repoUrl);
+  return match ? `${match[1]}/${match[2]}` : null;
+}
+
+const EMPTY_REPO_METRIC: MetricRepo = {
+  commits: null,
+  releases: null,
+  first_commit_at: null,
+  last_commit_at: null,
+};
+
+/**
+ * The `per_repo` entry for a project's `repo` URL, or an all-null
+ * `MetricRepo` when the URL does not resolve, `per_repo` is missing, or the
+ * key is absent -- so a card can always render through `formatStat(null)`
+ * rather than needing a conditional in the template.
+ */
+export function repoMetrics(metrics: Metrics, repoUrl: string | undefined): MetricRepo {
+  const key = repoKey(repoUrl);
+  if (key === null) {
+    return EMPTY_REPO_METRIC;
+  }
+  const perRepo = metrics.sources?.github?.per_repo;
+  if (!perRepo || !(key in perRepo)) {
+    return EMPTY_REPO_METRIC;
+  }
+  return perRepo[key];
+}
+
 function isNonNegativeInteger(value: unknown): boolean {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0;
 }
@@ -85,6 +134,40 @@ function methodProblems(path: string, value: unknown): string[] {
   return [`${path}: must be a non-empty string, got ${JSON.stringify(value)}`];
 }
 
+function booleanProblems(path: string, value: unknown): string[] {
+  if (typeof value === 'boolean') {
+    return [];
+  }
+  return [`${path}: must be a boolean, got ${JSON.stringify(value)}`];
+}
+
+/**
+ * Validates every entry of `sources.github.per_repo`: each entry's
+ * `commits`/`releases` via the same rule as any other metric value, and
+ * each `first_commit_at`/`last_commit_at` via the same rule as any other
+ * timestamp. Reports problems under paths like
+ * `sources.github.per_repo["mctlhq/mctl-api"].commits`.
+ */
+function perRepoProblems(path: string, raw: unknown): string[] {
+  if (typeof raw !== 'object' || raw === null) {
+    return [`${path}: must be an object`];
+  }
+  const problems: string[] = [];
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const entryPath = `${path}["${key}"]`;
+    if (typeof value !== 'object' || value === null) {
+      problems.push(`${entryPath}: must be an object`);
+      continue;
+    }
+    const entry = value as Record<string, unknown>;
+    problems.push(...metricValueProblems(`${entryPath}.commits`, entry.commits));
+    problems.push(...metricValueProblems(`${entryPath}.releases`, entry.releases));
+    problems.push(...timestampProblems(`${entryPath}.first_commit_at`, entry.first_commit_at));
+    problems.push(...timestampProblems(`${entryPath}.last_commit_at`, entry.last_commit_at));
+  }
+  return problems;
+}
+
 function sourceProblems(
   path: string,
   raw: unknown,
@@ -107,8 +190,10 @@ function sourceProblems(
  * Validates the shape of a parsed metrics.json. Returns an empty array when
  * the object is well formed: `generated_at` and each `collected_at` are
  * `null` or an ISO 8601 timestamp with a timezone, each `method` is a
- * non-empty string, and every metric value is `null` or a non-negative
- * integer. Returns one message per problem otherwise.
+ * non-empty string, every metric value is `null` or a non-negative
+ * integer, every `sources.github.per_repo` entry is well formed, and
+ * `sources.mctl.stale` is a boolean. Returns one message per problem
+ * otherwise.
  */
 export function metricProblems(raw: unknown): string[] {
   if (typeof raw !== 'object' || raw === null) {
@@ -126,6 +211,14 @@ export function metricProblems(raw: unknown): string[] {
 
   if ('github' in sources) {
     problems.push(...sourceProblems('sources.github', sources.github, ['repos', 'commits', 'releases']));
+    const github = sources.github as Record<string, unknown> | null;
+    if (github && typeof github === 'object') {
+      if ('per_repo' in github) {
+        problems.push(...perRepoProblems('sources.github.per_repo', github.per_repo));
+      } else {
+        problems.push('sources.github.per_repo: missing');
+      }
+    }
   } else {
     problems.push('sources.github: missing');
   }
@@ -134,6 +227,14 @@ export function metricProblems(raw: unknown): string[] {
     problems.push(
       ...sourceProblems('sources.mctl', sources.mctl, ['services', 'devloop_proposals']),
     );
+    const mctl = sources.mctl as Record<string, unknown> | null;
+    if (mctl && typeof mctl === 'object') {
+      if ('stale' in mctl) {
+        problems.push(...booleanProblems('sources.mctl.stale', mctl.stale));
+      } else {
+        problems.push('sources.mctl.stale: missing');
+      }
+    }
   } else {
     problems.push('sources.mctl: missing');
   }

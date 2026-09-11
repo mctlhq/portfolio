@@ -2,8 +2,11 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { repoKey } from '../src/lib/metrics.ts';
 
 const PROJECTS_DIR = fileURLToPath(new URL('../src/content/projects/', import.meta.url));
+const METRICS_PATH = fileURLToPath(new URL('../src/data/metrics.json', import.meta.url));
+const CARD_PATH = fileURLToPath(new URL('../src/components/ProjectCard.astro', import.meta.url));
 
 const EXPECTED_SLUGS = [
   'mctl-api',
@@ -112,4 +115,49 @@ test('the stack: line is byte-identical between the .en.md and .ru.md file for e
     assert.ok(enStack, `${slug}.en.md: missing stack: line`);
     assert.equal(enStack, ruStack, `${slug}: stack: line differs between .en.md and .ru.md`);
   }
+});
+
+// T6: every repo: value resolves through repoKey to a per_repo key present
+// in the committed snapshot, except pfeifenpatenschaft-backend, which has
+// none. Turns per_repo key drift into a red test rather than a quietly
+// blank card.
+test('every repo: value resolves to a src/data/metrics.json per_repo key, except pfeifenpatenschaft-backend', () => {
+  const metrics = JSON.parse(readFileSync(METRICS_PATH, 'utf8'));
+  const perRepo = metrics.sources.github.per_repo as Record<string, unknown>;
+
+  for (const slug of EXPECTED_SLUGS) {
+    if (NO_REPO_SLUGS.has(slug)) continue;
+    const source = readFileSync(`${PROJECTS_DIR}${slug}.en.md`, 'utf8');
+    const repo = frontmatterField(source, 'repo');
+    assert.ok(repo, `${slug}.en.md: missing repo: line`);
+    const key = repoKey(repo as string);
+    assert.ok(key, `${slug}.en.md: repo "${repo}" did not resolve through repoKey`);
+    assert.ok(
+      key !== null && key in perRepo,
+      `${slug}.en.md: repo key "${key}" is not present in src/data/metrics.json's per_repo`,
+    );
+  }
+});
+
+// T7: source-level assertions on ProjectCard.astro, in the style of
+// test/home.test.ts.
+test('ProjectCard.astro imports the metrics data file', () => {
+  const card = readFileSync(CARD_PATH, 'utf8');
+  assert.match(card, /import\s+rawMetrics\s+from\s+['"]\.\.\/data\/metrics\.json['"]/);
+});
+
+test('ProjectCard.astro renders commits and releases only through formatStat(...) rooted at the repoMetrics(...) result', () => {
+  const card = readFileSync(CARD_PATH, 'utf8');
+  assert.match(card, /const\s+repoStats\s*=\s*repoMetrics\(/);
+  assert.match(card, /formatStat\(repoStats\.commits\)/);
+  assert.match(card, /formatStat\(repoStats\.releases\)/);
+});
+
+test('ProjectCard.astro template contains no digit (other than heading tag names) and no longer contains slot name="metrics"', () => {
+  const card = readFileSync(CARD_PATH, 'utf8');
+  const frontmatterEnd = card.indexOf('\n---', card.indexOf('---') + 3);
+  const template = card.slice(frontmatterEnd + 4);
+  const stripped = template.replace(/<\/?h[1-6]\b/g, '');
+  assert.doesNotMatch(stripped, /\d/);
+  assert.doesNotMatch(card, /slot name="metrics"/);
 });

@@ -1,18 +1,165 @@
 {
-  "generated_at": null,
+  "generated_at": "2026-09-11T11:31:57.787Z",
   "sources": {
     "github": {
-      "collected_at": null,
-      "method": "placeholder",
-      "repos": null,
-      "commits": null,
-      "releases": null
+      "collected_at": "2026-09-11T11:31:57.787Z",
+      "method": "gh api: repos of org mctlhq plus mashkoffdmitry/pelican-libertex-social; commits and releases per repository via the REST API",
+      "repos": 24,
+      "commits": 9762,
+      "releases": 668,
+      "per_repo": {
+        "mashkoffdmitry/pelican-libertex-social": {
+          "commits": 88,
+          "releases": 45,
+          "first_commit_at": "2026-04-30T20:28:39Z",
+          "last_commit_at": "2026-09-09T15:54:28Z"
+        },
+        "mctlhq/.github": {
+          "commits": 91,
+          "releases": 1,
+          "first_commit_at": "2026-03-15T20:36:29Z",
+          "last_commit_at": "2026-09-09T19:17:11Z"
+        },
+        "mctlhq/awesome-mcp-servers": {
+          "commits": 1,
+          "releases": 0,
+          "first_commit_at": "2026-03-17T20:40:54Z",
+          "last_commit_at": "2026-03-17T20:40:54Z"
+        },
+        "mctlhq/django-test": {
+          "commits": 4,
+          "releases": 0,
+          "first_commit_at": "2026-02-22T22:20:50Z",
+          "last_commit_at": "2026-02-22T23:23:07Z"
+        },
+        "mctlhq/mctl-academy": {
+          "commits": 549,
+          "releases": 52,
+          "first_commit_at": "2026-08-05T23:46:59Z",
+          "last_commit_at": "2026-09-09T21:38:35Z"
+        },
+        "mctlhq/mctl-agent": {
+          "commits": 320,
+          "releases": 48,
+          "first_commit_at": "2026-03-09T18:37:31Z",
+          "last_commit_at": "2026-09-05T21:42:12Z"
+        },
+        "mctlhq/mctl-agents": {
+          "commits": 710,
+          "releases": 65,
+          "first_commit_at": "2026-04-27T07:00:08Z",
+          "last_commit_at": "2026-09-11T11:10:00Z"
+        },
+        "mctlhq/mctl-api": {
+          "commits": 542,
+          "releases": 93,
+          "first_commit_at": "2026-03-10T21:50:00Z",
+          "last_commit_at": "2026-09-11T10:12:27Z"
+        },
+        "mctlhq/mctl-assessment": {
+          "commits": 0,
+          "releases": 0,
+          "first_commit_at": null,
+          "last_commit_at": null
+        },
+        "mctlhq/mctl-claude-remote": {
+          "commits": 109,
+          "releases": 31,
+          "first_commit_at": "2026-05-21T06:51:11Z",
+          "last_commit_at": "2026-09-05T21:42:20Z"
+        },
+        "mctlhq/mctl-design": {
+          "commits": 103,
+          "releases": 5,
+          "first_commit_at": "2026-05-16T10:20:17Z",
+          "last_commit_at": "2026-09-09T10:31:50Z"
+        },
+        "mctlhq/mctl-docs": {
+          "commits": 212,
+          "releases": 41,
+          "first_commit_at": "2026-03-28T18:22:18Z",
+          "last_commit_at": "2026-09-06T21:03:15Z"
+        },
+        "mctlhq/mctl-gitops": {
+          "commits": 4825,
+          "releases": 6,
+          "first_commit_at": "2026-03-15T19:20:54Z",
+          "last_commit_at": "2026-09-11T11:18:18Z"
+        },
+        "mctlhq/mctl-loyalty": {
+          "commits": 75,
+          "releases": 14,
+          "first_commit_at": "2026-05-30T20:15:41Z",
+          "last_commit_at": "2026-09-05T21:49:00Z"
+        },
+        "mctlhq/mctl-mcp": {
+          "commits": 13,
+          "releases": 0,
+          "first_commit_at": "2026-03-17T21:05:00Z",
+          "last_commit_at": "2026-08-13T20:25:11Z"
+        },
+        "mctlhq/mctl-openclaw": {
+          "commits": 147,
+          "releases": 0,
+          "first_commit_at": "2026-03-22T02:40:35Z",
+          "last_commit_at": "2026-09-05T21:34:43Z"
+        },
+        "mctlhq/mctl-pairdesk": {
+          "commits": 138,
+          "releases": 19,
+          "first_commit_at": "2026-05-31T20:43:05Z",
+          "last_commit_at": "2026-09-10T20:21:38Z"
+        },
+        "mctlhq/mctl-portal": {
+          "commits": 253,
+          "releases": 46,
+          "first_commit_at": "2026-03-10T21:45:30Z",
+          "last_commit_at": "2026-09-09T22:03:43Z"
+        },
+        "mctlhq/mctl-rule": {
+          "commits": 1,
+          "releases": 0,
+          "first_commit_at": "2026-07-19T13:55:58Z",
+          "last_commit_at": "2026-07-19T13:55:58Z"
+        },
+        "mctlhq/mctl-telegram": {
+          "commits": 1044,
+          "releases": 118,
+          "first_commit_at": "2026-05-12T23:24:46Z",
+          "last_commit_at": "2026-09-11T06:52:35Z"
+        },
+        "mctlhq/mctl-web": {
+          "commits": 322,
+          "releases": 56,
+          "first_commit_at": "2026-02-15T22:56:28Z",
+          "last_commit_at": "2026-09-05T21:33:47Z"
+        },
+        "mctlhq/portfolio": {
+          "commits": 62,
+          "releases": 7,
+          "first_commit_at": "2026-09-10T22:43:00Z",
+          "last_commit_at": "2026-09-11T11:02:13Z"
+        },
+        "mctlhq/seerrsense": {
+          "commits": 150,
+          "releases": 21,
+          "first_commit_at": "2026-09-06T20:49:34Z",
+          "last_commit_at": "2026-09-11T00:43:30Z"
+        },
+        "mctlhq/spring-test": {
+          "commits": 3,
+          "releases": 0,
+          "first_commit_at": "2026-02-23T08:01:02Z",
+          "last_commit_at": "2026-02-23T08:37:21Z"
+        }
+      }
     },
     "mctl": {
-      "collected_at": null,
-      "method": "placeholder",
-      "services": null,
-      "devloop_proposals": null
+      "collected_at": "2026-09-11T11:31:57.787Z",
+      "method": "mctl_list_services via api.mctl.ai and count of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops",
+      "services": 24,
+      "devloop_proposals": 531,
+      "stale": false
     }
   }
 }
