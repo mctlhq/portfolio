@@ -1,0 +1,31 @@
+---
+// Throwaway development affordance: lists the entry counts of the three
+// content collections so a developer can eyeball that `src/content/` loaded
+// as expected. getStaticPaths returns no path outside `astro dev`, so
+// `astro build` emits no file for this route -- it never reaches dist/ and
+// ships no client-side script.
+import { getCollection } from 'astro:content';
+
+export function getStaticPaths() {
+  return import.meta.env.DEV ? [{ params: { check: 'collections' } }] : [];
+}
+
+const projects = await getCollection('projects');
+const journal = await getCollection('journal');
+const adr = await getCollection('adr');
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dev: collections</title>
+  </head>
+  <body>
+    <h1>Content collection counts</h1>
+    <ul>
+      <li>projects: {projects.length}</li>
+      <li>journal: {journal.length}</li>
+      <li>adr: {adr.length}</li>
+    </ul>
+  </body>
+</html>

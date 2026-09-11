@@ -8,7 +8,8 @@
     "prebuild": "npm run vendor",
     "build": "astro build",
     "preview": "astro preview",
-    "check": "astro check",
+    "check": "astro sync && astro check",
+    "test": "node --test test/journal.test.ts test/adr.test.ts",
     "vendor": "node scripts/vendor-assets.mjs"
   },
   "dependencies": {
