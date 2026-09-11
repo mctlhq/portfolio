@@ -10,8 +10,21 @@ adds what is specific to this repository.
 This site exists to be a verifiable artifact of the DevLoop. Therefore:
 
 - Humans may create and edit **only**: `README.md`, this file, `LICENSE`,
-  `.gitignore`, `.github/**`, `release-please-config.json`,
-  `.release-please-manifest.json`, repository settings, secrets and labels.
+  `.gitignore`, `release-please-config.json`,
+  `.release-please-manifest.json`, repository settings, secrets and labels,
+  and the workflows that gate the loop itself —
+  `.github/workflows/claude-review.yml`, `.github/workflows/release-please.yml`
+  and `.github/dependabot.yml`.
+- `.github/workflows/build.yml` is **not** reserved. An implementer asked to
+  make tests run has to wire them somewhere, and a test script nothing invokes
+  is not a test suite. This file can only make the pre-merge gate stricter, and
+  any loosening of it shows up in the diff and gets reviewed like code. The
+  three files above are different in kind: `claude-review.yml` is the thing
+  that reads the diff, so an agent able to edit it could weaken the check that
+  judges its own work. That, not CI in general, is what this reservation is
+  for. Narrowed after #21, where the boundary as first written would have
+  forced a human pull request to add four lines of `npm test` — process for its
+  own sake, and worse evidence rather than better.
 - Every other file — the Astro project, `Dockerfile`, `nginx.conf`, content,
   journal, ADRs, scripts — is written by the implementer from an approved
   proposal. A human editing those files is a manual intervention and must be
