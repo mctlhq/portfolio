@@ -12,7 +12,10 @@ const metrics = raw as Metrics;
 const date = snapshotDate(metrics.generated_at);
 ---
 
-<Base title={ui.approachPageTitle.en}>
+<Base
+  title={ui.approachPageTitle.en}
+  description="The DevLoop in detail: an issue becomes a reviewed proposal, an agent pull request, an automated review gate, a release and a deployment."
+>
   <main>
     <h1><Lang en={ui.navApproach.en} ru={ui.navApproach.ru} /></h1>
     <p class="subline"><Lang en={ui.approachIntro.en} ru={ui.approachIntro.ru} /></p>

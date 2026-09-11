@@ -302,10 +302,22 @@ async function checkColophonPages(allFiles) {
     }
 
     for (const match of html.matchAll(SUBRESOURCE_RE)) {
-      const [, tag, url] = match;
+      const [full, tag, url] = match;
+      if (tag.toLowerCase() === 'link') {
+        const relMatch = full.match(/\srel="([^"]*)"/i);
+        const relValue = relMatch ? relMatch[1].toLowerCase() : '';
+        if (relValue === 'canonical' || relValue === 'alternate') continue;
+      }
       if (ABSOLUTE_URL_RE.test(url)) {
         problems.push(`check-dist: ${rel} has a <${tag}> pointing at an absolute/protocol-relative URL: ${url}`);
       }
+    }
+
+    if (/<style\b/i.test(html)) {
+      problems.push(`check-dist: ${rel} contains a <style> element, which style-src 'self' (no 'unsafe-inline') would block at runtime`);
+    }
+    if (/\sstyle="/i.test(html)) {
+      problems.push(`check-dist: ${rel} contains a style="..." attribute, which style-src 'self' (no 'unsafe-inline') would block at runtime`);
     }
   }
 
@@ -318,6 +330,96 @@ async function checkColophonPages(allFiles) {
   }
 
   return { problems, cycleCount: journal.publicIds.length, interventionTotal: journal.whatTotal };
+}
+
+const ASTRO_CONFIG_PATH = path.join(ROOT, 'astro.config.mjs');
+
+/** Reads the `site` origin out of astro.config.mjs (no trailing slash), so
+ * the config stays the single source of truth for the expected sitemap
+ * URLs. */
+async function siteOrigin() {
+  const text = await readFile(ASTRO_CONFIG_PATH, 'utf8');
+  const match = text.match(/site:\s*['"]([^'"]+)['"]/);
+  if (!match) {
+    throw new Error('check-dist: could not find `site` in astro.config.mjs');
+  }
+  return match[1].replace(/\/$/, '');
+}
+
+function extractLocs(xml) {
+  return [...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
+}
+
+/**
+ * Checks dist/sitemap-index.xml and the sitemap file(s) it references
+ * (issue #10, P8) against the closure of every public page: `/`, `/work/`,
+ * `/approach/`, `/colophon/`, one `/colophon/journal/<id>/` per public
+ * journal entry and one `/colophon/adr/<id>/` per public ADR entry --
+ * derived independently from src/content/journal and src/content/adr via
+ * idsByVisibility(), the same helper checkColophonPages() uses, so a page
+ * missing from the sitemap or a private id leaking into it both fail here
+ * regardless of what the sitemap integration itself claims to have done.
+ * Returns an array of problem strings.
+ */
+async function checkSitemap() {
+  const problems = [];
+  const origin = await siteOrigin();
+
+  const indexPath = path.join(DIST_DIR, 'sitemap-index.xml');
+  if (!(await fileExists(indexPath))) {
+    problems.push(`check-dist: ${path.relative(ROOT, indexPath)} does not exist`);
+    return problems;
+  }
+
+  const indexXml = await readFile(indexPath, 'utf8');
+  const childLocs = extractLocs(indexXml);
+  if (childLocs.length === 0) {
+    problems.push(`check-dist: ${path.relative(ROOT, indexPath)} lists no child sitemap`);
+    return problems;
+  }
+
+  const found = new Set();
+  for (const loc of childLocs) {
+    if (!loc.startsWith(origin)) {
+      problems.push(`check-dist: sitemap-index.xml references a child sitemap outside ${origin}: ${loc}`);
+      continue;
+    }
+    const relPath = loc.slice(origin.length);
+    const childPath = path.join(DIST_DIR, relPath);
+    if (!(await fileExists(childPath))) {
+      problems.push(`check-dist: child sitemap ${relPath} referenced by sitemap-index.xml does not exist under dist/`);
+      continue;
+    }
+    const childXml = await readFile(childPath, 'utf8');
+    for (const url of extractLocs(childXml)) {
+      found.add(url);
+    }
+  }
+
+  const journal = await idsByVisibility(JOURNAL_DIR);
+  const adr = await idsByVisibility(ADR_DIR);
+  const expectedPaths = [
+    '/',
+    '/work/',
+    '/approach/',
+    '/colophon/',
+    ...journal.publicIds.map((id) => `/colophon/journal/${id}/`),
+    ...adr.publicIds.map((id) => `/colophon/adr/${id}/`),
+  ];
+  const expected = new Set(expectedPaths.map((p) => `${origin}${p}`));
+
+  for (const url of expected) {
+    if (!found.has(url)) {
+      problems.push(`check-dist: sitemap is missing expected URL ${url}`);
+    }
+  }
+  for (const url of found) {
+    if (!expected.has(url)) {
+      problems.push(`check-dist: sitemap contains unexpected URL ${url}`);
+    }
+  }
+
+  return problems;
 }
 
 async function main() {
@@ -376,6 +478,9 @@ async function main() {
 
   const colophonResult = await checkColophonPages(allFiles);
   problems.push(...colophonResult.problems);
+
+  const sitemapProblems = await checkSitemap();
+  problems.push(...sitemapProblems);
 
   if (problems.length > 0) {
     for (const problem of problems) {

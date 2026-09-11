@@ -5,6 +5,7 @@ import { ui } from '../../../i18n/ui';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { publicEntries } from '../../../lib/content';
 import { formatLeadTime, githubRef, isoStamp, leadTimeHours } from '../../../lib/journal';
+import { clampDescription } from '../../../lib/seo';
 
 export async function getStaticPaths() {
   const entries = publicEntries(await getCollection('journal'));
@@ -28,9 +29,10 @@ const timeline = [
 ].filter((row) => row.value !== undefined && row.value !== null);
 
 const interventions = data.interventions ?? [];
+const description = clampDescription(data.decided.en);
 ---
 
-<Base title={`${data.title.en} — Dmitrii Mashkov`}>
+<Base title={`${data.title.en} — Dmitrii Mashkov`} description={description}>
   <main>
     <h1><Lang en={data.title.en} ru={data.title.ru} /></h1>
 

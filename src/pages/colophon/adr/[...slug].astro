@@ -5,6 +5,7 @@ import { ui } from '../../../i18n/ui';
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import { publicEntries } from '../../../lib/content';
 import { padAdrId } from '../../../lib/adr';
+import { clampDescription } from '../../../lib/seo';
 
 export async function getStaticPaths() {
   const entries = publicEntries(await getCollection('adr'));
@@ -33,9 +34,15 @@ const adrStatusLabel = {
   deprecated: ui.adrStatusDeprecated,
 } as const;
 const statusLabel = adrStatusLabel[entry.data.status];
+const description = clampDescription(
+  `Architecture decision record ADR-${padAdrId(entry.data.id)} for the portfolio site: ${entry.data.title.en}. Status: ${statusLabel.en}, ${entry.data.date}.`,
+);
 ---
 
-<Base title={`ADR-${padAdrId(entry.data.id)}: ${entry.data.title.en} — Dmitrii Mashkov`}>
+<Base
+  title={`ADR-${padAdrId(entry.data.id)}: ${entry.data.title.en} — Dmitrii Mashkov`}
+  description={description}
+>
   <main>
     <h1>ADR-{padAdrId(entry.data.id)}: <Lang en={entry.data.title.en} ru={entry.data.title.ru} /></h1>
     <p class="adr-meta">
