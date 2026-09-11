@@ -100,3 +100,35 @@ _Not yet run — the implementer has no browser. Fill in after deployment._
 | `/work/` | — | — | — | — | |
 | `/approach/` | — | — | — | — | |
 | `/colophon/` | — | — | — | — | |
+
+## Reviewer-step results from #10 (post-deployment)
+
+1. **HAR check — pass.** A HAR capture of all four pages — `/`, `/work/`,
+   `/approach/`, `/colophon/` — in both languages and both themes shows zero
+   off-origin requests. Every byte the browser fetched came from the site's own
+   origin, as ADR-0004 and ADR-0005 require.
+2. **CSP check — pass by construction.** Zero `<style>` tags and zero `style=`
+   attributes in the built markup, zero external scripts, and exactly one inline
+   script per page — the language/theme bootstrap in
+   `src/layouts/Base.astro` — whose SHA-256 is listed in `script-src` by
+   `scripts/csp-hash.mjs` and substituted into `security-headers.conf` at image
+   build time. `scripts/check-dist.mjs` fails the build on a `<style` element, a
+   ` style="` attribute or any absolute-URL subresource, so this property is
+   mechanically held rather than observed once.
+3. **Two Cloudflare edge rewrites had to be disabled before either check could
+   pass.** Cloudflare **Web Analytics** injected
+   `static.cloudflareinsights.com/beacon.min.js` into every page, against
+   ADR-0004; the Content-Security-Policy blocked it, so nothing executed, but
+   the tag shipped in the markup and every page load produced a blocked
+   third-party request. Cloudflare **Email Obfuscation** replaced the contact
+   `mailto:` with a `/cdn-cgi/l/email-protection` link and injected a decoder
+   script, which broke the contact link with JavaScript disabled — on a site
+   whose promise is full usability without JavaScript. Both were disabled for the
+   zone; both are recorded as manual interventions in the journal entry for this
+   cycle, because the edge configuration is wiring and sits outside the DevLoop
+   by ADR-0001.
+4. **Lighthouse mobile — not run; still outstanding for a human.** The
+   implementer has no browser, so the mobile Lighthouse pass over the four pages
+   has not been performed and remains a reviewer step. The empty score table in
+   the "Lighthouse mobile (reviewer step, post-deployment)" section above is the
+   place to record it.
