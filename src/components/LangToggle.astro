@@ -1,0 +1,23 @@
+---
+import Lang from '../i18n/Lang.astro';
+import { ui } from '../i18n/ui';
+
+const groupLabel = `${ui.langToggleLabel.en} / ${ui.langToggleLabel.ru}`;
+---
+
+<div class="toggle-group l en" aria-label={groupLabel}>
+  <button type="button" data-set-lang="en" aria-pressed="true">
+    <Lang en={ui.langEn.en} ru={ui.langEn.ru} />
+  </button>
+  <button type="button" data-set-lang="ru" aria-pressed="false">
+    <Lang en={ui.langRu.en} ru={ui.langRu.ru} />
+  </button>
+</div>
+<div class="toggle-group l ru" aria-label={groupLabel}>
+  <button type="button" data-set-lang="en" aria-pressed="false">
+    <Lang en={ui.langEn.en} ru={ui.langEn.ru} />
+  </button>
+  <button type="button" data-set-lang="ru" aria-pressed="true">
+    <Lang en={ui.langRu.en} ru={ui.langRu.ru} />
+  </button>
+</div>

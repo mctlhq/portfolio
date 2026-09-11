@@ -1,12 +1,18 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dmitrii Mashkov</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  </head>
-  <body>
-    <h1>Dmitrii Mashkov</h1>
-  </body>
-</html>
+---
+import Base from '../layouts/Base.astro';
+import Lang from '../i18n/Lang.astro';
+import { ui } from '../i18n/ui';
+---
+
+<Base title={ui.homeTitle.en}>
+  <main>
+    <h1><Lang en={ui.homeTitle.en} ru={ui.homeTitle.ru} /></h1>
+    <p><Lang en={ui.homeLede.en} ru={ui.homeLede.ru} /></p>
+    <section id="work">
+      <h2><Lang en={ui.navWork.en} ru={ui.navWork.ru} /></h2>
+    </section>
+    <section id="approach">
+      <h2><Lang en={ui.navApproach.en} ru={ui.navApproach.ru} /></h2>
+    </section>
+  </main>
+</Base>

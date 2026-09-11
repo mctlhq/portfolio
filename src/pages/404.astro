@@ -1,12 +1,13 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Not found</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  </head>
-  <body>
-    <h1>Not found</h1>
-  </body>
-</html>
+---
+import Base from '../layouts/Base.astro';
+import Lang from '../i18n/Lang.astro';
+import { ui } from '../i18n/ui';
+---
+
+<Base title={ui.notFoundTitle.en}>
+  <main>
+    <h1><Lang en={ui.notFoundTitle.en} ru={ui.notFoundTitle.ru} /></h1>
+    <p><Lang en={ui.notFoundBody.en} ru={ui.notFoundBody.ru} /></p>
+    <p><a href="/"><Lang en={ui.notFoundHome.en} ru={ui.notFoundHome.ru} /></a></p>
+  </main>
+</Base>
