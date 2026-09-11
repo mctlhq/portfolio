@@ -106,3 +106,145 @@ pre,
 .site-footer a {
   color: inherit;
 }
+
+/* Hero (home page). */
+.hero-name {
+  font-family: var(--font-editorial);
+  font-size: var(--mctl-typography-font-size-hero);
+  line-height: var(--mctl-typography-line-height-hero);
+  letter-spacing: var(--mctl-typography-letter-spacing-hero);
+  margin-block: var(--mctl-space-6) var(--mctl-space-4);
+}
+.thesis {
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-lede);
+  line-height: var(--mctl-typography-line-height-lede);
+  margin-block-end: var(--mctl-space-3);
+}
+.subline {
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-body);
+  line-height: var(--mctl-typography-line-height-body);
+  color: var(--surface-fg-muted);
+  margin-block-end: var(--mctl-space-6);
+}
+
+/* Stat tiles. */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--mctl-space-5);
+  padding-block: var(--mctl-space-5);
+  border-block: 1px solid var(--surface-line);
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mctl-space-1);
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 8vw, 40px);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--mctl-typography-line-height-tight);
+}
+.stat-label {
+  font-size: var(--mctl-typography-font-size-sm);
+  color: var(--surface-fg-muted);
+}
+.stat-caption {
+  grid-column: 1 / -1;
+  font-size: var(--mctl-typography-font-size-xs);
+  color: var(--surface-fg-muted);
+  margin: 0;
+}
+
+/* CTAs. */
+.ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mctl-space-4);
+  padding-block: var(--mctl-space-6);
+}
+.cta {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding-inline: var(--mctl-space-4);
+  border-radius: var(--mctl-radius-md);
+  border: 1px solid var(--surface-line);
+  color: var(--surface-fg);
+  text-decoration: none;
+}
+.cta:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Collapsible blocks. */
+.block {
+  border-top: 1px solid var(--surface-line);
+  padding-block: var(--mctl-space-3);
+}
+.block > summary {
+  cursor: pointer;
+  min-block-size: 44px;
+  padding-block: var(--mctl-space-3);
+  display: list-item;
+}
+.block ul {
+  margin: 0;
+  padding-inline-start: var(--mctl-space-5);
+}
+.block li {
+  margin-block-end: var(--mctl-space-2);
+}
+.block p {
+  margin-block-end: var(--mctl-space-2);
+}
+
+/* Tap targets: every interactive element on the page is at least 44px tall
+ * at any viewport width, per the 360px acceptance criterion. */
+.site-nav a,
+.toggle-group button,
+.site-footer a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+}
+
+/* Print. Base.astro hardcodes data-theme="dark", which is unreadable on
+ * paper, so print always uses a light palette regardless of the attribute.
+ * Closed <details> bodies are forced visible so the printed page carries
+ * the same content as the screen. */
+@media print {
+  :root {
+    --surface-bg: #fff;
+    --surface-fg: #111;
+    --surface-fg-muted: #444;
+    --surface-line: #bbb;
+  }
+  .site-header,
+  .toggle-group,
+  .ctas {
+    display: none;
+  }
+  .block > *:not(summary) {
+    display: block !important;
+    content-visibility: visible !important;
+  }
+  /* The rule above forces every non-summary child of a collapsed .block to
+   * display:block so print carries the full content, but .l.en/.l.ru pairs
+   * (see the language toggle at the top of this file) can be direct children
+   * of a .block (e.g. the two <ul> lists in each home-page <details>). Without
+   * this override both languages would print at once. Higher specificity than
+   * the block-forcing rule above lets it win even though both use !important. */
+  :root[data-lang='en'] .block > .l.ru,
+  :root[data-lang='ru'] .block > .l.en {
+    display: none !important;
+  }
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: var(--mctl-typography-font-size-xs);
+  }
+}

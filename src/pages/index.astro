@@ -1,18 +1,58 @@
 ---
 import Base from '../layouts/Base.astro';
 import Lang from '../i18n/Lang.astro';
+import Stat from '../components/Stat.astro';
+import Details from '../components/Details.astro';
 import { ui } from '../i18n/ui';
+import { snapshotDate, type Metrics } from '../lib/metrics';
+import raw from '../data/metrics.json';
+
+const metrics = raw as Metrics;
+const date = snapshotDate(metrics.generated_at);
 ---
 
 <Base title={ui.homeTitle.en}>
   <main>
-    <h1><Lang en={ui.homeTitle.en} ru={ui.homeTitle.ru} /></h1>
-    <p><Lang en={ui.homeLede.en} ru={ui.homeLede.ru} /></p>
-    <section id="work">
-      <h2><Lang en={ui.navWork.en} ru={ui.navWork.ru} /></h2>
+    <h1 class="hero-name">Dmitrii Mashkov</h1>
+    <p class="thesis"><Lang en={ui.heroThesis.en} ru={ui.heroThesis.ru} /></p>
+    <p class="subline"><Lang en={ui.heroSubline.en} ru={ui.heroSubline.ru} /></p>
+
+    <section class="stats">
+      <Stat value={metrics.sources.github.repos} labelEn={ui.statRepositories.en} labelRu={ui.statRepositories.ru} />
+      <Stat value={metrics.sources.github.commits} labelEn={ui.statCommits.en} labelRu={ui.statCommits.ru} />
+      <Stat value={metrics.sources.github.releases} labelEn={ui.statReleases.en} labelRu={ui.statReleases.ru} />
+      <Stat value={metrics.sources.mctl.services} labelEn={ui.statServices.en} labelRu={ui.statServices.ru} />
+      <p class="stat-caption">
+        <Lang en={`${ui.statCaptionPrefix.en} ${date}`} ru={`${ui.statCaptionPrefix.ru} ${date}`} />
+      </p>
     </section>
-    <section id="approach">
-      <h2><Lang en={ui.navApproach.en} ru={ui.navApproach.ru} /></h2>
-    </section>
+
+    <nav class="ctas" aria-label={`${ui.ctaWork.en} / ${ui.ctaWork.ru}`}>
+      <a class="cta" href="/work/"><Lang en={ui.ctaWork.en} ru={ui.ctaWork.ru} /></a>
+      <a class="cta" href="/colophon/"><Lang en={ui.ctaColophon.en} ru={ui.ctaColophon.ru} /></a>
+    </nav>
+
+    <Details summaryEn={ui.detailsRunSummary.en} summaryRu={ui.detailsRunSummary.ru}>
+      <ul class="l en">
+        {ui.detailsRunItems.en.map((item) => <li>{item}</li>)}
+      </ul>
+      <ul class="l ru" lang="ru">
+        {ui.detailsRunItems.ru.map((item) => <li>{item}</li>)}
+      </ul>
+    </Details>
+
+    <Details summaryEn={ui.detailsWorkSummary.en} summaryRu={ui.detailsWorkSummary.ru}>
+      <ul class="l en">
+        {ui.detailsWorkItems.en.map((item) => <li>{item}</li>)}
+      </ul>
+      <ul class="l ru" lang="ru">
+        {ui.detailsWorkItems.ru.map((item) => <li>{item}</li>)}
+      </ul>
+    </Details>
+
+    <Details summaryEn={ui.detailsContactSummary.en} summaryRu={ui.detailsContactSummary.ru}>
+      <p><a href="https://github.com/mctlhq">github.com/mctlhq</a></p>
+      <p><a href="mailto:hello@dmitriimashkov.com">hello@dmitriimashkov.com</a></p>
+    </Details>
   </main>
 </Base>
