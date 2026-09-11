@@ -311,6 +311,118 @@ pre,
   min-block-size: 44px;
 }
 
+/* Colophon page: section spacing, the cycle/ADR tables, the keyboard-
+ * reachable horizontal scroll region and the intervention records.
+ * Narrow-first; the scroll region is what keeps the eight-column cycle
+ * table usable at 360px instead of a stacked layout, which cannot carry a
+ * bilingual ::before label (see design.md, alternative 5). */
+.colophon-section {
+  padding-block: var(--mctl-space-5);
+  border-top: 1px solid var(--surface-line);
+}
+.table-scroll {
+  overflow-x: auto;
+  margin-block-end: var(--mctl-space-3);
+}
+.table-scroll:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+table.cycles,
+table.adr-index {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-sm);
+  white-space: nowrap;
+}
+table.cycles caption,
+table.adr-index caption {
+  text-align: left;
+  color: var(--surface-fg-muted);
+  font-size: var(--mctl-typography-font-size-xs);
+  margin-block-end: var(--mctl-space-2);
+}
+table.cycles th,
+table.cycles td,
+table.adr-index th,
+table.adr-index td {
+  padding: var(--mctl-space-2) var(--mctl-space-3);
+  border-bottom: 1px solid var(--surface-line);
+  text-align: left;
+}
+table.cycles th,
+table.adr-index th {
+  color: var(--surface-fg-muted);
+  font-weight: var(--mctl-typography-font-weight-semibold);
+}
+table.cycles td:nth-child(1),
+table.cycles td:nth-child(7),
+table.cycles td:nth-child(8) {
+  font-variant-numeric: tabular-nums;
+}
+.cycle-totals {
+  font-family: var(--font-display);
+  color: var(--surface-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Journal entry page. */
+.journal-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--mctl-space-1) var(--mctl-space-4);
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-sm);
+  padding-block: var(--mctl-space-4);
+  border-block: 1px solid var(--surface-line);
+  margin-block-end: var(--mctl-space-4);
+}
+.journal-meta dt {
+  color: var(--surface-fg-muted);
+}
+.journal-meta dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.journal-decided {
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-body);
+  line-height: var(--mctl-typography-line-height-body);
+  margin-block-end: var(--mctl-space-4);
+}
+.journal-timeline {
+  margin: 0;
+  padding-inline-start: var(--mctl-space-5);
+  font-variant-numeric: tabular-nums;
+}
+.journal-timeline li {
+  margin-block-end: var(--mctl-space-2);
+}
+.interventions {
+  margin: 0;
+  padding-inline-start: var(--mctl-space-5);
+}
+.interventions li {
+  margin-block-end: var(--mctl-space-4);
+}
+.interventions p {
+  margin: 0 0 var(--mctl-space-1);
+}
+.intervention-at {
+  font-variant-numeric: tabular-nums;
+  color: var(--surface-fg-muted);
+  font-size: var(--mctl-typography-font-size-xs);
+}
+
+/* ADR page. */
+.adr-meta {
+  font-family: var(--font-display);
+  color: var(--surface-fg-muted);
+  font-size: var(--mctl-typography-font-size-sm);
+  margin-block-end: var(--mctl-space-2);
+}
+
 /* Print. Base.astro hardcodes data-theme="dark", which is unreadable on
  * paper, so print always uses a light palette regardless of the attribute.
  * Closed <details> bodies are forced visible so the printed page carries

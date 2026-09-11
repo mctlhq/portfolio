@@ -1,0 +1,87 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Lang from '../../../i18n/Lang.astro';
+import { ui } from '../../../i18n/ui';
+import { getCollection, type CollectionEntry } from 'astro:content';
+import { publicEntries } from '../../../lib/content';
+import { formatLeadTime, githubRef, isoStamp, leadTimeHours } from '../../../lib/journal';
+
+export async function getStaticPaths() {
+  const entries = publicEntries(await getCollection('journal'));
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+interface Props {
+  entry: CollectionEntry<'journal'>;
+}
+
+const { entry } = Astro.props;
+const EM_DASH = '—';
+const data = entry.data;
+
+const timeline = [
+  { label: ui.journalStampIssueOpened, value: data.issue_opened_at },
+  { label: ui.journalStampApproved, value: data.proposal_approved_at },
+  { label: ui.journalStampMerged, value: data.merged_at },
+  { label: ui.journalStampReleased, value: data.released_at },
+  { label: ui.journalStampDeployed, value: data.deployed_at },
+].filter((row) => row.value !== undefined && row.value !== null);
+
+const interventions = data.interventions ?? [];
+---
+
+<Base title={`${data.title.en} — Dmitrii Mashkov`}>
+  <main>
+    <h1><Lang en={data.title.en} ru={data.title.ru} /></h1>
+
+    <dl class="journal-meta">
+      <dt><Lang en={ui.journalServiceLabel.en} ru={ui.journalServiceLabel.ru} /></dt>
+      <dd>{data.service}</dd>
+      <dt><Lang en={ui.journalIssueLabel.en} ru={ui.journalIssueLabel.ru} /></dt>
+      <dd><a href={data.issue}>{githubRef(data.issue)}</a></dd>
+      <dt><Lang en={ui.journalPrLabel.en} ru={ui.journalPrLabel.ru} /></dt>
+      <dd>{data.pr ? <a href={data.pr}>{githubRef(data.pr)}</a> : EM_DASH}</dd>
+      <dt><Lang en={ui.journalReleaseLabel.en} ru={ui.journalReleaseLabel.ru} /></dt>
+      <dd>{data.release ?? EM_DASH}</dd>
+      <dt><Lang en={ui.journalLeadTimeLabel.en} ru={ui.journalLeadTimeLabel.ru} /></dt>
+      <dd>{formatLeadTime(leadTimeHours(data))}</dd>
+    </dl>
+
+    <h2><Lang en={ui.journalDecidedHeading.en} ru={ui.journalDecidedHeading.ru} /></h2>
+    <p class="journal-decided"><Lang en={data.decided.en} ru={data.decided.ru} /></p>
+
+    <section class="colophon-section">
+      <h2><Lang en={ui.journalTimelineHeading.en} ru={ui.journalTimelineHeading.ru} /></h2>
+      <ol class="journal-timeline">
+        {timeline.map((row) => (
+          <li>
+            <Lang en={row.label.en} ru={row.label.ru} />: {isoStamp(row.value as Date | string)}
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="colophon-section">
+      <h2><Lang en={ui.journalInterventionsHeading.en} ru={ui.journalInterventionsHeading.ru} /></h2>
+      {interventions.length > 0 ? (
+        <>
+          <p class="l en">{ui.journalInterventionsNote.en}</p>
+          <p class="l ru" lang="ru">{ui.journalInterventionsNote.ru}</p>
+          <ol class="interventions" lang="en">
+            {interventions.map((item) => (
+              <li>
+                <p class="intervention-what">{item.what}</p>
+                <p class="intervention-why">{item.why}</p>
+                <p class="intervention-at">{isoStamp(item.at)}</p>
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : (
+        <p><Lang en={ui.journalNoInterventions.en} ru={ui.journalNoInterventions.ru} /></p>
+      )}
+    </section>
+
+    <p><a href="/colophon/"><Lang en={ui.journalBackToColophon.en} ru={ui.journalBackToColophon.ru} /></a></p>
+  </main>
+</Base>

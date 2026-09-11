@@ -95,6 +95,21 @@ export function adrBodyProblems(id: string, body: string): string[] {
   return problems;
 }
 
+export interface AdrSortEntry {
+  data: { id: number };
+}
+
+/** Sorts ADR entries ascending by their numeric frontmatter `id` (0001, 0002,
+ * 0005, ...), the conventional ADR reading order. */
+export function byAdrId(a: AdrSortEntry, b: AdrSortEntry): number {
+  return a.data.id - b.data.id;
+}
+
+/** Renders a numeric ADR id as its four-digit form, e.g. `1` -> `'0001'`. */
+export function padAdrId(id: number): string {
+  return String(id).padStart(4, '0');
+}
+
 export interface AdrStoreEntry {
   id: string;
   body: string;

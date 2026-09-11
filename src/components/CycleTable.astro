@@ -1,0 +1,50 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import Lang from '../i18n/Lang.astro';
+import { ui } from '../i18n/ui';
+import { cycleTimestamp, formatLeadTime, githubRef, interventionCount, isoDate, leadTimeHours } from '../lib/journal';
+
+interface Props {
+  entries: CollectionEntry<'journal'>[];
+}
+
+const { entries } = Astro.props;
+const EM_DASH = '—';
+const scrollLabel = `${ui.cycleTableCaption.en} / ${ui.cycleTableCaption.ru}`;
+---
+
+<div class="table-scroll" role="region" tabindex="0" aria-label={scrollLabel}>
+  <table class="cycles">
+    <caption><Lang en={ui.cycleTableCaption.en} ru={ui.cycleTableCaption.ru} /></caption>
+    <thead>
+      <tr>
+        <th scope="col"><Lang en={ui.cycleColDate.en} ru={ui.cycleColDate.ru} /></th>
+        <th scope="col"><Lang en={ui.cycleColService.en} ru={ui.cycleColService.ru} /></th>
+        <th scope="col"><Lang en={ui.cycleColTitle.en} ru={ui.cycleColTitle.ru} /></th>
+        <th scope="col"><Lang en={ui.cycleColIssue.en} ru={ui.cycleColIssue.ru} /></th>
+        <th scope="col"><Lang en={ui.cycleColPr.en} ru={ui.cycleColPr.ru} /></th>
+        <th scope="col"><Lang en={ui.cycleColRelease.en} ru={ui.cycleColRelease.ru} /></th>
+        <th scope="col"><Lang en={ui.cycleColLeadTime.en} ru={ui.cycleColLeadTime.ru} /></th>
+        <th scope="col"><Lang en={ui.cycleColInterventions.en} ru={ui.cycleColInterventions.ru} /></th>
+      </tr>
+    </thead>
+    <tbody>
+      {entries.map((entry) => (
+        <tr data-cycle-row>
+          <td>{isoDate(cycleTimestamp(entry.data))}</td>
+          <td>{entry.data.service}</td>
+          <td>
+            <a href={`/colophon/journal/${entry.id}/`}>
+              <Lang en={entry.data.title.en} ru={entry.data.title.ru} />
+            </a>
+          </td>
+          <td><a href={entry.data.issue}>{githubRef(entry.data.issue)}</a></td>
+          <td>{entry.data.pr ? <a href={entry.data.pr}>{githubRef(entry.data.pr)}</a> : EM_DASH}</td>
+          <td>{entry.data.release ?? EM_DASH}</td>
+          <td>{formatLeadTime(leadTimeHours(entry.data))}</td>
+          <td>{interventionCount(entry.data)}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>

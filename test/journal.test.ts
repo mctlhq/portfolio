@@ -2,9 +2,16 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
   ISO_WITH_OFFSET,
+  byNewestFirst,
+  cycleTimestamp,
+  formatLeadTime,
+  githubRef,
   interventionCount,
+  isoDate,
+  isoStamp,
   isoWithOffset,
   leadTimeHours,
+  totalInterventions,
   yyyyMmDd,
 } from '../src/lib/journal.ts';
 
@@ -88,4 +95,82 @@ test('ISO_WITH_OFFSET and yyyyMmDd are exported regexes matching their names', (
   assert.ok(yyyyMmDd instanceof RegExp);
   assert.equal(yyyyMmDd.test('2026-09-11'), true);
   assert.equal(yyyyMmDd.test('2026-9-11'), false);
+});
+
+test('cycleTimestamp prefers deployed_at, then released_at, merged_at, proposal_approved_at, issue_opened_at', () => {
+  const base = { issue_opened_at: '2026-01-01T00:00:00Z' };
+  assert.equal(
+    cycleTimestamp({ ...base, proposal_approved_at: '2026-01-02T00:00:00Z' }).toISOString(),
+    '2026-01-02T00:00:00.000Z',
+  );
+  assert.equal(
+    cycleTimestamp({
+      ...base,
+      proposal_approved_at: '2026-01-02T00:00:00Z',
+      merged_at: '2026-01-03T00:00:00Z',
+    }).toISOString(),
+    '2026-01-03T00:00:00.000Z',
+  );
+  assert.equal(
+    cycleTimestamp({
+      ...base,
+      merged_at: '2026-01-03T00:00:00Z',
+      released_at: '2026-01-04T00:00:00Z',
+    }).toISOString(),
+    '2026-01-04T00:00:00.000Z',
+  );
+  assert.equal(
+    cycleTimestamp({
+      ...base,
+      released_at: '2026-01-04T00:00:00Z',
+      deployed_at: '2026-01-05T00:00:00Z',
+    }).toISOString(),
+    '2026-01-05T00:00:00.000Z',
+  );
+  assert.equal(cycleTimestamp(base).toISOString(), '2026-01-01T00:00:00.000Z');
+});
+
+test('byNewestFirst sorts a shuffled fixture newest first and breaks ties on id, descending', () => {
+  const entries = [
+    { id: 'b-entry', data: { issue_opened_at: '2026-01-01T00:00:00Z', deployed_at: '2026-01-05T00:00:00Z' } },
+    { id: 'a-entry', data: { issue_opened_at: '2026-01-01T00:00:00Z', deployed_at: '2026-01-05T00:00:00Z' } },
+    { id: 'c-entry', data: { issue_opened_at: '2026-01-01T00:00:00Z', deployed_at: '2026-01-10T00:00:00Z' } },
+  ];
+  const sorted = entries.slice().sort(byNewestFirst).map((e) => e.id);
+  assert.deepEqual(sorted, ['c-entry', 'b-entry', 'a-entry']);
+});
+
+test('isoDate and isoStamp render UTC with no fractional seconds', () => {
+  assert.equal(isoDate('2026-09-11T06:41:07.123Z'), '2026-09-11');
+  assert.equal(isoStamp('2026-09-11T06:41:07.123Z'), '2026-09-11T06:41:07Z');
+  assert.equal(isoStamp(new Date('2026-09-11T06:41:07Z')), '2026-09-11T06:41:07Z');
+});
+
+test('formatLeadTime renders an em dash for null, one decimal otherwise, and 0 as "0.0"', () => {
+  assert.equal(formatLeadTime(null), '—');
+  assert.equal(formatLeadTime(0.7338888888888889), '0.7');
+  assert.equal(formatLeadTime(0), '0.0');
+  assert.notEqual(formatLeadTime(0), '—');
+});
+
+test('totalInterventions sums interventionCount across entries and is 0 for []', () => {
+  const entries = [
+    { issue_opened_at: '2026-01-01T00:00:00Z', interventions: [{ what: 'a', why: 'a', at: '2026-01-01T00:00:00Z' }] },
+    {
+      issue_opened_at: '2026-01-01T00:00:00Z',
+      interventions: [
+        { what: 'b', why: 'b', at: '2026-01-01T00:00:00Z' },
+        { what: 'c', why: 'c', at: '2026-01-01T00:00:00Z' },
+      ],
+    },
+    { issue_opened_at: '2026-01-01T00:00:00Z' },
+  ];
+  assert.equal(totalInterventions(entries), 3);
+  assert.equal(totalInterventions([]), 0);
+});
+
+test('githubRef returns "#<n>" for a pull request URL and the input URL unchanged otherwise', () => {
+  assert.equal(githubRef('https://github.com/mctlhq/portfolio/pull/28'), '#28');
+  assert.equal(githubRef('https://github.com/mctlhq/portfolio/issues/7'), '#7');
+  assert.equal(githubRef('https://github.com/mctlhq/portfolio'), 'https://github.com/mctlhq/portfolio');
 });
