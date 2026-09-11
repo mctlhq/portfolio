@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.8](https://github.com/mctlhq/portfolio/compare/0.1.7...0.1.8) (2026-09-11)
+
+
+### Features
+
+* **agents:** issue-10-p8-production-hardening-accessibility-wc ([ddcc7f5](https://github.com/mctlhq/portfolio/commit/ddcc7f5aec0ea635e928fbd126cd4f1004db4059))
+* **agents:** production hardening, accessibility (WCAG 2.2 AA) and SEO ([f07c653](https://github.com/mctlhq/portfolio/commit/f07c653c8b4c18d431553818def06bdba575cd33))
+
 ## [0.1.7](https://github.com/mctlhq/portfolio/compare/0.1.6...0.1.7) (2026-09-11)
 
 
