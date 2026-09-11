@@ -41,8 +41,16 @@ One DevLoop cycle at a time in this repository.
 ## Site constraints
 
 - Static output only. No client-side framework bundles. One inline script in
-  `<head>` of at most 400 bytes for persisted language and theme preference,
-  wrapped in `try/catch`; its SHA-256 is listed in the CSP.
+  `<head>` of at most 400 bytes for persisted language and theme preference;
+  its SHA-256 is listed in the CSP.
+- A failure to reach `localStorage` must cost persistence, never function.
+  Reading it throws outright in a browser with site data blocked, so guard the
+  read and the write each on their own and register the click listener where
+  neither can skip it. This says what must hold rather than how, on purpose:
+  the earlier wording here asked for the script to be "wrapped in try/catch",
+  and a single outer `try` around everything is what left both toggles inert
+  for three rounds of review on #16 — the throwing read jumped straight past
+  `addEventListener`.
 - English renders by default and must be fully usable with JavaScript
   disabled. Russian is a CSS-driven toggle (`.l.en` / `.l.ru` pairs). Every
   user-facing string exists in both languages; proper nouns, hostnames,
