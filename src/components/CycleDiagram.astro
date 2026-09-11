@@ -1,0 +1,161 @@
+---
+// The DevLoop cycle as one theme-aware inline SVG, in two CSS-toggled
+// layout variants (wide, narrow -- see src/styles/site.css for the
+// 600px breakpoint that swaps them). Props-less: it imports only `ui`,
+// never the metrics snapshot and never renders a stat tile, so the
+// coordinate digits below can never be mistaken for a typed metric
+// (requirements criterion 11).
+import { ui } from '../i18n/ui';
+
+const GATE = [false, false, false, true, false, true, false, false, false, false];
+
+interface Rect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+interface Variant {
+  key: 'wide' | 'narrow';
+  viewBox: string;
+  rects: Rect[];
+  edges: string[];
+}
+
+// Wide: five nodes left-to-right across the top row (Issue..Implement),
+// a connector down the right margin into the bottom row, five nodes
+// right-to-left across the bottom row (Review gate..Monitor), and a
+// return connector up the left margin from Monitor back to Issue.
+function buildWide(): Variant {
+  const w = 112;
+  const h = 44;
+  const cols = [24, 160, 296, 432, 568];
+  const topY = 30;
+  const botY = 226;
+  const topMid = topY + h / 2;
+  const botMid = botY + h / 2;
+
+  const rects: Rect[] = [
+    { x: cols[0], y: topY, w, h }, // 0 Issue
+    { x: cols[1], y: topY, w, h }, // 1 Investigate
+    { x: cols[2], y: topY, w, h }, // 2 Proposal
+    { x: cols[3], y: topY, w, h }, // 3 Approve (gate)
+    { x: cols[4], y: topY, w, h }, // 4 Implement
+    { x: cols[4], y: botY, w, h }, // 5 Review gate (gate)
+    { x: cols[3], y: botY, w, h }, // 6 Shepherd merge
+    { x: cols[2], y: botY, w, h }, // 7 Release
+    { x: cols[1], y: botY, w, h }, // 8 Deploy
+    { x: cols[0], y: botY, w, h }, // 9 Monitor
+  ];
+
+  const edges: string[] = [];
+  for (let i = 0; i < 4; i++) {
+    edges.push(`M${cols[i] + w},${topMid} L${cols[i + 1]},${topMid}`);
+  }
+  // Implement -> Review gate, right margin.
+  const rightMargin = cols[4] + w + 30;
+  edges.push(
+    `M${cols[4] + w},${topMid} L${rightMargin},${topMid} L${rightMargin},${botMid} L${cols[4] + w},${botMid}`,
+  );
+  for (let i = 4; i > 0; i--) {
+    edges.push(`M${cols[i]},${botMid} L${cols[i - 1] + w},${botMid}`);
+  }
+  // Monitor -> Issue, left margin (the loop closes).
+  const leftMargin = cols[0] - 12;
+  edges.push(
+    `M${cols[0]},${botMid} L${leftMargin},${botMid} L${leftMargin},${topMid} L${cols[0]},${topMid}`,
+  );
+
+  return { key: 'wide', viewBox: `0 0 ${cols[4] + w + 60} 300`, rects, edges };
+}
+
+// Narrow: one column of ten nodes top to bottom, with the return path
+// (Monitor -> Issue) routed through the left gutter.
+function buildNarrow(): Variant {
+  const w = 220;
+  const h = 44;
+  const x = 60;
+  const rowGap = 64;
+  const topMargin = 30;
+  const cx = x + w / 2;
+
+  const rects: Rect[] = [];
+  for (let i = 0; i < 10; i++) {
+    rects.push({ x, y: topMargin + i * rowGap, w, h });
+  }
+
+  const edges: string[] = [];
+  for (let i = 0; i < 9; i++) {
+    const yFrom = rects[i].y + h;
+    const yTo = rects[i + 1].y;
+    edges.push(`M${cx},${yFrom} L${cx},${yTo}`);
+  }
+  const gutter = x - 40;
+  const lastMid = rects[9].y + h / 2;
+  const firstMid = rects[0].y + h / 2;
+  edges.push(`M${x},${lastMid} L${gutter},${lastMid} L${gutter},${firstMid} L${x},${firstMid}`);
+
+  const height = topMargin + 9 * rowGap + h + topMargin;
+  return { key: 'narrow', viewBox: `0 0 320 ${height}`, rects, edges };
+}
+
+const variants: Variant[] = [buildWide(), buildNarrow()];
+const titleBoth = `${ui.cycleTitle.en} / ${ui.cycleTitle.ru}`;
+const descBoth = `${ui.cycleDesc.en} / ${ui.cycleDesc.ru}`;
+---
+
+{variants.map((v) => (
+  <svg
+    class={`cycle-svg cycle-${v.key}`}
+    viewBox={v.viewBox}
+    role="img"
+    aria-labelledby={`cycle-${v.key}-title cycle-${v.key}-desc`}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <title id={`cycle-${v.key}-title`}>{titleBoth}</title>
+    <desc id={`cycle-${v.key}-desc`}>{descBoth}</desc>
+    <defs>
+      <marker
+        id={`cycle-${v.key}-arrow`}
+        viewBox="0 0 10 10"
+        refX="8"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
+        <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
+      </marker>
+    </defs>
+    <g class="cycle-edges">
+      {v.edges.map((d) => (
+        <path d={d} marker-end={`url(#cycle-${v.key}-arrow)`} />
+      ))}
+    </g>
+    {v.rects.map((r, i) => (
+      <g class={GATE[i] ? 'cycle-node is-gate' : 'cycle-node'}>
+        <rect x={r.x} y={r.y} width={r.w} height={r.h} rx="8" />
+        <text
+          class="l en"
+          x={r.x + r.w / 2}
+          y={r.y + r.h / 2}
+          text-anchor="middle"
+          dominant-baseline="central"
+        >
+          {ui.cycleNodes.en[i]}
+        </text>
+        <text
+          class="l ru"
+          lang="ru"
+          x={r.x + r.w / 2}
+          y={r.y + r.h / 2}
+          text-anchor="middle"
+          dominant-baseline="central"
+        >
+          {ui.cycleNodes.ru[i]}
+        </text>
+      </g>
+    ))}
+  </svg>
+))}
