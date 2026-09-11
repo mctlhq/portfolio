@@ -45,9 +45,26 @@ The implementer never sees the issue; it reads only the proposal
 4. Explicit out-of-scope list.
 5. Full copy (EN and RU) wherever the change introduces user-facing text.
 
+Every acceptance criterion has to be satisfiable by the implementer with a
+commit. The implementer opens its pull request from a fixed template and cannot
+edit the body, so a criterion that asks for something to be reported, noted,
+listed or justified *in the pull request description* can never be met by the
+agent that has to meet it — the cycle deadlocks with the implementer refusing
+and the reviewer re-raising. Such evidence goes into a committed file or a
+script that runs in `npm test`. Work that genuinely needs a human (a screen
+reader, a Lighthouse run, a browser capture) is a reviewer step named as such,
+never an acceptance criterion.
+
+The copy is the contract. When an issue supplies user-facing text, the proposal
+has to carry that text character for character. A proposal that points back at
+the issue — "the issue's wording", "verbatim per language" — leaves the
+implementer with a choice between inventing prose and reading past the approval
+boundary, and it will correctly do neither.
+
 Before approval, a human checks that every acceptance criterion and every
-out-of-scope item from the issue appears in the proposal. If one is missing,
-the proposal is sent back, not approved.
+out-of-scope item from the issue appears in the proposal, and that the copy is
+present rather than referenced. If one is missing, the proposal is sent back,
+not approved.
 
 One DevLoop cycle at a time in this repository.
 
