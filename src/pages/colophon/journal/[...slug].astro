@@ -2,7 +2,7 @@
 import Base from '../../../layouts/Base.astro';
 import Lang from '../../../i18n/Lang.astro';
 import { ui } from '../../../i18n/ui';
-import { getCollection, type CollectionEntry } from 'astro:content';
+import { getCollection, render, type CollectionEntry } from 'astro:content';
 import { publicEntries } from '../../../lib/content';
 import { formatLeadTime, githubRef, isoStamp, leadTimeHours } from '../../../lib/journal';
 import { clampDescription } from '../../../lib/seo';
@@ -17,6 +17,7 @@ interface Props {
 }
 
 const { entry } = Astro.props;
+const { Content } = await render(entry);
 const EM_DASH = '—';
 const data = entry.data;
 
@@ -83,6 +84,10 @@ const description = clampDescription(data.decided.en);
         <p><Lang en={ui.journalNoInterventions.en} ru={ui.journalNoInterventions.ru} /></p>
       )}
     </section>
+
+    <div class="mctl-prose">
+      <Content />
+    </div>
 
     <p><a href="/colophon/"><Lang en={ui.journalBackToColophon.en} ru={ui.journalBackToColophon.ru} /></a></p>
   </main>
