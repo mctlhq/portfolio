@@ -84,6 +84,11 @@ async function resolveInternal(distDir, href) {
 class NetworkError extends Error {}
 
 const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+const RETRY_DELAY_MS = 500;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 async function fetchOnce(url) {
   let res;
@@ -99,12 +104,14 @@ async function fetchWithRetry(url) {
   try {
     const status = await fetchOnce(url);
     if (RETRYABLE_STATUSES.has(status)) {
-      return await fetchOnce(url); // one retry
+      await sleep(RETRY_DELAY_MS); // brief backoff before the one retry
+      return await fetchOnce(url);
     }
     return status;
   } catch (err) {
     if (!(err instanceof NetworkError)) throw err;
-    return await fetchOnce(url); // one retry
+    await sleep(RETRY_DELAY_MS); // brief backoff before the one retry
+    return await fetchOnce(url);
   }
 }
 

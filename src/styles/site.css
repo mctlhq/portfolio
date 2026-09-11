@@ -198,10 +198,13 @@ main a:hover {
   color: var(--surface-fg);
 }
 /* Declared after :visited (LVHA order) so hover still wins over visited on
-   a visited CTA -- equal specificity, source order decides. */
+   a visited CTA or project link -- equal specificity, source order decides. */
 .cta:hover {
   color: var(--accent);
   border-color: var(--accent);
+}
+.project-links a:hover {
+  color: var(--accent-highlight);
 }
 
 /* Collapsible blocks. */
