@@ -3,7 +3,8 @@ import type { CollectionEntry } from 'astro:content';
 import { render } from 'astro:content';
 import Lang from '../i18n/Lang.astro';
 import { ui, stackChipRu, stackChipUntranslated } from '../i18n/ui';
-import { formatStat } from '../lib/metrics';
+import { formatStat, repoMetrics, snapshotDate, type Metrics } from '../lib/metrics';
+import rawMetrics from '../data/metrics.json';
 
 interface Props {
   en: CollectionEntry<'projects'>;
@@ -16,6 +17,9 @@ const { Content: BodyRu } = await render(ru);
 const repoLabel = en.data.repo?.replace(/^https:\/\//, '').replace(/\/$/, '');
 const links = en.data.links ?? [];
 const ruLinks = ru.data.links ?? [];
+const metrics = rawMetrics as Metrics;
+const repoStats = repoMetrics(metrics, en.data.repo);
+const snapshot = snapshotDate(metrics.generated_at);
 
 for (const chip of en.data.stack) {
   if (!(chip in stackChipRu) && !stackChipUntranslated.has(chip)) {
@@ -58,7 +62,11 @@ for (const chip of en.data.stack) {
     </ul>
     <p class="project-metrics">
       <Lang en={ui.workMetricsLabel.en} ru={ui.workMetricsLabel.ru} />{' '}
-      <span data-stat><slot name="metrics">{formatStat(null)}</slot></span>
+      <span data-stat>
+        <Lang en={ui.statCommits.en} ru={ui.statCommits.ru} /> {formatStat(repoStats.commits)},{' '}
+        <Lang en={ui.statReleases.en} ru={ui.statReleases.ru} /> {formatStat(repoStats.releases)}
+      </span>{' '}
+      <Lang en={`${ui.statCaptionPrefix.en} ${snapshot}`} ru={`${ui.statCaptionPrefix.ru} ${snapshot}`} />
     </p>
   </details>
 </article>
