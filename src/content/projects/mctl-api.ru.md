@@ -5,11 +5,13 @@ name: "mctl-api"
 group: platform
 order: 1
 repo: https://github.com/mctlhq/mctl-api
-stack: ["Go", "chi", "PostgreSQL", "Temporal", "Argo Workflows", "Vault"]
-summary: "API управляющего слоя платформы mctl: команды, сервисы, домены, инциденты и DevLoop."
+stack: ["Go", "chi", "mcp-go", "OAuth 2.0 PKCE", "OpenAPI"]
+summary: "API управляющего контура и MCP-сервер платформы mctl: каждая операция существует как REST и как MCP-инструмент."
 links:
   - label: "Документация"
     url: https://docs.mctl.ai
 ---
 
-mctl-api предоставляет платформу и как REST API, и как MCP-сервер, поэтому агент и человек выполняют одни и те же операции, а каждое изменение попадает в кластер только через коммит в GitOps, а не напрямую.
+- записи никогда не трогают кластер напрямую — они запускают Argo Workflows, которые коммитят в GitOps-репозиторий
+- аутентификация по GitHub-токену, Dex OIDC и OAuth PKCE
+- журнал аудита в PostgreSQL

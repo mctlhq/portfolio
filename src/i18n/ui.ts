@@ -100,6 +100,71 @@ export const ui = {
     ru: 'Страница, которую вы ищете, не существует.',
   },
   notFoundHome: { en: 'Back to home', ru: 'На главную' },
+
+  workGroupPlatform: { en: 'Platform', ru: 'Платформа' },
+  workGroupProducts: { en: 'Products', ru: 'Продукты' },
+  workDetailsSummary: { en: 'Details', ru: 'Подробнее' },
+  workMetricsLabel: { en: 'Repository metrics', ru: 'Метрики репозитория' },
+  workPageTitle: { en: 'Work — Dmitrii Mashkov', ru: 'Work — Dmitrii Mashkov' },
 } as const;
 
 export type UiKey = keyof typeof ui;
+
+// Chip-text dictionary for the work page's stack chips (src/pages/work.astro
+// via src/components/ProjectCard.astro). Keyed by the exact frontmatter
+// string in a project's `stack` array; a chip with no entry here renders
+// unchanged in both languages. Kept as a separate export, not a `ui` key,
+// because test/ui.test.ts requires every `ui` value to be an { en, ru } pair
+// and this is a Record<string, string> instead.
+export const stackChipRu: Record<string, string> = {
+  'design tokens': 'дизайн-токены',
+  'upstream fork': 'форк upstream',
+};
+
+// Chips intentionally left untranslated because they are a language, product
+// or tool name (e.g. "TypeScript", "PostgreSQL") rather than a plain word.
+// `stack` in the projects content schema is a free-form string array, so this
+// set cannot be enforced by TypeScript; ProjectCard checks every chip against
+// `stackChipRu` and this set and warns at build time when a chip is in
+// neither, so a forgotten translation cannot ship silently.
+export const stackChipUntranslated: ReadonlySet<string> = new Set([
+  'AlertManager',
+  'Argo Workflows',
+  'ArgoCD',
+  'Backstage',
+  'CSS',
+  'Claude API',
+  'Claude Agent SDK',
+  'Cloudflare Workers',
+  'Express',
+  'Fastify',
+  'Go',
+  'Helm',
+  'Hono',
+  'MCP',
+  'MTProto',
+  'Node.js',
+  'OAuth 2.0',
+  'OAuth 2.0 PKCE',
+  'OIDC PKCE',
+  'OpenAPI',
+  'OpenTofu',
+  'Playwright',
+  'PostgreSQL',
+  'Python',
+  'R2',
+  'React',
+  'SQLite',
+  'Storybook',
+  'Telegram Mini App',
+  'Temporal',
+  'Turborepo',
+  'TypeScript',
+  'Vault',
+  'Vue',
+  'Vue 3',
+  'chi',
+  'k3s',
+  'mcp-go',
+  'pnpm',
+]);
