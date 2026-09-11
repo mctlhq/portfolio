@@ -203,6 +203,56 @@ pre,
   margin-block-end: var(--mctl-space-2);
 }
 
+/* Work page. */
+.project {
+  padding-block: var(--mctl-space-5);
+  border-top: 1px solid var(--surface-line);
+}
+.project-name {
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-lg);
+  line-height: var(--mctl-typography-line-height-tight);
+  margin-block-end: var(--mctl-space-2);
+}
+.project-summary {
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-body);
+  line-height: var(--mctl-typography-line-height-body);
+  color: var(--surface-fg-muted);
+  margin-block-end: var(--mctl-space-3);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mctl-space-2);
+  list-style: none;
+  margin: 0 0 var(--mctl-space-3);
+  padding: 0;
+}
+.chip {
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-xs);
+  color: var(--surface-fg-muted);
+  background: var(--surface-elevated);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--mctl-radius-pill);
+  padding: var(--mctl-space-1) var(--mctl-space-3);
+}
+.project-links {
+  list-style: none;
+  margin: 0 0 var(--mctl-space-2);
+  padding: 0;
+}
+.project-links a {
+  color: var(--surface-fg);
+}
+.project-metrics {
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-sm);
+  color: var(--surface-fg-muted);
+  margin: 0;
+}
+
 /* Tap targets: every interactive element on the page is at least 44px tall
  * at any viewport width, per the 360px acceptance criterion. */
 .site-nav a,

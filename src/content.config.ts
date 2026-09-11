@@ -25,7 +25,7 @@ const projectsSchema = z.strictObject({
   name: z.string().min(1),
   group: z.enum(['platform', 'product']),
   order: z.number().int().nonnegative(),
-  repo: githubUrl,
+  repo: githubUrl.optional(),
   stack: z.array(z.string().min(1)).min(1),
   summary: z.string().min(1).refine((s) => !s.includes('\n'), 'summary is one line'),
   links: z.array(z.strictObject({ label: z.string().min(1), url: httpsUrl })).optional(),

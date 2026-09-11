@@ -100,6 +100,23 @@ export const ui = {
     ru: 'Страница, которую вы ищете, не существует.',
   },
   notFoundHome: { en: 'Back to home', ru: 'На главную' },
+
+  workGroupPlatform: { en: 'Platform', ru: 'Платформа' },
+  workGroupProducts: { en: 'Products', ru: 'Продукты' },
+  workDetailsSummary: { en: 'Details', ru: 'Подробнее' },
+  workMetricsLabel: { en: 'Repository metrics', ru: 'Метрики репозитория' },
+  workPageTitle: { en: 'Work — Dmitrii Mashkov', ru: 'Work — Dmitrii Mashkov' },
 } as const;
 
 export type UiKey = keyof typeof ui;
+
+// Chip-text dictionary for the work page's stack chips (src/pages/work.astro
+// via src/components/ProjectCard.astro). Keyed by the exact frontmatter
+// string in a project's `stack` array; a chip with no entry here renders
+// unchanged in both languages. Kept as a separate export, not a `ui` key,
+// because test/ui.test.ts requires every `ui` value to be an { en, ru } pair
+// and this is a Record<string, string> instead.
+export const stackChipRu: Record<string, string> = {
+  'design tokens': 'дизайн-токены',
+  'upstream fork': 'форк upstream',
+};

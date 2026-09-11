@@ -1,0 +1,54 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { render } from 'astro:content';
+import Lang from '../i18n/Lang.astro';
+import { ui, stackChipRu } from '../i18n/ui';
+import { formatStat } from '../lib/metrics';
+
+interface Props {
+  en: CollectionEntry<'projects'>;
+  ru: CollectionEntry<'projects'>;
+}
+
+const { en, ru } = Astro.props;
+const { Content: BodyEn } = await render(en);
+const { Content: BodyRu } = await render(ru);
+const repoLabel = en.data.repo?.replace(/^https:\/\//, '').replace(/\/$/, '');
+const links = en.data.links ?? [];
+const ruLinks = ru.data.links ?? [];
+---
+
+<article class="project" id={en.data.slug}>
+  <h3 class="project-name">{en.data.name}</h3>
+  <p class="project-summary"><Lang en={en.data.summary} ru={ru.data.summary} /></p>
+  <ul class="chips">
+    {en.data.stack.map((chip) => (
+      <li class="chip"><Lang en={chip} ru={stackChipRu[chip] ?? chip} /></li>
+    ))}
+  </ul>
+  <details class="block project-details">
+    <summary><Lang en={ui.workDetailsSummary.en} ru={ui.workDetailsSummary.ru} /></summary>
+    <div class="l en">
+      <BodyEn />
+    </div>
+    <div class="l ru" lang="ru">
+      <BodyRu />
+    </div>
+    <ul class="project-links">
+      {en.data.repo && (
+        <li><a href={en.data.repo}>{repoLabel}</a></li>
+      )}
+      {links.map((link, index) => (
+        <li>
+          <a href={link.url}>
+            <Lang en={link.label} ru={ruLinks[index]?.label ?? link.label} />
+          </a>
+        </li>
+      ))}
+    </ul>
+    <p class="project-metrics">
+      <Lang en={ui.workMetricsLabel.en} ru={ui.workMetricsLabel.ru} />{' '}
+      <span data-stat><slot name="metrics">{formatStat(null)}</slot></span>
+    </p>
+  </details>
+</article>
