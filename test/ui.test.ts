@@ -28,3 +28,13 @@ test('every ui entry has a non-empty en and ru of the same kind', () => {
     }
   }
 });
+
+test('heroName is a real bilingual pair, and homeTitle stays the single Latin <title> string', () => {
+  assert.equal(ui.heroName.en, 'Dmitrii Mashkov');
+  assert.equal(ui.heroName.ru, 'Дмитрий Машков');
+  assert.notEqual(ui.heroName.en, ui.heroName.ru, 'heroName.en and heroName.ru must not be collapsed to one string');
+
+  assert.equal(ui.homeTitle.en, 'Dmitrii Mashkov');
+  assert.equal(ui.homeTitle.ru, 'Dmitrii Mashkov');
+  assert.equal(ui.homeTitle.en, ui.homeTitle.ru);
+});

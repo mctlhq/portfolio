@@ -23,6 +23,16 @@
 // src/content/journal/*.md, one page per public journal/ADR entry and none
 // for a private one, data-release parity with package.json on every page,
 // and no absolute-URL subresource in any dist/**/*.html or dist/**/*.css.
+//
+// checkHomePage() (issue #27, P4a) extends this for dist/index.html: the
+// hero name renders as a bilingual class="l en" / class="l ru" pair inside
+// class="hero-name", and <title> -- which can hold only one string, so it
+// cannot itself carry the toggled pair -- stays exactly "Dmitrii Mashkov"
+// with no Cyrillic character, independent of the data-lang a reader has
+// selected. Source-level tests in npm test cannot see this: they run before
+// `astro build` (prebuild is `npm run vendor && npm test`), so they can
+// assert the template renders through <Lang> but not what the built markup
+// or <title> text actually is.
 
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
@@ -168,6 +178,59 @@ async function checkApproachPage() {
   }
 
   return { problems, svgBytes };
+}
+
+/**
+ * Checks dist/index.html (issue #27, P4a) against the one criterion that
+ * only the built page can prove: the hero name renders as a bilingual
+ * `.l.en` / `.l.ru` pair inside `class="hero-name"`, and the `<title>`
+ * element -- which can hold only one string -- stays the Latin
+ * `Dmitrii Mashkov` with no Cyrillic character, independent of whichever
+ * `data-lang` half a reader has toggled to. Returns an array of problem
+ * strings.
+ */
+async function checkHomePage() {
+  const problems = [];
+  const indexPath = path.join(DIST_DIR, 'index.html');
+  let html;
+  try {
+    html = await readFile(indexPath, 'utf8');
+  } catch {
+    problems.push(`check-dist: ${path.relative(ROOT, indexPath)} does not exist`);
+    return problems;
+  }
+
+  const heroMatch = html.match(/<h1\b[^>]*\bclass="hero-name"[^>]*>[\s\S]*?<\/h1>/);
+  if (!heroMatch) {
+    problems.push(`check-dist: ${path.relative(ROOT, indexPath)} has no <h1 class="hero-name"> element`);
+  } else {
+    const heroSlice = heroMatch[0];
+    if (!/<span\b[^>]*class="l en"[^>]*>Dmitrii Mashkov<\/span>/.test(heroSlice)) {
+      problems.push(
+        `check-dist: the hero <h1 class="hero-name"> in ${path.relative(ROOT, indexPath)} does not contain "Dmitrii Mashkov" inside an element with class="l en"`,
+      );
+    }
+    if (!/<span\b[^>]*class="l ru"[^>]*>Дмитрий Машков<\/span>/.test(heroSlice)) {
+      problems.push(
+        `check-dist: the hero <h1 class="hero-name"> in ${path.relative(ROOT, indexPath)} does not contain "Дмитрий Машков" inside an element with class="l ru"`,
+      );
+    }
+  }
+
+  const titleMatch = html.match(/<title>([^<]*)<\/title>/);
+  const titleText = titleMatch ? titleMatch[1] : null;
+  if (titleText !== 'Dmitrii Mashkov') {
+    problems.push(
+      `check-dist: <title> in ${path.relative(ROOT, indexPath)} is "${titleText ?? '(missing)'}", expected exactly "Dmitrii Mashkov"`,
+    );
+  }
+  if (titleText && /[\u0400-\u04ff]/.test(titleText)) {
+    problems.push(
+      `check-dist: <title> in ${path.relative(ROOT, indexPath)} contains a Cyrillic character; the browser tab must stay Latin regardless of data-lang`,
+    );
+  }
+
+  return problems;
 }
 
 const JOURNAL_DIR = path.join(ROOT, 'src', 'content', 'journal');
@@ -472,6 +535,9 @@ async function main() {
       `check-dist: dist/index.html is ${indexBytes} bytes, at or over the ${MAX_INDEX_BYTES}-byte cap`,
     );
   }
+
+  const homePageProblems = await checkHomePage();
+  problems.push(...homePageProblems);
 
   const approachResult = await checkApproachPage();
   problems.push(...approachResult.problems);
