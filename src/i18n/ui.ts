@@ -18,6 +18,10 @@ export const ui = {
   themeToggleLabel: { en: 'Theme', ru: 'Тема' },
   themeDark: { en: 'Dark', ru: 'Тёмная' },
   themeLight: { en: 'Light', ru: 'Светлая' },
+  themeNoScript: {
+    en: 'Switching theme requires JavaScript.',
+    ru: 'Для переключения темы требуется JavaScript.',
+  },
 
   footerGithubLabel: { en: 'Source on GitHub', ru: 'Исходный код на GitHub' },
   footerColophonLabel: { en: 'Colophon', ru: 'Колофон' },

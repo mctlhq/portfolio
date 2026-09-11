@@ -52,6 +52,10 @@ function sha256Hex(text) {
   return createHash('sha256').update(text, 'utf8').digest('hex');
 }
 
+function sha256HexBuffer(buf) {
+  return createHash('sha256').update(buf).digest('hex');
+}
+
 const FONTS_DIR = path.join(ROOT, 'public/assets/fonts');
 const LICENSES_DIR = path.join(FONTS_DIR, 'LICENSES');
 const FONTS_CSS_PATH = path.join(FONTS_DIR, 'fonts.css');
@@ -67,6 +71,15 @@ const SUBSETS = ['latin', 'latin-ext', 'cyrillic', 'cyrillic-ext'];
 // carry a cyrillic subset, so the coverage check below can tell "this family
 // legitimately has none" (Instrument Serif) from "a cyrillic file went
 // missing" (a bug).
+//
+// `sha256` pins the exact tarball bytes fetched from registry.npmjs.org for
+// each pinned version, the same way MCTL_SHA256 above pins the mctl.css
+// family: the registry path names a version but is not a content-addressed
+// store, so nothing stops it from serving different bytes under the same
+// path later. Comparing against this pinned digest turns that into a loud,
+// deliberate build failure instead of a silent content swap. Re-pin only as
+// a reviewed, intentional version bump, never as a reflexive fix for a
+// failing vendor run.
 const FAMILIES = [
   {
     pkgName: '@fontsource/onest',
@@ -77,6 +90,7 @@ const FAMILIES = [
     styles: ['normal'],
     subsets: SUBSETS,
     hasCyrillic: true,
+    sha256: '7e289e83ab5b1d8b3f982232295da79b41c21291ca3f928de28903d7523b24a6',
   },
   {
     pkgName: '@fontsource/instrument-serif',
@@ -87,6 +101,7 @@ const FAMILIES = [
     styles: ['normal', 'italic'],
     subsets: ['latin', 'latin-ext'],
     hasCyrillic: false,
+    sha256: 'b342b7a7844a0025bc6185a28dd23e8b382202d73a5a574e3bf6d969bef3875d',
   },
   {
     pkgName: '@fontsource/jetbrains-mono',
@@ -97,6 +112,7 @@ const FAMILIES = [
     styles: ['normal'],
     subsets: SUBSETS,
     hasCyrillic: true,
+    sha256: '1bbea47d1387406da5b6ccc4184cc61eae6851cc0db5c1d9bbd088ea9daa0b4a',
   },
 ];
 
@@ -172,10 +188,17 @@ function* iterateTar(buffer) {
   }
 }
 
-async function fetchPackageTarball(pkgName, version) {
+async function fetchPackageTarball(pkgName, version, expectedSha256) {
   const basename = pkgName.split('/').pop();
   const url = `https://registry.npmjs.org/${pkgName}/-/${basename}-${version}.tgz`;
   const gz = await fetchBuffer(url);
+  const actual = sha256HexBuffer(gz);
+  if (expectedSha256 && actual !== expectedSha256) {
+    throw new ValidationError(
+      `${pkgName}@${version} tarball sha256 mismatch: expected ${expectedSha256}, got ${actual} -- ` +
+        `registry.npmjs.org served different bytes than the pinned digest`,
+    );
+  }
   let buf;
   try {
     buf = zlib.gunzipSync(gz);
@@ -246,7 +269,7 @@ async function vendorFonts() {
   let fontFileCount = 0;
 
   for (const fam of FAMILIES) {
-    const tar = await fetchPackageTarball(fam.pkgName, fam.version);
+    const tar = await fetchPackageTarball(fam.pkgName, fam.version, fam.sha256);
 
     const licenseData = tar.get('package/LICENSE');
     if (!licenseData || licenseData.length === 0) {
