@@ -98,6 +98,8 @@ async function checkApproachPage() {
   const RASTER_RE = /<image\b|data:|xlink:href|\.(png|jpe?g|gif|webp)\b/i;
   const COLOR_LITERAL_RE = /#[0-9a-fA-F]{3,8}\b|rgb\(|hsl\(/;
 
+  let sawNarrowSlice = false;
+
   for (const slice of slices) {
     const openTag = svgOpenTag(slice);
     const label = openTag.match(/class="([^"]*)"/)?.[1] ?? '(no class)';
@@ -143,13 +145,20 @@ async function checkApproachPage() {
       problems.push(`check-dist: <svg class="${label}"> in ${path.relative(ROOT, approachPath)} has ${enCount} occurrences of class="l en" but ${ruCount} of class="l ru"`);
     }
 
-    if (label.includes('cycle-narrow') && viewBoxMatch) {
-      const parts = viewBoxMatch[1].trim().split(/\s+/).map(Number);
-      const width = parts[2];
-      if (!Number.isFinite(width) || width > NARROW_MAX_VIEWBOX_WIDTH) {
-        problems.push(`check-dist: the narrow <svg> viewBox width is ${width}, over the ${NARROW_MAX_VIEWBOX_WIDTH}px cap`);
+    if (label.includes('cycle-narrow')) {
+      sawNarrowSlice = true;
+      if (viewBoxMatch) {
+        const parts = viewBoxMatch[1].trim().split(/\s+/).map(Number);
+        const width = parts[2];
+        if (!Number.isFinite(width) || width > NARROW_MAX_VIEWBOX_WIDTH) {
+          problems.push(`check-dist: the narrow <svg> viewBox width is ${width}, over the ${NARROW_MAX_VIEWBOX_WIDTH}px cap`);
+        }
       }
     }
+  }
+
+  if (!sawNarrowSlice) {
+    problems.push(`check-dist: no <svg> with a "cycle-narrow" class found in ${path.relative(ROOT, approachPath)}; the ${NARROW_MAX_VIEWBOX_WIDTH}px narrow-viewBox cap was not checked`);
   }
 
   return { problems, svgBytes };

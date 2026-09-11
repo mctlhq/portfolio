@@ -289,7 +289,7 @@ pre,
   stroke: currentColor;
   stroke-width: 1.5;
 }
-@media (min-width: 600px) {
+@media (min-width: 800px) {
   .cycle-narrow {
     display: none;
   }

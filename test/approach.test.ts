@@ -110,7 +110,7 @@ test('Nav.astro links the approach entry to /approach/ and no longer to /#approa
 });
 
 test('site.css carries the diagram variant breakpoint and fluid sizing rule', () => {
-  assert.match(css, /@media \(min-width: 600px\)/);
+  assert.match(css, /@media \(min-width: 800px\)/);
   assert.match(css, /\.cycle-svg\s*\{[^}]*width:\s*100%[^}]*height:\s*auto/s);
   assert.match(css, /\.cycle-node\.is-gate\s*rect\s*\{[^}]*var\(--accent\)/s);
 });
