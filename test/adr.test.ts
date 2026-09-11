@@ -67,6 +67,19 @@ test('adrBodyProblems reports a heading missing its Russian span', () => {
   assert.ok(problems.some((p) => p.includes('heading "Context"') && p.includes('Russian')));
 });
 
+test('adrBodyProblems accepts the accessible Russian span markup (lang="ru" attribute)', () => {
+  const accessibleRuSpan = ADR_SECTIONS.map((s) => {
+    if (s !== 'Context') return section(s, s, HEADINGS_RU[s]);
+    return (
+      `## <span class="l en">Context</span><span class="l ru" lang="ru">${HEADINGS_RU.Context}</span>\n\n` +
+      `<div class="l en">\n\nEnglish prose.\n\n</div>\n\n` +
+      `<div class="l ru" lang="ru">\n\nРусский текст.\n\n</div>\n\n`
+    );
+  }).join('');
+  const problems = adrBodyProblems('0001-bootstrap-boundary', accessibleRuSpan);
+  assert.ok(!problems.some((p) => p.includes('heading "Context"') && p.includes('missing its Russian')));
+});
+
 test('checkAdrBodies throws once naming every problem from every bad entry, and does not throw for good entries', () => {
   const good = { id: '0001-bootstrap-boundary', body: wellFormedBody(), frontmatterId: 1 };
   const missingSection = {

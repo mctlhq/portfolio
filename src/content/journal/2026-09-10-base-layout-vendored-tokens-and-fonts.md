@@ -19,9 +19,6 @@ interventions:
   - what: "regenerated package-lock.json by hand with npm install --package-lock-only"
     why: "npm install on the implementer's linux/x64 pod pruned every other platform's native binding out of the lockfile, so npm ci in the Dockerfile refused the tree with EUSAGE and the build check could never go green; the shepherd passes the implementer only findings raised by review bots, so the diagnosis posted on the PR never reached it"
     at: '2026-09-11T01:14:05Z'
-  - what: "deleted src/styles/site.css by hand"
-    why: "byte-identical dead copy of public/styles/site.css that nothing imported; raised in human review on the PR, which the shepherd does not read"
-    at: '2026-09-11T01:14:05Z'
   - what: "deleted src/styles/site.css, broke the build, then restored it and gitignored the generated public/styles/site.css instead"
     why: "the deletion was my error -- scripts/vendor-assets.mjs copies that file from prebuild and I had searched only the source tree for references, not the build scripts; the underlying smell was real, in that the generated copy was committed without being ignored"
     at: '2026-09-11T01:15:27Z'

@@ -8,7 +8,7 @@ type AdrSection = (typeof ADR_SECTIONS)[number];
 
 const HEADING_RE = /^##[ \t]+(.*)$/gm;
 const EN_SPAN_RE = /<span class="l en">([^<]*)<\/span>/;
-const RU_SPAN_RE = /<span class="l ru">([^<]*)<\/span>/;
+const RU_SPAN_RE = /<span class="l ru"[^>]*>([^<]*)<\/span>/;
 
 interface SectionBlock {
   key: AdrSection | null;
