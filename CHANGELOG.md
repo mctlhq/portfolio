@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.11](https://github.com/mctlhq/portfolio/compare/0.1.10...0.1.11) (2026-09-11)
+
+
+### Features
+
+* **agents:** issue-45-q1-csp-hash-is-unquoted-so-the-site-s-on ([78a8e3b](https://github.com/mctlhq/portfolio/commit/78a8e3b4a1ea4723de480002253cf3892d7f5c29))
+
+
+### Bug Fixes
+
+* **agents:** issue-45-q1-csp-hash-is-unquoted-so-the-site-s-on ([d173036](https://github.com/mctlhq/portfolio/commit/d173036621e0df251e51534eabd92a3e1b782fc7))
+
 ## [0.1.10](https://github.com/mctlhq/portfolio/compare/0.1.9...0.1.10) (2026-09-11)
 
 
