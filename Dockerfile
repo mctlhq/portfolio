@@ -11,7 +11,8 @@ COPY security-headers.conf /tmp/security-headers.conf
 COPY --from=builder /app/csp-script-src.txt /tmp/csp-script-src.txt
 RUN HASHES="$(cat /tmp/csp-script-src.txt)" \
  && sed "s|__SCRIPT_SRC_HASHES__|${HASHES}|g" /tmp/security-headers.conf > /etc/nginx/security-headers.conf \
- && grep -q "sha256-" /etc/nginx/security-headers.conf \
+ && grep -qE "script-src 'self' 'sha(256|384|512)-[A-Za-z0-9+/]+={0,2}'" /etc/nginx/security-headers.conf \
+ && ! grep -qE "(^|[^'])sha(256|384|512)-" /etc/nginx/security-headers.conf \
  && ! grep -q "__SCRIPT_SRC_HASHES__" /etc/nginx/security-headers.conf \
  && rm /tmp/security-headers.conf /tmp/csp-script-src.txt
 COPY --from=builder /app/dist/ /usr/share/nginx/html/
