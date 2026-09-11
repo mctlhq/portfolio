@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 // Reads every dist/**/*.html produced by `npm run build`, extracts the text
-// content of each inline <script> element, and prints one space-separated
-// `sha256-<base64>` token per unique body on stdout.
+// content of each inline <script> element, and prints one quoted
+// `'sha256-<base64>'` token per unique body on stdout, space-separated if
+// more than one -- the form a browser accepts as a CSP hash source. Quoting
+// and hashing come from src/lib/csp.ts, the single source of truth shared
+// with scripts/check-headers.mjs.
 //
 // Hashing must happen against dist/, never the .astro source: the hash has
 // to cover exactly the bytes the browser receives, and Astro's
@@ -12,10 +15,10 @@
 // of that budget: more than one distinct body, or a body over 400 bytes,
 // fails the build rather than relying on review.
 
-import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { extractInlineScripts, hashToken, sha256Base64 } from '../src/lib/csp.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const DIST_DIR = path.join(ROOT, 'dist');
@@ -33,16 +36,6 @@ async function findHtmlFiles(dir) {
     }
   }
   return files;
-}
-
-function extractInlineScripts(html) {
-  const bodies = [];
-  const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
-  let m;
-  while ((m = re.exec(html))) {
-    bodies.push(m[1]);
-  }
-  return bodies;
 }
 
 async function main() {
@@ -82,8 +75,7 @@ async function main() {
     return;
   }
 
-  const hash = createHash('sha256').update(body, 'utf8').digest('base64');
-  process.stdout.write(`sha256-${hash}\n`);
+  process.stdout.write(`${hashToken(sha256Base64(body))}\n`);
 }
 
 await main();

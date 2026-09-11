@@ -73,6 +73,18 @@ at 400 bytes by `scripts/csp-hash.mjs` — is allowed by its SHA-256 hash in
 `script-src`, not by a keyword, so it is unaffected by (and does not weaken)
 the "no `'unsafe-inline'`" posture.
 
+**The hash source must be quoted (issue #45).** The header as served is
+`content-security-policy: default-src 'self'; script-src 'self' 'sha256-<base64>'; style-src 'self'; font-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`.
+For one release the hash was emitted without its surrounding single quotes, so
+the browser discarded it as an invalid source and refused to run the inline
+language/theme script, while `grep -q "sha256-"` in the Dockerfile and
+`csp.includes('sha256-')` in `scripts/check-headers.mjs` both stayed green:
+they asserted the presence of a substring, not the validity of a source
+expression. Both now parse the `script-src` directive and require every
+hash-shaped token to be exactly `'<algo>-<base64>'`, and the runtime check also
+compares the token against the SHA-256 of the inline script actually served, so
+a quoted but stale hash fails as well.
+
 ## Open Graph image: SVG, not raster
 
 `public/og.svg` is a 1200×630 text-only SVG (`Dmitrii Mashkov` /
