@@ -183,11 +183,18 @@ function lastPageNumber(linkHeader) {
  * author filter (or no filter). Reads the page count out of the per_page=1
  * request's Link header's rel="last" URL instead of walking every page --
  * one or two requests per repository instead of hundreds. A repository with
- * no Link header has zero or one commit (per_page=1 never paginates below
- * that), so the exact count is read from a per_page=100 fallback fetch. A
- * repository with no commits at all (a freshly created, still-empty repo)
- * has GitHub's commits endpoint answer 409 "Git Repository is empty"
- * instead of an empty array -- treated the same as zero commits found. */
+ * NO Link header at all has zero or one commit (per_page=1 never paginates
+ * below that), so the exact count is read from a per_page=100 fallback
+ * fetch. A repository with no commits at all (a freshly created, still-empty
+ * repo) has GitHub's commits endpoint answer 409 "Git Repository is empty"
+ * instead of an empty array -- treated the same as zero commits found.
+ *
+ * A Link header that IS present but whose rel="last" URL cannot be parsed is
+ * a different, unexpected case -- not "zero or one commit" -- and is not
+ * treated the same: guessing there would silently cap the count at whatever
+ * one per_page=100 fetch returns, undercounting any repository with more
+ * than 100 commits. That case walks every page explicitly instead, trading
+ * the one/two-request fast path for an exact count. */
 async function commitsForAuthor(owner, name, defaultBranch, author) {
   const authorQs = author ? `&author=${encodeURIComponent(author)}` : '';
   const firstPageUrl = `${GITHUB_API}/repos/${owner}/${name}/commits?sha=${encodeURIComponent(defaultBranch)}&per_page=1${authorQs}`;
@@ -198,10 +205,10 @@ async function commitsForAuthor(owner, name, defaultBranch, author) {
   }
 
   const linkHeader = headers.get('link');
-  const lastPage = lastPageNumber(linkHeader);
 
-  if (lastPage === null) {
-    // Zero or one commit total; per_page=1 never needed a Link header.
+  if (linkHeader === null) {
+    // No Link header at all: per_page=1 never needed one below two total
+    // commits, so this is genuinely zero or one commit.
     const fallbackUrl = `${GITHUB_API}/repos/${owner}/${name}/commits?sha=${encodeURIComponent(defaultBranch)}&per_page=100${authorQs}`;
     const { json: all } = await ghFetch(fallbackUrl);
     if (all.length === 0) {
@@ -209,6 +216,23 @@ async function commitsForAuthor(owner, name, defaultBranch, author) {
     }
     const date = all[0].commit.committer.date;
     return { commits: all.length, first_commit_at: date, last_commit_at: date };
+  }
+
+  const lastPage = lastPageNumber(linkHeader);
+
+  if (lastPage === null) {
+    // A Link header is present but its rel="last" URL did not parse --
+    // pagination parsing failed, not "zero or one commit". Walk every page
+    // via the Link header's rel="next" instead of guessing, so the count
+    // stays exact rather than silently capping at 100.
+    const walkUrl = `${GITHUB_API}/repos/${owner}/${name}/commits?sha=${encodeURIComponent(defaultBranch)}&per_page=100${authorQs}`;
+    const all = await ghFetchAllPages(walkUrl);
+    if (all.length === 0) {
+      return { commits: 0, first_commit_at: null, last_commit_at: null };
+    }
+    const lastCommitAt = all[0].commit.committer.date;
+    const firstCommitAt = all[all.length - 1].commit.committer.date;
+    return { commits: all.length, first_commit_at: firstCommitAt, last_commit_at: lastCommitAt };
   }
 
   const lastCommitAt = firstPage[0].commit.committer.date;
@@ -244,10 +268,25 @@ async function collectRepoCommits(owner, name, defaultBranch, isFork) {
 }
 
 /** Release count for one repository: git tags matching semver without a `v`
- * prefix (AGENTS.md), not the GitHub Releases API. */
-async function collectRepoReleases(owner, name) {
+ * prefix (AGENTS.md), not the GitHub Releases API. `applyForkFilter` is the
+ * same condition collectRepoCommits uses to exclude a fork's inherited
+ * upstream history; when set, a tag only counts if the commit it points at
+ * was authored by one of OWNER_IDENTITIES, so a release cut by the upstream
+ * project before the fork existed cannot silently count as this repo's own. */
+async function collectRepoReleases(owner, name, applyForkFilter) {
   const tags = await ghFetchAllPages(`${GITHUB_API}/repos/${owner}/${name}/tags?per_page=100`);
-  return tags.filter((tag) => RELEASE_TAG_RE.test(tag.name)).length;
+  const semverTags = tags.filter((tag) => RELEASE_TAG_RE.test(tag.name));
+  if (!applyForkFilter) {
+    return semverTags.length;
+  }
+  let count = 0;
+  for (const tag of semverTags) {
+    const { json: commit } = await ghFetch(`${GITHUB_API}/repos/${owner}/${name}/commits/${tag.commit.sha}`);
+    if (commit.author?.login && OWNER_IDENTITIES.includes(commit.author.login)) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 /** Lists the repositories counted by this snapshot: every non-archived
@@ -278,7 +317,7 @@ async function collectGithub() {
     const applyForkFilter = Boolean(repo.fork) && (isOrgRepo || EXTRA_REPO_IS_FORK_FILTERED);
     const [commitStats, releases] = await Promise.all([
       collectRepoCommits(owner, name, repo.default_branch, applyForkFilter),
-      collectRepoReleases(owner, name),
+      collectRepoReleases(owner, name, applyForkFilter),
     ]);
     perRepo[repo.full_name] = {
       commits: commitStats.commits,
