@@ -4,7 +4,7 @@ import Lang from '../i18n/Lang.astro';
 import { ui } from '../i18n/ui';
 ---
 
-<Base title={ui.notFoundTitle.en}>
+<Base title={`${ui.notFoundTitle.en} / ${ui.notFoundTitle.ru}`}>
   <main>
     <h1><Lang en={ui.notFoundTitle.en} ru={ui.notFoundTitle.ru} /></h1>
     <p><Lang en={ui.notFoundBody.en} ru={ui.notFoundBody.ru} /></p>

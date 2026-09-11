@@ -23,6 +23,7 @@
 import { mkdir, writeFile, readFile, copyFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import zlib from 'node:zlib';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -31,6 +32,25 @@ const MCTL_VERSION = '0.5.0';
 const MCTL_BASE = `https://ui.mctl.ai/${MCTL_VERSION}/`;
 const MCTL_FILES = ['mctl.css', 'global.css', 'prose.css'];
 const MCTL_DIR = path.join(ROOT, 'public/assets/mctl');
+
+// SHA-256 of each file at MCTL_VERSION, pinned from the copy in
+// public/assets/mctl/ already committed and reviewed in this repo. The
+// `/0.5.0/` path segment names a version but ui.mctl.ai is a plain origin,
+// not an immutable content-addressed registry -- nothing stops it from
+// serving different bytes under the same path later. Comparing against this
+// pinned digest turns that into a loud, deliberate failure instead of a
+// silent content swap. Update these digests only as a reviewed, intentional
+// re-pin (e.g. alongside a genuine upstream 0.5.0 republish), never as a
+// reflexive fix for a failing vendor run.
+const MCTL_SHA256 = {
+  'mctl.css': 'baf7fec102ffa91d38a6a6bdcc8e2084dc4d3554674ef8dea1e10e46495dba62',
+  'global.css': '948edca94a20df44499b1166346172be91bc03e382d7d8ee46299c3190f40f61',
+  'prose.css': '4636eeb77ecfdec9bae6fbe4513909f10bccf7cf14128888645705b5531d85ba',
+};
+
+function sha256Hex(text) {
+  return createHash('sha256').update(text, 'utf8').digest('hex');
+}
 
 const FONTS_DIR = path.join(ROOT, 'public/assets/fonts');
 const LICENSES_DIR = path.join(FONTS_DIR, 'LICENSES');
@@ -201,6 +221,16 @@ async function vendorMctl() {
   for (const file of MCTL_FILES) {
     if (file === 'mctl.css') continue;
     contents[file] = await fetchText(MCTL_BASE + file);
+  }
+  for (const file of MCTL_FILES) {
+    const expected = MCTL_SHA256[file];
+    const actual = sha256Hex(contents[file]);
+    if (expected && actual !== expected) {
+      throw new ValidationError(
+        `${file} sha256 mismatch: expected ${expected}, got ${actual} -- ` +
+          `ui.mctl.ai served different bytes than the pinned ${MCTL_VERSION} digest`,
+      );
+    }
   }
   for (const file of MCTL_FILES) {
     await writeFile(path.join(MCTL_DIR, file), contents[file], 'utf8');

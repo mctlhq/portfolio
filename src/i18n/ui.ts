@@ -10,6 +10,10 @@ export const ui = {
   langToggleLabel: { en: 'Language', ru: 'Язык' },
   langEn: { en: 'EN', ru: 'EN' },
   langRu: { en: 'RU', ru: 'RU' },
+  langNoScript: {
+    en: 'Switching language requires JavaScript. Enable it to read this site in Russian.',
+    ru: 'Для переключения языка требуется JavaScript. Включите его, чтобы читать сайт на русском.',
+  },
 
   themeToggleLabel: { en: 'Theme', ru: 'Тема' },
   themeDark: { en: 'Dark', ru: 'Тёмная' },
