@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.4](https://github.com/mctlhq/portfolio/compare/0.1.3...0.1.4) (2026-09-11)
+
+
+### Features
+
+* **agents:** issue-7-p5-work-page-with-project-entries ([5534dde](https://github.com/mctlhq/portfolio/commit/5534ddebe3370eef536de211c84d4415d3c64b72))
+* **agents:** issue-7-p5-work-page-with-project-entries ([c91d945](https://github.com/mctlhq/portfolio/commit/c91d945fbc26645daed11f31fe8f26abed573eb4))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-7-p5-work-page-with-project-entries ([be62cce](https://github.com/mctlhq/portfolio/commit/be62cce9bdb7e07b70e4cf34ad01557f99c60cc6))
+* **agents:** address P1/P2 codex findings on issue-7-p5-work-page-with-project-entries ([c9d3336](https://github.com/mctlhq/portfolio/commit/c9d333651739084ff8e452f2b1333ecd4b18ea3c))
+
+
+### Documentation
+
+* acceptance criteria must be satisfiable by a commit ([e5f2a97](https://github.com/mctlhq/portfolio/commit/e5f2a9747d89d44c282db63c5efbb04ae1ca462d))
+* acceptance criteria must be satisfiable by a commit ([8ead0c0](https://github.com/mctlhq/portfolio/commit/8ead0c0bc3052bb7347ce6dad5f7b9e45ff20a3f))
+
 ## [0.1.3](https://github.com/mctlhq/portfolio/compare/0.1.2...0.1.3) (2026-09-11)
 
 
