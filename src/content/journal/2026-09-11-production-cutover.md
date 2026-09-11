@@ -26,8 +26,6 @@ interventions:
     at: '2026-09-11T14:14:00Z'
 ---
 
-<div class="l en">
-
 | at (UTC) | event | operation | result |
 |---|---|---|---|
 | 2026-09-11T00:17:50Z | release 0.1.0 tagged | release-please | first release |
@@ -44,26 +42,3 @@ interventions:
 | 2026-09-11T14:16:53Z | contract on the apex | `scripts/prod-contract.sh dmitriimashkov.com` | **14 passed, 0 failed** |
 
 Time from apex registration to a green contract: under three minutes.
-
-</div>
-
-<div class="l ru" lang="ru">
-
-| at (UTC) | событие | операция | результат |
-|---|---|---|---|
-| 2026-09-11T00:17:50Z | релиз 0.1.0 отмечен тегом | release-please | первый релиз |
-| 2026-09-11T00:21:36Z | репетиционный домен зарегистрирован | `mctl_add_custom_domain` | `preview.dmitriimashkov.com` |
-| 2026-09-11T00:22:23Z | репетиционный ingress и сертификат | `add-custom-domain-afc48c5f` | подтверждён 00:22:27, активен 00:22:34 |
-| 2026-09-11T08:09:34Z | откат 0.1.4 → 0.1.3 | `rollback-service-5ee1f939` | Succeeded 08:10:39 |
-| 2026-09-11T08:10:43Z | прогон контракта на 0.1.3 | `scripts/prod-contract.sh` | 11 passed, 0 failed; `/work/` 404 — верно для этого тега |
-| 2026-09-11T08:10:50Z | восстановление 0.1.3 → 0.1.4 | `deploy-service-8f79f8ff` | Succeeded 08:13:52 |
-| 2026-09-11T08:13:53Z | прогон контракта на 0.1.4 | `scripts/prod-contract.sh` | 12 passed, 0 failed |
-| 2026-09-11T14:13:55Z | апекс зарегистрирован | `mctl_add_custom_domain` | `dmitriimashkov.com`, TXT-челлендж выпущен |
-| 2026-09-11T14:14:27Z | апекс подтверждён, воркфлоу запущен | `add-custom-domain-7a4245fe` | подтверждён по TXT; Succeeded 14:15:22 |
-| 2026-09-11T14:16:27Z | сертификат перевыпущен | cert-manager | Ready для `preview.dmitriimashkov.com` и `dmitriimashkov.com` |
-| 2026-09-11T14:16:30Z | первый 200 на апексе | — | `https://dmitriimashkov.com/` |
-| 2026-09-11T14:16:53Z | прогон контракта на апексе | `scripts/prod-contract.sh dmitriimashkov.com` | **14 passed, 0 failed** |
-
-Время от регистрации апекса до зелёного контракта: меньше трёх минут.
-
-</div>
