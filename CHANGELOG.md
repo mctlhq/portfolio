@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.1.2](https://github.com/mctlhq/portfolio/compare/0.1.1...0.1.2) (2026-09-11)
+
+
+### Features
+
+* **agents:** issue-5-p3-content-collections-for-projects-jour ([08e4ea2](https://github.com/mctlhq/portfolio/commit/08e4ea2a1a6d44cdbada36b4ab813d9d5e88b96a))
+* **agents:** issue-5-p3-content-collections-for-projects-jour ([c1b3b63](https://github.com/mctlhq/portfolio/commit/c1b3b630da65b7399dbb6dd1beda01e05aca3c73))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-5-p3-content-collections-for-projects-jour ([98f82c7](https://github.com/mctlhq/portfolio/commit/98f82c7143d26f004c99b7fce1652b98cc29ebce))
+* **agents:** address P1/P2 codex findings on issue-5-p3-content-collections-for-projects-jour ([91b2429](https://github.com/mctlhq/portfolio/commit/91b24290d4a2420d27e13e39ed062c04553df9d9))
+* **agents:** address P1/P2 codex findings on issue-5-p3-content-collections-for-projects-jour ([82af530](https://github.com/mctlhq/portfolio/commit/82af5308947bd7e519fdf76e1dd7202165c0ff08))
+
+
+### Documentation
+
+* reserve the workflows that gate the loop, not all of .github ([5f7025d](https://github.com/mctlhq/portfolio/commit/5f7025d1e483d80bae4036d18a2cd87c985e15c1))
+* reserve the workflows that gate the loop, not all of .github ([3061cda](https://github.com/mctlhq/portfolio/commit/3061cdaffcd3bf805b928ea908783e48c6c9c2d3))
+* state the storage rule as an outcome, not a try/catch ([f4076cd](https://github.com/mctlhq/portfolio/commit/f4076cd80345ec2857dcd73aae3a3f402e8d34b3))
+* stop citing an ADR that has not been written ([f6320c6](https://github.com/mctlhq/portfolio/commit/f6320c670fa4455375d9339c184c0fb458a0f0e3))
+* stop citing an ADR that has not been written ([adc45a3](https://github.com/mctlhq/portfolio/commit/adc45a3ea0eff7e77f967a7f334b36592f0750ad))
+
 ## [0.1.1](https://github.com/mctlhq/portfolio/compare/0.1.0...0.1.1) (2026-09-11)
 
 
