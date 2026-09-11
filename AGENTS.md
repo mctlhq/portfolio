@@ -58,7 +58,8 @@ One DevLoop cycle at a time in this repository.
 - Zero third-party browser requests in production. Design tokens
   (`@mctlhq/css` 0.5.0) and fonts (Onest, Instrument Serif, JetBrains Mono —
   all SIL OFL) are vendored at build time with their licences.
-- No analytics, no cookies (ADR-0004).
+- No analytics, no cookies. The decision gets its own ADR in the cycle that
+  wires up metrics provenance; until that lands there is no number to cite.
 - Every number shown on the site comes from `src/data/metrics.json`, which
   carries `generated_at` and a per-source `collected_at` and `method`. Numbers
   are never typed into templates or content.
