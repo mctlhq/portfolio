@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.9](https://github.com/mctlhq/portfolio/compare/0.1.8...0.1.9) (2026-09-11)
+
+
+### Features
+
+* **agents:** issue-27-p4a-render-the-hero-name-in-the-reader-s ([9a7863b](https://github.com/mctlhq/portfolio/commit/9a7863bb84157861d7e14a2ebea4060c146cd406))
+* **agents:** issue-27-p4a-render-the-hero-name-in-the-reader-s ([04fa885](https://github.com/mctlhq/portfolio/commit/04fa885828621b70e06a35bd51f571f58f0da29b))
+
 ## [0.1.8](https://github.com/mctlhq/portfolio/compare/0.1.7...0.1.8) (2026-09-11)
 
 
