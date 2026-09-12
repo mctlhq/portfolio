@@ -38,6 +38,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { contentHash8, hashMismatch } from '../src/lib/content-hash.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -54,7 +55,7 @@ const ASSETS_JSON_PATH = path.join(ROOT, 'src/data/assets.json');
 async function emit(dir, baseName, ext, bytes, managed) {
   await mkdir(dir, { recursive: true });
   const buf = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes, 'utf8');
-  const hash = sha256HexBuffer(buf).slice(0, 8);
+  const hash = contentHash8(buf);
   const filename = `${baseName}.${hash}${ext}`;
   await writeFile(path.join(dir, filename), buf);
   if (managed) {
