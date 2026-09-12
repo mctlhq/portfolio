@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.13](https://github.com/mctlhq/portfolio/compare/0.1.12...0.1.13) (2026-09-12)
+
+
+### Features
+
+* **agents:** issue-47-q3-work-hides-repository-links-inside-co ([62f6ee0](https://github.com/mctlhq/portfolio/commit/62f6ee04dc7d4d59932fc39b4e461e3a107844c2))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-47-q3-work-hides-repository-links-inside-co ([ccda170](https://github.com/mctlhq/portfolio/commit/ccda1706b616f761f7fa5baa7c2385509a454a4a))
+* **agents:** address P1/P2 codex findings on issue-47-q3-work-hides-repository-links-inside-co ([4134fa2](https://github.com/mctlhq/portfolio/commit/4134fa2de6b2f188d8f139916a806e4f554e1da0))
+* **agents:** address P1/P2 codex findings on issue-47-q3-work-hides-repository-links-inside-co ([2e59326](https://github.com/mctlhq/portfolio/commit/2e59326b026305a92dbe6fb4f26963aba283e84a))
+* **agents:** address P1/P2 codex findings on issue-47-q3-work-hides-repository-links-inside-co ([507546e](https://github.com/mctlhq/portfolio/commit/507546ed4fdab9dfdb59e4be422b5c2dda5b6d6b))
+* **agents:** address P1/P2 codex findings on issue-47-q3-work-hides-repository-links-inside-co ([bd06872](https://github.com/mctlhq/portfolio/commit/bd0687288315251ec6790f4b7b4dc11784f91b9f))
+* **agents:** lift repository links and metrics out of the work disclosure ([1a9d1d8](https://github.com/mctlhq/portfolio/commit/1a9d1d87bd7bf13f687ee9869f23ef86a3d59a0f))
+
 ## [0.1.12](https://github.com/mctlhq/portfolio/compare/0.1.11...0.1.12) (2026-09-12)
 
 
