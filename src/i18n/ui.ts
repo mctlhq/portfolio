@@ -256,6 +256,20 @@ export const ui = {
   },
   journalBackToColophon: { en: 'Back to the colophon', ru: 'Назад к колофону' },
   adrBackToColophon: { en: 'Back to the colophon', ru: 'Назад к колофону' },
+  tableScrollHint: {
+    en: 'This table scrolls sideways on a narrow screen.',
+    ru: 'На узком экране эта таблица прокручивается вбок.',
+  },
+  leadTimeMissing: {
+    en: 'not measured: this cycle has no end timestamp yet',
+    ru: 'не измерено: у этого цикла ещё нет конечной отметки времени',
+  },
+  unitHour: { en: 'h', ru: 'ч' },
+  unitMinute: { en: 'min', ru: 'мин' },
+  monthAbbrev: {
+    en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    ru: ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
+  },
 } as const;
 
 export type UiKey = keyof typeof ui;

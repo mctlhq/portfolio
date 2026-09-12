@@ -367,7 +367,13 @@ main a:hover {
   padding-block: var(--mctl-space-5);
   border-top: 1px solid var(--surface-line);
 }
+.table-hint {
+  color: var(--surface-fg-muted);
+  font-size: var(--mctl-typography-font-size-xs);
+  margin-block-end: var(--mctl-space-2);
+}
 .table-scroll {
+  position: relative;
   overflow-x: auto;
   margin-block-end: var(--mctl-space-3);
 }
@@ -375,13 +381,28 @@ main a:hover {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
 }
+/* A static, CSS-only edge affordance for readers on a narrow screen where the
+ * table still overflows after the wrapping fix below: no animation, no
+ * transition (test/a11y.test.ts), pointer-events: none so it never blocks the
+ * focusable .table-scroll region. The .table-hint text is the accessible
+ * carrier of the same message at every width. */
+@media (max-width: 599px) {
+  .table-scroll::after {
+    content: '';
+    position: sticky;
+    inset-block: 0;
+    inset-inline-end: 0;
+    inline-size: var(--mctl-space-5);
+    background-image: linear-gradient(to left, var(--surface-bg), transparent);
+    pointer-events: none;
+  }
+}
 table.cycles,
 table.adr-index {
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-display);
   font-size: var(--mctl-typography-font-size-sm);
-  white-space: nowrap;
 }
 table.cycles caption,
 table.adr-index caption {
@@ -402,11 +423,53 @@ table.cycles th,
 table.adr-index th {
   color: var(--surface-fg-muted);
   font-weight: var(--mctl-typography-font-weight-semibold);
+  /* A heading may wrap at a space but never break mid-word, at any width. */
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
+}
+/* Every column except the two title-link columns (table.cycles column 3,
+ * table.adr-index column 2) keeps its content on one line: dates, release
+ * tags, GitHub references, the service name and numeric values never break
+ * across lines. The title columns are left to wrap so all columns fit inside
+ * --content-max without horizontal scrolling at a 1440px viewport. */
+table.cycles td:nth-child(1),
+table.cycles td:nth-child(2),
+table.cycles td:nth-child(4),
+table.cycles td:nth-child(5),
+table.cycles td:nth-child(6),
+table.cycles td:nth-child(7),
+table.cycles td:nth-child(8) {
+  white-space: nowrap;
+}
+table.adr-index td:nth-child(1),
+table.adr-index td:nth-child(3),
+table.adr-index td:nth-child(4) {
+  white-space: nowrap;
 }
 table.cycles td:nth-child(1),
 table.cycles td:nth-child(7),
 table.cycles td:nth-child(8) {
   font-variant-numeric: tabular-nums;
+}
+.lead-time-missing {
+  color: var(--surface-fg-muted);
+}
+.step-interval {
+  color: var(--surface-fg-muted);
+  margin-inline-start: var(--mctl-space-2);
+}
+/* Below 600px, drop Service and Pull request from table.cycles (heading and
+ * cells alike) so the remaining six columns fit a phone; both values remain
+ * one click away on the cycle's own journal page. */
+@media (max-width: 599px) {
+  table.cycles th:nth-child(2),
+  table.cycles td:nth-child(2),
+  table.cycles th:nth-child(5),
+  table.cycles td:nth-child(5) {
+    display: none;
+  }
 }
 .cycle-totals {
   font-family: var(--font-display);

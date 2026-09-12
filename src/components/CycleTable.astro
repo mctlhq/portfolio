@@ -13,6 +13,7 @@ const EM_DASH = '—';
 const scrollLabel = `${ui.cycleTableCaption.en} / ${ui.cycleTableCaption.ru}`;
 ---
 
+<p class="table-hint"><Lang en={ui.tableScrollHint.en} ru={ui.tableScrollHint.ru} /></p>
 <div class="table-scroll" role="region" tabindex="0" aria-label={scrollLabel}>
   <table class="cycles">
     <caption><Lang en={ui.cycleTableCaption.en} ru={ui.cycleTableCaption.ru} /></caption>
@@ -41,7 +42,18 @@ const scrollLabel = `${ui.cycleTableCaption.en} / ${ui.cycleTableCaption.ru}`;
           <td><a href={entry.data.issue}>{githubRef(entry.data.issue)}</a></td>
           <td>{entry.data.pr ? <a href={entry.data.pr}>{githubRef(entry.data.pr)}</a> : EM_DASH}</td>
           <td>{entry.data.release ?? EM_DASH}</td>
-          <td>{formatLeadTime(leadTimeHours(entry.data))}</td>
+          <td>
+            {leadTimeHours(entry.data) === null ? (
+              <>
+                <span class="lead-time-missing">{formatLeadTime(null)}</span>
+                <span class="visually-hidden">
+                  <Lang en={ui.leadTimeMissing.en} ru={ui.leadTimeMissing.ru} />
+                </span>
+              </>
+            ) : (
+              formatLeadTime(leadTimeHours(entry.data))
+            )}
+          </td>
           <td>{interventionCount(entry.data)}</td>
         </tr>
       ))}

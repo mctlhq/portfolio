@@ -3,9 +3,13 @@ import { test } from 'node:test';
 import {
   ISO_WITH_OFFSET,
   byNewestFirst,
+  cycleEndTimestamp,
   cycleTimestamp,
+  formatInterval,
   formatLeadTime,
+  formatStamp,
   githubRef,
+  intervalMinutes,
   interventionCount,
   isoDate,
   isoStamp,
@@ -42,6 +46,56 @@ test('leadTimeHours returns null when deployed_at is absent, null or empty', () 
   assert.equal(leadTimeHours(base), null);
   assert.equal(leadTimeHours({ ...base, deployed_at: null }), null);
   assert.equal(leadTimeHours({ ...base, deployed_at: '' }), null);
+});
+
+test('leadTimeHours falls back to released_at when deployed_at is absent, null or empty', () => {
+  const base = { issue_opened_at: '2026-09-10T22:00:00Z', released_at: '2026-09-10T23:00:00Z' };
+  assert.equal(leadTimeHours(base), 1);
+  assert.equal(leadTimeHours({ ...base, deployed_at: null }), 1);
+  assert.equal(leadTimeHours({ ...base, deployed_at: '' }), 1);
+});
+
+test('leadTimeHours prefers deployed_at over released_at when both are present and disagree', () => {
+  const entry = {
+    issue_opened_at: '2026-09-10T22:00:00Z',
+    released_at: '2026-09-10T23:00:00Z',
+    deployed_at: '2026-09-11T00:00:00Z',
+  };
+  assert.equal(leadTimeHours(entry), 2);
+});
+
+test('leadTimeHours returns null for an entry with neither deployed_at nor released_at, and formatLeadTime of that is the em dash', () => {
+  const entry = { issue_opened_at: '2026-09-10T22:00:00Z' };
+  const hours = leadTimeHours(entry);
+  assert.equal(hours, null);
+  assert.equal(formatLeadTime(hours), '—');
+});
+
+test('leadTimeHours returns exactly 0 when issue_opened_at and the end timestamp are the same instant, distinct from the missing rendering', () => {
+  const sameInstant = '2026-09-10T22:00:00Z';
+  const hours = leadTimeHours({ issue_opened_at: sameInstant, deployed_at: sameInstant });
+  assert.equal(hours, 0);
+  assert.equal(formatLeadTime(hours), '0.0');
+  assert.notEqual(formatLeadTime(hours), formatLeadTime(null));
+});
+
+test('cycleEndTimestamp returns deployed_at when present, else released_at, else null', () => {
+  assert.equal(cycleEndTimestamp({ issue_opened_at: '2026-01-01T00:00:00Z' }), null);
+  assert.equal(
+    cycleEndTimestamp({
+      issue_opened_at: '2026-01-01T00:00:00Z',
+      released_at: '2026-01-02T00:00:00Z',
+    })!.toISOString(),
+    '2026-01-02T00:00:00.000Z',
+  );
+  assert.equal(
+    cycleEndTimestamp({
+      issue_opened_at: '2026-01-01T00:00:00Z',
+      released_at: '2026-01-02T00:00:00Z',
+      deployed_at: '2026-01-03T00:00:00Z',
+    })!.toISOString(),
+    '2026-01-03T00:00:00.000Z',
+  );
 });
 
 test('leadTimeHours throws RangeError when deployed_at precedes issue_opened_at', () => {
@@ -173,4 +227,56 @@ test('githubRef returns "#<n>" for a pull request URL and the input URL unchange
   assert.equal(githubRef('https://github.com/mctlhq/portfolio/pull/28'), '#28');
   assert.equal(githubRef('https://github.com/mctlhq/portfolio/issues/7'), '#7');
   assert.equal(githubRef('https://github.com/mctlhq/portfolio'), 'https://github.com/mctlhq/portfolio');
+});
+
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_RU = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+
+test('formatStamp renders a UTC wall clock with an unpadded day and padded hour/minute, in the supplied language', () => {
+  assert.equal(formatStamp('2026-09-11T05:20:48Z', MONTHS_EN), '11 Sep, 05:20 UTC');
+  assert.equal(formatStamp('2026-09-11T05:20:48Z', MONTHS_RU), '11 сен, 05:20 UTC');
+});
+
+test('formatStamp gives the same output for a Date and its ISO string', () => {
+  const date = new Date('2026-09-11T05:20:48Z');
+  assert.equal(formatStamp(date, MONTHS_EN), formatStamp(date.toISOString(), MONTHS_EN));
+});
+
+test('formatStamp renders the UTC wall clock, not the offset one, for a non-Z offset timestamp', () => {
+  // 2026-09-11T05:20:48+02:00 is 2026-09-11T03:20:48Z.
+  assert.equal(formatStamp('2026-09-11T05:20:48+02:00', MONTHS_EN), '11 Sep, 03:20 UTC');
+});
+
+test('formatInterval renders hours-and-minutes, minutes-only, a zero gap, and a gap over 24 hours in whole hours', () => {
+  assert.equal(
+    formatInterval('2026-09-11T00:00:00Z', '2026-09-11T06:32:00Z', { hour: 'h', minute: 'min' }),
+    '+6 h 32 min',
+  );
+  assert.equal(
+    formatInterval('2026-09-11T00:00:00Z', '2026-09-11T06:32:00Z', { hour: 'ч', minute: 'мин' }),
+    '+6 ч 32 мин',
+  );
+  assert.equal(
+    formatInterval('2026-09-11T00:00:00Z', '2026-09-11T00:44:00Z', { hour: 'h', minute: 'min' }),
+    '+44 min',
+  );
+  assert.equal(
+    formatInterval('2026-09-11T00:00:00Z', '2026-09-11T00:00:00Z', { hour: 'h', minute: 'min' }),
+    '+0 min',
+  );
+  assert.equal(
+    formatInterval('2026-09-10T00:00:00Z', '2026-09-11T08:09:00Z', { hour: 'h', minute: 'min' }),
+    '+32 h 9 min',
+  );
+});
+
+test('formatInterval and intervalMinutes throw RangeError on a reversed pair', () => {
+  assert.throws(
+    () => intervalMinutes('2026-09-11T06:00:00Z', '2026-09-11T05:00:00Z'),
+    RangeError,
+  );
+  assert.throws(
+    () => formatInterval('2026-09-11T06:00:00Z', '2026-09-11T05:00:00Z', { hour: 'h', minute: 'min' }),
+    RangeError,
+  );
 });
