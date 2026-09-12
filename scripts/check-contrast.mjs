@@ -350,6 +350,6 @@ async function main() {
   console.log(`check-contrast: OK -- ${report.length} pairs checked, all at or above their minimum`);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (import.meta.main) {
   await main();
 }
