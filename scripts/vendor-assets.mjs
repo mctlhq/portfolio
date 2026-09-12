@@ -694,7 +694,8 @@ async function main() {
       throw new ValidationError(
         '@fontsource/onest carries no .woff entry for latin 400/700 -- resvg needs an sfnt buffer ' +
           'it cannot get from woff2 alone. Item 1 (share image) must take its documented stop path: ' +
-          'revert og:image/twitter:image to /og.svg and commit docs/og-image.md.',
+          'revert og:image/twitter:image in src/layouts/Base.astro to /og.svg and record the reversion ' +
+          'in this cycle\'s journal entry.',
       );
     }
 
