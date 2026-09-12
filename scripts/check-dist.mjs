@@ -274,13 +274,36 @@ function countDetailsOpen(html) {
 }
 
 /**
+ * Returns the { href, value } that the .site-nav anchor for the current page
+ * must carry, or null when no anchor should carry aria-current at all (the
+ * 404 page). Mirrors the current(href) derivation in
+ * src/components/Nav.astro: an exact path match gets 'page'; a
+ * /colophon/journal/<id>/ or /colophon/adr/<id>/ page is under the Colophon
+ * prefix without being it, so the Colophon anchor gets 'true'.
+ */
+function expectedNavCurrent(rel) {
+  if (rel === 'index.html') return { href: '/', value: 'page' };
+  if (rel === path.join('work', 'index.html')) return { href: '/work/', value: 'page' };
+  if (rel === path.join('approach', 'index.html')) return { href: '/approach/', value: 'page' };
+  if (rel === path.join('colophon', 'index.html')) return { href: '/colophon/', value: 'page' };
+  if (
+    rel.startsWith(`${path.join('colophon', 'journal')}${path.sep}`) ||
+    rel.startsWith(`${path.join('colophon', 'adr')}${path.sep}`)
+  ) {
+    return { href: '/colophon/', value: 'true' };
+  }
+  return null;
+}
+
+/**
  * Checks issue #49 (Q5) navigation-state invariants against one built page:
  * the hoisted <main id="main" tabindex="-1">, a #main skip link before the
- * first <nav, the expected aria-current count inside .site-nav (exactly one
- * on every page with a matching or prefix-matching nav item, zero on the
- * 404 page), and no aria-label value mixing a Latin and a Cyrillic letter
- * -- with one named exemption for the .table-scroll region on
- * dist/colophon/index.html, which this cycle does not touch.
+ * first <nav, that exactly the anchor expectedNavCurrent() names (and no
+ * other) carries aria-current inside .site-nav, with the exact value it
+ * names (zero anchors on the 404 page), and no aria-label value mixing a
+ * Latin and a Cyrillic letter -- with one named exemption for the
+ * .table-scroll region on dist/colophon/index.html, which this cycle does
+ * not touch.
  */
 function checkNavigationState(html, rel) {
   const problems = [];
@@ -301,12 +324,29 @@ function checkNavigationState(html, rel) {
   if (!siteNavMatch) {
     problems.push(`check-dist: ${rel} has no <nav class="site-nav"> element`);
   } else {
-    const ariaCurrentCount = countOccurrences(siteNavMatch[0], 'aria-current="');
-    const expected = rel === '404.html' ? 0 : 1;
-    if (ariaCurrentCount !== expected) {
+    const currentAnchors = [...siteNavMatch[0].matchAll(/<a\b([^>]*)>/g)].filter(([, attrs]) =>
+      /\baria-current="/.test(attrs),
+    );
+    const expected = expectedNavCurrent(rel);
+    const expectedCount = expected ? 1 : 0;
+    if (currentAnchors.length !== expectedCount) {
       problems.push(
-        `check-dist: ${rel} has ${ariaCurrentCount} aria-current attribute(s) inside .site-nav, expected ${expected}`,
+        `check-dist: ${rel} has ${currentAnchors.length} aria-current attribute(s) inside .site-nav, expected ${expectedCount}`,
       );
+    } else if (expected) {
+      const attrs = currentAnchors[0][1];
+      const hrefMatch = attrs.match(/\bhref="([^"]*)"/);
+      const valueMatch = attrs.match(/\baria-current="([^"]*)"/);
+      if (!hrefMatch || hrefMatch[1] !== expected.href) {
+        problems.push(
+          `check-dist: ${rel} carries aria-current on the anchor with href="${hrefMatch?.[1] ?? '(missing)'}" inside .site-nav, expected it on href="${expected.href}"`,
+        );
+      }
+      if (!valueMatch || valueMatch[1] !== expected.value) {
+        problems.push(
+          `check-dist: ${rel} has aria-current="${valueMatch?.[1] ?? '(missing)'}" inside .site-nav, expected aria-current="${expected.value}"`,
+        );
+      }
     }
   }
 
@@ -399,6 +439,40 @@ async function fileExists(file) {
   } catch {
     return false;
   }
+}
+
+/**
+ * Checks the breadcrumb (issue #49, Q5) on one built journal or ADR page:
+ * src/components/Breadcrumb.astro renders a <nav class="breadcrumb"> with an
+ * <ol> of exactly three <li> items -- a link to "/", a link to "/colophon/",
+ * and a non-link current entry carrying aria-current="page" -- and nothing
+ * else in the check suite verifies this component's rendered output.
+ */
+function checkBreadcrumb(html, rel) {
+  const problems = [];
+  const navMatch = html.match(/<nav\s+class="breadcrumb"[^>]*>[\s\S]*?<\/nav>/);
+  if (!navMatch) {
+    problems.push(`check-dist: ${rel} has no <nav class="breadcrumb"> element`);
+    return problems;
+  }
+  const items = [...navMatch[0].matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => m[1]);
+  if (items.length !== 3) {
+    problems.push(`check-dist: ${rel} breadcrumb has ${items.length} <li> item(s), expected exactly 3`);
+    return problems;
+  }
+  if (!/<a\s+href="\/"/.test(items[0])) {
+    problems.push(`check-dist: ${rel} breadcrumb's first item is not a link to "/"`);
+  }
+  if (!/<a\s+href="\/colophon\/"/.test(items[1])) {
+    problems.push(`check-dist: ${rel} breadcrumb's second item is not a link to "/colophon/"`);
+  }
+  if (/<a\b/.test(items[2])) {
+    problems.push(`check-dist: ${rel} breadcrumb's third item is a link, expected a non-link current entry`);
+  }
+  if (!/<span\s+aria-current="page"/.test(items[2])) {
+    problems.push(`check-dist: ${rel} breadcrumb's third item is missing aria-current="page"`);
+  }
+  return problems;
 }
 
 /**
@@ -500,6 +574,14 @@ async function checkColophonPages(allFiles) {
       problems.push(...checkFooter(html, rel, pkgVersion));
     }
     problems.push(...checkMainLandmark(html, rel));
+
+    const distRel = path.relative(DIST_DIR, file);
+    if (
+      distRel.startsWith(`${path.join('colophon', 'journal')}${path.sep}`) ||
+      distRel.startsWith(`${path.join('colophon', 'adr')}${path.sep}`)
+    ) {
+      problems.push(...checkBreadcrumb(html, rel));
+    }
 
     for (const match of html.matchAll(SUBRESOURCE_RE)) {
       const [full, tag, url] = match;
