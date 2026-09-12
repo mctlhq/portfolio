@@ -14,7 +14,12 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
-import { contentLinkProblems, parseContentLinkColours, resolveMctlCssPath } from '../scripts/check-contrast.mjs';
+import {
+  contentLinkProblems,
+  contentLinkReport,
+  parseContentLinkColours,
+  resolveMctlCssPath,
+} from '../scripts/check-contrast.mjs';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const siteCssText = readFileSync(path.join(ROOT, 'src/styles/site.css'), 'utf8');
@@ -34,6 +39,19 @@ const tokens = parseTokens(mctlCssText);
 
 test('contentLinkProblems is empty for the committed src/styles/site.css', () => {
   assert.deepEqual(contentLinkProblems({ siteCssText, tokens }), []);
+});
+
+// -- C1: report lines, previously computed and discarded --------------------
+
+test('contentLinkReport yields thirteen lines, each matching the report shape, and includes the figures docs/accessibility-checklist.md quotes', () => {
+  const report = contentLinkReport({ siteCssText, tokens });
+  assert.equal(report.length, 13);
+  for (const line of report) {
+    assert.match(line, /\[(dark|light|print)\] .* = \d+\.\d\d:1 \(min 4\.5:1, text\)/);
+  }
+  const joined = report.join('\n');
+  assert.match(joined, /4\.81:1/);
+  assert.match(joined, /5\.62:1/);
 });
 
 test('parseContentLinkColours resolves the committed normal/visited/hover/print colours', () => {

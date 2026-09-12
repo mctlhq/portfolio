@@ -30,33 +30,36 @@ const scrollLabel = `${ui.cycleTableCaption.en} / ${ui.cycleTableCaption.ru}`;
       </tr>
     </thead>
     <tbody>
-      {entries.map((entry) => (
-        <tr data-cycle-row>
-          <td>{isoDate(cycleTimestamp(entry.data))}</td>
-          <td>{entry.data.service}</td>
-          <td>
-            <a href={`/colophon/journal/${entry.id}/`}>
-              <Lang en={entry.data.title.en} ru={entry.data.title.ru} />
-            </a>
-          </td>
-          <td><a href={entry.data.issue}>{githubRef(entry.data.issue)}</a></td>
-          <td>{entry.data.pr ? <a href={entry.data.pr}>{githubRef(entry.data.pr)}</a> : EM_DASH}</td>
-          <td>{entry.data.release ?? EM_DASH}</td>
-          <td>
-            {leadTimeHours(entry.data) === null ? (
-              <>
-                <span class="lead-time-missing">{formatLeadTime(null)}</span>
-                <span class="visually-hidden">
-                  <Lang en={ui.leadTimeMissing.en} ru={ui.leadTimeMissing.ru} />
-                </span>
-              </>
-            ) : (
-              formatLeadTime(leadTimeHours(entry.data))
-            )}
-          </td>
-          <td>{interventionCount(entry.data)}</td>
-        </tr>
-      ))}
+      {entries.map((entry) => {
+        const leadTime = leadTimeHours(entry.data);
+        return (
+          <tr data-cycle-row>
+            <td>{isoDate(cycleTimestamp(entry.data))}</td>
+            <td>{entry.data.service}</td>
+            <td>
+              <a href={`/colophon/journal/${entry.id}/`}>
+                <Lang en={entry.data.title.en} ru={entry.data.title.ru} />
+              </a>
+            </td>
+            <td><a href={entry.data.issue}>{githubRef(entry.data.issue)}</a></td>
+            <td>{entry.data.pr ? <a href={entry.data.pr}>{githubRef(entry.data.pr)}</a> : EM_DASH}</td>
+            <td>{entry.data.release ?? EM_DASH}</td>
+            <td>
+              {leadTime === null ? (
+                <>
+                  <span class="lead-time-missing">{formatLeadTime(null)}</span>
+                  <span class="visually-hidden">
+                    <Lang en={ui.leadTimeMissing.en} ru={ui.leadTimeMissing.ru} />
+                  </span>
+                </>
+              ) : (
+                formatLeadTime(leadTime)
+              )}
+            </td>
+            <td>{interventionCount(entry.data)}</td>
+          </tr>
+        );
+      })}
     </tbody>
   </table>
 </div>

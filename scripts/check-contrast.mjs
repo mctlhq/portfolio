@@ -248,17 +248,24 @@ function resolveHex(colour, theme, tokens) {
 }
 
 /**
- * Checks the content-link colours parsed out of `siteCssText` against
- * surface-bg and surface-elevated in both themes (normal, visited and
- * hover, each at the 4.5:1 text minimum), and the print colour -- the print
- * override if present, otherwise the dark-theme --accent, which is exactly
- * what an unpatched browser would render -- against a forced white
- * background, also at 4.5:1. Returns an array of problem strings, empty
- * when every check clears its minimum. `tokens` is the raw --mctl-* map
- * parsed from mctl.css by `parseTokens`.
+ * C1: the single code path behind both `contentLinkProblems()` and
+ * `contentLinkReport()` below. Checks the content-link colours parsed out
+ * of `siteCssText` against surface-bg and surface-elevated in both themes
+ * (normal, visited and hover, each at the 4.5:1 text minimum), and the
+ * print colour -- the print override if present, otherwise the dark-theme
+ * --accent, which is exactly what an unpatched browser would render --
+ * against a forced white background, also at 4.5:1. Returns
+ * `{ problems, report }`: `problems` are the failures (empty when every
+ * check clears its minimum, the same shape `contentLinkProblems()` always
+ * returned); `report` is one line per ratio actually measured -- thirteen
+ * in total, on a passing run as well as a failing one, so the numbers
+ * `docs/accessibility-checklist.md` quotes are traceable to a run rather
+ * than to prose. `tokens` is the raw --mctl-* map parsed from mctl.css by
+ * `parseTokens`.
  */
-export function contentLinkProblems({ siteCssText, tokens }) {
+export function contentLinkChecks({ siteCssText, tokens }) {
   const problems = [];
+  const report = [];
   const parsed = parseContentLinkColours(siteCssText);
 
   const STATES = [
@@ -287,6 +294,9 @@ export function contentLinkProblems({ siteCssText, tokens }) {
           continue;
         }
         const ratio = contrastRatio(fgHex, bgHex);
+        report.push(
+          `check-contrast: [${theme}] content link "${label}" (${fgHex}) over ${bg} (${bgHex}) = ${ratio.toFixed(2)}:1 (min ${TEXT_MIN_RATIO}:1, text)`,
+        );
         if (ratio < TEXT_MIN_RATIO) {
           problems.push(
             `check-contrast: [${theme}] content link "${label}" (${fgHex}) over ${bg} (${bgHex}) is ${ratio.toFixed(2)}:1, below the ${TEXT_MIN_RATIO}:1 minimum`,
@@ -307,6 +317,7 @@ export function contentLinkProblems({ siteCssText, tokens }) {
     problems.push('check-contrast: could not resolve the print content-link colour');
   } else {
     const ratio = contrastRatio(printHex, '#ffffff');
+    report.push(`check-contrast: [print] content link (${printHex}) over #ffffff = ${ratio.toFixed(2)}:1 (min ${TEXT_MIN_RATIO}:1, text)`);
     if (ratio < TEXT_MIN_RATIO) {
       problems.push(
         `check-contrast: [print] content link colour (${printHex}) over #fff is ${ratio.toFixed(2)}:1, below the ${TEXT_MIN_RATIO}:1 minimum`,
@@ -314,7 +325,28 @@ export function contentLinkProblems({ siteCssText, tokens }) {
     }
   }
 
-  return problems;
+  return { problems, report };
+}
+
+/**
+ * Unchanged signature and return shape from before this cycle -- a thin
+ * wrapper over `contentLinkChecks()` so every assertion in
+ * test/check-contrast.test.ts stands untouched.
+ */
+export function contentLinkProblems({ siteCssText, tokens }) {
+  return contentLinkChecks({ siteCssText, tokens }).problems;
+}
+
+/**
+ * C1: the thirteen content-link report lines (twelve state x background x
+ * theme combinations plus the print pair) computed by the same code path as
+ * `contentLinkProblems()` -- previously discarded, so a passing run printed
+ * only a bare count and the specific figures
+ * `docs/accessibility-checklist.md` quotes (4.81:1, 5.62:1, 3.64:1) were
+ * traceable only to prose, never to a CI log.
+ */
+export function contentLinkReport({ siteCssText, tokens }) {
+  return contentLinkChecks({ siteCssText, tokens }).report;
 }
 
 async function main() {
@@ -353,9 +385,12 @@ async function main() {
     console.log(line);
   }
 
-  const contentProblems = contentLinkProblems({ siteCssText: siteCss, tokens });
-  problems.push(...contentProblems);
-  console.log(`check-contrast: content-link states checked (normal, visited, hover) x (surface-bg, surface-elevated) x (dark, light) + print`);
+  const contentChecks = contentLinkChecks({ siteCssText: siteCss, tokens });
+  problems.push(...contentChecks.problems);
+  for (const line of contentChecks.report) {
+    console.log(line);
+  }
+  report.push(...contentChecks.report);
 
   if (problems.length > 0) {
     for (const problem of problems) {
