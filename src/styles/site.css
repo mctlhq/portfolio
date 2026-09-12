@@ -389,7 +389,8 @@ main a:hover {
 @media (max-width: 599px) {
   .table-scroll::after {
     content: '';
-    position: sticky;
+    position: absolute;
+    display: block;
     inset-block: 0;
     inset-inline-end: 0;
     inline-size: var(--mctl-space-5);
