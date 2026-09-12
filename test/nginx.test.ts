@@ -59,22 +59,24 @@ test('the CSP total across both files is exactly 1', () => {
   assert.equal(total, 1);
 });
 
-test('nginx.conf includes security-headers.conf exactly once at server level and in each of the four location blocks', () => {
+test('nginx.conf includes security-headers.conf exactly once at server level and in each of the six location blocks', () => {
   const includeRe = /include\s+\/etc\/nginx\/security-headers\.conf;/g;
   const includeCount = (nginxConf.match(includeRe) ?? []).length;
-  assert.equal(includeCount, 5, 'expected 5 includes: server level plus 4 location blocks');
+  assert.equal(includeCount, 7, 'expected 7 includes: server level plus 6 location blocks');
 
   const blocks = [
     /server\s*\{[\s\S]*?\n\}/,
     /location\s*=\s*\/healthz\s*\{[\s\S]*?\n {4}\}/,
     /location\s*=\s*\/readyz\s*\{[\s\S]*?\n {4}\}/,
     /location\s*\/_astro\/\s*\{[\s\S]*?\n {4}\}/,
+    /location\s*\/assets\/\s*\{[\s\S]*?\n {4}\}/,
+    /location\s*\/styles\/\s*\{[\s\S]*?\n {4}\}/,
     /location\s*\/\s*\{[\s\S]*?\n {4}\}/,
   ];
   // Each location block (extracted independently below) must itself carry
   // exactly one include; the server block match above is only used for the
   // total count, since its slice also contains every location block.
-  for (const label of ['= /healthz', '= /readyz', '/_astro/', '/']) {
+  for (const label of ['= /healthz', '= /readyz', '/_astro/', '/assets/', '/styles/', '/']) {
     const blockRe = new RegExp(
       `location ${label.replace(/[/]/g, '\\/')} \\{([\\s\\S]*?)\\n {4}\\}`,
     );
@@ -85,17 +87,23 @@ test('nginx.conf includes security-headers.conf exactly once at server level and
   }
 });
 
-test('/_astro/ location keeps its own Cache-Control add_header next to the include', () => {
-  const blockMatch = nginxConf.match(/location \/_astro\/ \{([\s\S]*?)\n {4}\}/);
-  assert.ok(blockMatch);
-  assert.match(blockMatch![1], /add_header Cache-Control "public, immutable" always;/);
+test('/_astro/, /assets/ and /styles/ locations each keep their own Cache-Control add_header next to the include', () => {
+  for (const label of ['/_astro/', '/assets/', '/styles/']) {
+    const blockRe = new RegExp(`location ${label.replace(/[/]/g, '\\/')} \\{([\\s\\S]*?)\\n {4}\\}`);
+    const blockMatch = nginxConf.match(blockRe);
+    assert.ok(blockMatch, `could not find location ${label} block`);
+    assert.match(blockMatch![1], /add_header Cache-Control "public, immutable" always;/);
+    assert.match(blockMatch![1], /try_files \$uri =404;/);
+  }
 });
 
-test('location / keeps error_page 404 and try_files', () => {
+test('location / keeps error_page 404 and try_files, and carries neither expires nor add_header Cache-Control', () => {
   const blockMatch = nginxConf.match(/location \/ \{([\s\S]*?)\n {4}\}/);
   assert.ok(blockMatch);
   assert.match(blockMatch![1], /error_page 404 \/404\.html;/);
   assert.match(blockMatch![1], /try_files \$uri \$uri\/index\.html \$uri\.html =404;/);
+  assert.doesNotMatch(blockMatch![1], /expires/);
+  assert.doesNotMatch(blockMatch![1], /add_header Cache-Control/);
 });
 
 test('the CSP in security-headers.conf carries the hash placeholder, no unsafe-inline and no external origin', () => {

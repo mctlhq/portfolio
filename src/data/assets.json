@@ -1,0 +1,15 @@
+{
+  "styles": [
+    "/assets/mctl/mctl.baf7fec1.css",
+    "/assets/mctl/global.948edca9.css",
+    "/assets/mctl/prose.4636eeb7.css",
+    "/assets/fonts/fonts.3555f7c4.css",
+    "/styles/site.555be412.css"
+  ],
+  "preload": {
+    "onestLatin400": "/assets/fonts/onest-latin-400-normal.93dfb945.woff2",
+    "onestLatin700": "/assets/fonts/onest-latin-700-normal.d48e1aee.woff2",
+    "onestCyrillic400": "/assets/fonts/onest-cyrillic-400-normal.51adb4c8.woff2",
+    "onestCyrillic700": "/assets/fonts/onest-cyrillic-700-normal.0fcb8fa2.woff2"
+  }
+}

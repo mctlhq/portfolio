@@ -80,7 +80,7 @@ export const RULES = [
 export const ALLOW = [
   {
     file: 'src/components/CycleDiagram.astro',
-    values: [10, 12, 24, 30, 40, 44, 60, 64, 112, 160, 220, 226, 296, 300, 320, 432, 568],
+    values: [10, 13, 30, 40, 44, 60, 64, 130, 146, 200, 220, 320],
     reason:
       'SVG geometry for the DevLoop cycle diagram: box width/height, column/row origins, ' +
       'path coordinates and viewBox extent. The component is props-less and never imports ' +
@@ -91,6 +91,14 @@ export const ALLOW = [
     values: [11],
     reason:
       'Cross-reference to "requirements criterion 11" in the file header comment -- not a ' +
+      'metric value.',
+  },
+  {
+    file: 'src/layouts/Base.astro',
+    values: [64],
+    reason:
+      'Cross-reference to pull request #64 in the comment above the four font preloads, ' +
+      'recording that the latin-only reduction was reviewed and rejected there -- not a ' +
       'metric value.',
   },
 ];

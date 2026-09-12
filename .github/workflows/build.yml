@@ -24,6 +24,9 @@ jobs:
       # tree the link check needs.
       - run: npm run build
 
+      - name: Vendored tree matches the commit
+        run: git diff --exit-code -- public/assets public/styles src/data/assets.json
+
       - run: node scripts/check-links.mjs
 
   build:

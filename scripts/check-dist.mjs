@@ -405,6 +405,98 @@ function checkMainLandmark(html, rel) {
   return problems;
 }
 
+/**
+ * Checks the og:image / twitter:image pair on one built page (issue #50,
+ * Q6): both meta tags must carry the same value, and that value must
+ * resolve to a file that exists under dist/ -- true whichever branch item 1
+ * took (a build-time /og.png, or the documented stop path that leaves both
+ * tags on the always-present /og.svg). Returns an array of problem strings.
+ */
+const OG_META_RE = /<meta\s+(?:property|name)="(og:image|twitter:image)"\s+content="([^"]*)"/g;
+
+async function checkOgImageMeta(html, rel) {
+  const problems = [];
+  const values = {};
+  for (const m of html.matchAll(OG_META_RE)) {
+    values[m[1]] = m[2];
+  }
+  const og = values['og:image'];
+  const twitter = values['twitter:image'];
+  if (!og || !twitter) {
+    problems.push(`check-dist: ${rel} is missing an og:image or twitter:image meta tag`);
+    return problems;
+  }
+  if (og !== twitter) {
+    problems.push(`check-dist: ${rel} og:image ("${og}") and twitter:image ("${twitter}") differ`);
+    return problems;
+  }
+  let pathname;
+  try {
+    pathname = new URL(og).pathname;
+  } catch {
+    problems.push(`check-dist: ${rel} og:image "${og}" is not a valid absolute URL`);
+    return problems;
+  }
+  const filePath = path.join(DIST_DIR, pathname.replace(/^\/+/, ''));
+  if (!(await fileExists(filePath))) {
+    problems.push(`check-dist: ${rel} og:image/twitter:image points at "${pathname}", which does not exist under dist/`);
+  }
+  return problems;
+}
+
+/**
+ * If (and only if) `dist/og.png` exists (issue #50, Q6: the happy-path
+ * branch of item 1), reads its IHDR chunk -- 8 bytes at a fixed offset,
+ * width then height, no dependency -- and fails unless it is exactly
+ * 1200x630. A missing og.png is not itself a problem here; that is what
+ * `checkOgImageMeta` already covers via the meta tag it must still resolve
+ * to something that exists (og.svg, on the documented stop path).
+ */
+async function checkOgPngDimensions() {
+  const problems = [];
+  const ogPngPath = path.join(DIST_DIR, 'og.png');
+  if (!(await fileExists(ogPngPath))) {
+    return problems;
+  }
+  const buf = await readFile(ogPngPath);
+  const isPng = buf.length >= 24 && buf.toString('ascii', 12, 16) === 'IHDR';
+  if (!isPng) {
+    problems.push(`check-dist: dist/og.png does not start with a valid PNG IHDR chunk`);
+    return problems;
+  }
+  const width = buf.readUInt32BE(16);
+  const height = buf.readUInt32BE(20);
+  if (width !== 1200 || height !== 630) {
+    problems.push(`check-dist: dist/og.png is ${width}x${height}, expected exactly 1200x630`);
+  }
+  return problems;
+}
+
+/**
+ * Checks that every `<link|script|img|source ... href|src="/assets/..."`
+ * or `.../styles/...` reference on a built page carries an 8-hex-character
+ * content hash before its extension (issue #50, Q6): the inverse guard to
+ * `scripts/vendor-assets.mjs`'s `emit()`, so nothing unversioned can ever be
+ * dropped into an `immutable`-cached location later.
+ */
+const HASHED_SUFFIX_RE = /\.[0-9a-f]{8}\.[a-zA-Z0-9]+$/;
+const MANAGED_PATH_RE = /^\/(?:assets|styles)\//;
+const SUBRESOURCE_TAG_RE = /<(link|script|img|source)\b[^>]*\s(?:href|src)="([^"]*)"[^>]*>/gi;
+
+function checkHashedSubresources(html, rel) {
+  const problems = [];
+  for (const match of html.matchAll(SUBRESOURCE_TAG_RE)) {
+    const [, , url] = match;
+    if (!MANAGED_PATH_RE.test(url)) continue;
+    if (!HASHED_SUFFIX_RE.test(url)) {
+      problems.push(
+        `check-dist: ${rel} references "${url}" under /assets/ or /styles/ with no 8-hex content hash before its extension`,
+      );
+    }
+  }
+  return problems;
+}
+
 const JOURNAL_DIR = path.join(ROOT, 'src', 'content', 'journal');
 const ADR_DIR = path.join(ROOT, 'src', 'content', 'adr');
 const VISIBILITY_RE = /^visibility:\s*(public|private)\s*$/m;
@@ -743,6 +835,8 @@ async function main() {
     }
 
     problems.push(...checkNavigationState(html, rel));
+    problems.push(...(await checkOgImageMeta(html, rel)));
+    problems.push(...checkHashedSubresources(html, rel));
 
     if (rel === path.join('work', 'index.html')) {
       const summaryH2Count = countOccurrences(html, '<summary><h2');
@@ -778,6 +872,9 @@ async function main() {
 
   const sitemapProblems = await checkSitemap();
   problems.push(...sitemapProblems);
+
+  const ogPngProblems = await checkOgPngDimensions();
+  problems.push(...ogPngProblems);
 
   if (problems.length > 0) {
     for (const problem of problems) {

@@ -157,6 +157,10 @@ export const ui = {
     ],
   },
   cycleTitle: { en: 'The DevLoop cycle', ru: 'Цикл DevLoop' },
+  cycleLegend: {
+    en: 'Dashed outline: a control point. The cycle does not continue until this step passes.',
+    ru: 'Пунктирная рамка: контрольная точка. Цикл не продолжается, пока этот шаг не пройден.',
+  },
   cycleDesc: {
     en: 'A closed loop of ten steps: Issue, Investigate, Proposal, Approve, Implement, Review gate, Shepherd merge, Release, Deploy, Monitor, and back to Issue. Approve and Review gate are drawn with a dashed outline because they are the two gates: Approve is a human decision, Review gate is automated.',
     ru: 'Замкнутый цикл из десяти шагов: Issue, Исследование, Предложение, Одобрение, Реализация, Ревью-гейт, Мерж шефердом, Релиз, Деплой, Наблюдение и снова Issue. Одобрение и Ревью-гейт нарисованы пунктиром, потому что это две контрольные точки: Одобрение — решение человека, Ревью-гейт — автоматический.',

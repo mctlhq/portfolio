@@ -3,6 +3,7 @@ import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import Lang from '../i18n/Lang.astro';
 import { ui } from '../i18n/ui';
+import assets from '../data/assets.json';
 
 interface Props {
   title: string;
@@ -12,19 +13,28 @@ interface Props {
 
 const { title, description, noindex = false } = Astro.props;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
-const ogImageUrl = new URL('/og.svg', Astro.site);
+const ogImageUrl = new URL('/og.png', Astro.site);
 ---
 
 <html lang="en" data-lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/* Four preloads, not two. The `is:inline` script below applies
+        `localStorage.lang` before the body paints, so a returning Russian
+        reader paints Cyrillic on the first frame -- for that reader the
+        cyrillic faces are the needed pair and latin is the wasted one.
+        Which two are wasted is a property of the reader, not of the build.
+        Preloading latin only would move the font swap this cycle exists to
+        eliminate onto every Russian reader, half the audience of a
+        deliberately bilingual site. Reviewed and rejected on #64; do not
+        re-litigate without changing that script. */}
+    <link rel="preload" as="font" type="font/woff2" crossorigin href={assets.preload.onestLatin400} />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href={assets.preload.onestLatin700} />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href={assets.preload.onestCyrillic400} />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href={assets.preload.onestCyrillic700} />
     <script is:inline>let d=document.documentElement,A=(k,v)=>{d.dataset[k]=v;k=="lang"&&(d.lang=v)};try{let s=localStorage;s.lang&&A("lang",s.lang);s.theme&&A("theme",s.theme)}catch{}addEventListener("click",e=>{let b=e.target.closest?.("[data-set-lang],[data-set-theme]"),k=b&&(b.dataset.setLang?"lang":"theme"),v=b&&(b.dataset.setLang||b.dataset.setTheme);if(k){A(k,v);try{localStorage[k]=v}catch{}}})</script>
-    <link rel="stylesheet" href="/assets/mctl/mctl.css" />
-    <link rel="stylesheet" href="/assets/mctl/global.css" />
-    <link rel="stylesheet" href="/assets/mctl/prose.css" />
-    <link rel="stylesheet" href="/assets/fonts/fonts.css" />
-    <link rel="stylesheet" href="/styles/site.css" />
+    {assets.styles.map((href: string) => <link rel="stylesheet" href={href} />)}
     <title>{title}</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="description" content={description} />

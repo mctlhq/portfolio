@@ -58,6 +58,22 @@ async function discoverAstroAsset() {
   return { path: match[0], expectStatus: 200, homePage };
 }
 
+/**
+ * Finds one hashed `/assets/...` href in the already-fetched home page
+ * markup (issue #50, Q6) -- a stylesheet link is guaranteed present, unlike
+ * `/_astro/`. Used to prove nginx's `location /assets/` block actually
+ * answers with the year-plus-immutable Cache-Control at runtime, which
+ * `test/cache.test.ts` cannot: that test reads nginx.conf's source text,
+ * never a live response.
+ */
+function discoverHashedAssetPath(html) {
+  const match = html.match(/\/assets\/[^"'<>]+\.[0-9a-f]{8}\.(?:css|woff2)/);
+  if (!match) {
+    throw new Error('check-headers: no hashed /assets/ href found in the home page markup');
+  }
+  return match[0];
+}
+
 function checkHeaders(url, headers, problems) {
   for (const [name, expected] of Object.entries(EXPECTED_HEADERS)) {
     const actual = headers.get(name);
@@ -103,6 +119,31 @@ async function main() {
       problems.push(`${url}: status is ${res.status}, expected ${expectStatus}`);
     }
     checkHeaders(url, res.headers, problems);
+  }
+
+  // Cache lifetime (issue #50, Q6): a hashed /assets/ path answers with a
+  // year plus immutable, and / -- which keeps its existing, un-hashed
+  // cache policy -- carries neither directive.
+  const assetPath = discoverHashedAssetPath(homePage.html);
+  const assetUrl = `${baseUrl}${assetPath}`;
+  let assetRes;
+  try {
+    assetRes = await fetch(assetUrl, { method: 'HEAD' });
+  } catch (err) {
+    problems.push(`${assetUrl}: request failed: ${err.message}`);
+  }
+  if (assetRes) {
+    console.log(`check-headers: HEAD ${assetUrl} -> ${assetRes.status}`);
+    const cacheControl = assetRes.headers.get('cache-control') ?? '';
+    if (!cacheControl.includes('max-age=31536000') || !cacheControl.includes('immutable')) {
+      problems.push(
+        `${assetUrl}: Cache-Control is "${cacheControl || '(missing)'}", expected it to contain both "max-age=31536000" and "immutable"`,
+      );
+    }
+  }
+  const homeCacheControl = homePage.headers.get('cache-control') ?? '';
+  if (homeCacheControl.includes('max-age=31536000') || homeCacheControl.includes('immutable')) {
+    problems.push(`${baseUrl}/: Cache-Control is "${homeCacheControl}", expected it to carry neither "max-age=31536000" nor "immutable"`);
   }
 
   const homeCsp = homePage.headers.get('content-security-policy');
