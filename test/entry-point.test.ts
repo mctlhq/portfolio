@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
-const FILES = ['scripts/check-contrast.mjs', 'scripts/check-links.mjs'];
+const FILES = ['scripts/check-contrast.mjs', 'scripts/check-links.mjs', 'scripts/check-headers.mjs'];
 
 /** Isolates the `function isEntryPoint() { ... }` block's source text out
  * of a script's full source, by brace counting from the function keyword. */
