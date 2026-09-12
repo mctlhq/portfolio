@@ -4,7 +4,7 @@ import Lang from '../../../i18n/Lang.astro';
 import { ui } from '../../../i18n/ui';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { publicEntries } from '../../../lib/content';
-import { formatLeadTime, githubRef, isoStamp, leadTimeHours } from '../../../lib/journal';
+import { formatInterval, formatLeadTime, formatStamp, githubRef, isoStamp, leadTimeHours } from '../../../lib/journal';
 import { clampDescription } from '../../../lib/seo';
 
 export async function getStaticPaths() {
@@ -28,8 +28,27 @@ const timeline = [
   { label: ui.journalStampDeployed, value: data.deployed_at },
 ].filter((row) => row.value !== undefined && row.value !== null);
 
+const steps = timeline.map((row, index) => {
+  const value = row.value as Date | string;
+  const previous = index === 0 ? null : (timeline[index - 1].value as Date | string);
+  return {
+    label: row.label,
+    iso: isoStamp(value),
+    en: formatStamp(value, ui.monthAbbrev.en),
+    ru: formatStamp(value, ui.monthAbbrev.ru),
+    interval:
+      previous === null
+        ? null
+        : {
+            en: formatInterval(previous, value, { hour: ui.unitHour.en, minute: ui.unitMinute.en }),
+            ru: formatInterval(previous, value, { hour: ui.unitHour.ru, minute: ui.unitMinute.ru }),
+          },
+  };
+});
+
 const interventions = data.interventions ?? [];
 const description = clampDescription(data.decided.en);
+const leadTime = leadTimeHours(data);
 ---
 
 <Base title={`${data.title.en} — Dmitrii Mashkov`} description={description}>
@@ -46,7 +65,18 @@ const description = clampDescription(data.decided.en);
       <dt><Lang en={ui.journalReleaseLabel.en} ru={ui.journalReleaseLabel.ru} /></dt>
       <dd>{data.release ?? EM_DASH}</dd>
       <dt><Lang en={ui.journalLeadTimeLabel.en} ru={ui.journalLeadTimeLabel.ru} /></dt>
-      <dd>{formatLeadTime(leadTimeHours(data))}</dd>
+      <dd>
+        {leadTime === null ? (
+          <>
+            <span class="lead-time-missing">{formatLeadTime(leadTime)}</span>
+            <span class="visually-hidden">
+              <Lang en={ui.leadTimeMissing.en} ru={ui.leadTimeMissing.ru} />
+            </span>
+          </>
+        ) : (
+          formatLeadTime(leadTime)
+        )}
+      </dd>
     </dl>
 
     <h2><Lang en={ui.journalDecidedHeading.en} ru={ui.journalDecidedHeading.ru} /></h2>
@@ -55,9 +85,15 @@ const description = clampDescription(data.decided.en);
     <section class="colophon-section">
       <h2><Lang en={ui.journalTimelineHeading.en} ru={ui.journalTimelineHeading.ru} /></h2>
       <ol class="journal-timeline">
-        {timeline.map((row) => (
+        {steps.map((step) => (
           <li>
-            <Lang en={row.label.en} ru={row.label.ru} />: {isoStamp(row.value as Date | string)}
+            <Lang en={step.label.en} ru={step.label.ru} />:{' '}
+            <time datetime={step.iso}><Lang en={step.en} ru={step.ru} /></time>
+            {step.interval && (
+              <span class="step-interval">
+                <Lang en={step.interval.en} ru={step.interval.ru} />
+              </span>
+            )}
           </li>
         ))}
       </ol>

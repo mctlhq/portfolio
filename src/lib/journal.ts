@@ -46,19 +46,37 @@ function toDate(value: Date | string): Date {
   return date;
 }
 
-export function leadTimeHours(entry: JournalTimes): number | null {
-  const { deployed_at: deployedAt } = entry;
-  if (deployedAt === undefined || deployedAt === null || deployedAt === '') {
-    return null;
-  }
+/** Collapses the `undefined | null | ''` "absent" check shared by
+ * cycleEndTimestamp's two candidate fields. */
+function present(value: Date | string | null | undefined): value is Date | string {
+  return value !== undefined && value !== null && value !== '';
+}
+
+/**
+ * The timestamp that marks a cycle's end for lead-time purposes: `deployed_at`
+ * when present, otherwise `released_at`, otherwise `null` when the cycle has
+ * not reached either stage yet. Stops at `released_at` rather than falling
+ * further back to `merged_at` and beyond (see cycleTimestamp): those earlier
+ * stages do not mean the cycle is done, and reporting a lead time against one
+ * of them would turn a genuinely unmeasured cycle into a confident-looking
+ * number.
+ */
+export function cycleEndTimestamp(entry: JournalCycleTimes): Date | null {
+  if (present(entry.deployed_at)) return toDate(entry.deployed_at);
+  if (present(entry.released_at)) return toDate(entry.released_at);
+  return null;
+}
+
+export function leadTimeHours(entry: JournalCycleTimes): number | null {
+  const end = cycleEndTimestamp(entry);
+  if (end === null) return null;
   const opened = toDate(entry.issue_opened_at);
-  const deployed = toDate(deployedAt);
-  if (deployed.getTime() < opened.getTime()) {
+  if (end.getTime() < opened.getTime()) {
     throw new RangeError(
-      'deployed_at precedes issue_opened_at: this is a data error, not a renderable value',
+      'end timestamp precedes issue_opened_at: this is a data error, not a renderable value',
     );
   }
-  return (deployed.getTime() - opened.getTime()) / 3_600_000;
+  return (end.getTime() - opened.getTime()) / 3_600_000;
 }
 
 export function interventionCount(entry: JournalTimes): number {
@@ -109,6 +127,56 @@ export function isoStamp(value: Date | string): string {
  * otherwise one decimal place (so `0` renders as `'0.0'`, never the dash). */
 export function formatLeadTime(hours: number | null): string {
   return hours === null ? EM_DASH : hours.toFixed(1);
+}
+
+/**
+ * Renders a timestamp as a bilingual-ready wall clock label, e.g.
+ * '11 Sep, 05:20 UTC'. Always reads through the getUTC* accessors, so no
+ * local time zone of the build host can leak in. The day is not zero-padded;
+ * hour and minute are. The month name is looked up in the supplied array
+ * (ui.monthAbbrev.en / .ru) rather than embedded here, so the copy stays in
+ * the i18n dictionary and this module stays both import-free and
+ * language-agnostic. The literal 'UTC' suffix is language-neutral and is not
+ * translated.
+ */
+export function formatStamp(value: Date | string, months: readonly string[]): string {
+  const date = toDate(value);
+  const day = date.getUTCDate();
+  const month = months[date.getUTCMonth()];
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  return `${day} ${month}, ${hours}:${minutes} UTC`;
+}
+
+/** Whole minutes elapsed from `from` to `to`; throws RangeError when `to`
+ * precedes `from`, matching leadTimeHours' treatment of a reversed pair. */
+export function intervalMinutes(from: Date | string, to: Date | string): number {
+  const start = toDate(from);
+  const end = toDate(to);
+  if (end.getTime() < start.getTime()) {
+    throw new RangeError(
+      'interval end precedes interval start: this is a data error, not a renderable value',
+    );
+  }
+  return Math.floor((end.getTime() - start.getTime()) / 60_000);
+}
+
+/**
+ * Renders the elapsed interval from `from` to `to` as '+6 h 32 min' when the
+ * hour part is non-zero, or '+44 min' (including '+0 min') when it is zero.
+ * Hours are total hours, never rolled into days, so the unit always agrees
+ * with the Lead time (h) column. `units` supplies the language-specific hour
+ * and minute abbreviations (ui.unitHour / ui.unitMinute).
+ */
+export function formatInterval(
+  from: Date | string,
+  to: Date | string,
+  units: { hour: string; minute: string },
+): string {
+  const totalMinutes = intervalMinutes(from, to);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours > 0 ? `+${hours} ${units.hour} ${minutes} ${units.minute}` : `+${minutes} ${units.minute}`;
 }
 
 /** Sums interventionCount across a list of journal entry data objects. */

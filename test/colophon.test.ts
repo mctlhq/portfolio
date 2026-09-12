@@ -109,6 +109,22 @@ test('Footer.astro imports package.json and renders pkg.version with no semver l
   assert.doesNotMatch(footer, /\d+\.\d+\.\d+/);
 });
 
+test('the journal route renders <time>, calls formatStamp and formatInterval, and no longer prints a raw isoStamp in the timeline', () => {
+  assert.match(journalRoute, /<time datetime=/);
+  assert.match(journalRoute, /formatStamp\(/);
+  assert.match(journalRoute, /formatInterval\(/);
+  assert.doesNotMatch(journalRoute, /isoStamp\(row\.value/);
+});
+
+test('the colophon page and cycle table reference the scroll hint and the missing-lead-time explanation', () => {
+  assert.match(indexAstro, /ui\.tableScrollHint/);
+  assert.match(cycleTable, /ui\.tableScrollHint/);
+  assert.match(cycleTable, /ui\.leadTimeMissing/);
+  assert.match(cycleTable, /lead-time-missing/);
+  assert.match(journalRoute, /ui\.leadTimeMissing/);
+  assert.match(journalRoute, /lead-time-missing/);
+});
+
 test('none of the new colophon .astro files reference var(--font-editorial) or class="lede"', () => {
   for (const [name, source] of [
     ['colophon/index.astro', indexAstro],
