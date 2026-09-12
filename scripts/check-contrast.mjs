@@ -21,6 +21,7 @@
 // see the "exemptions" list below, which names the pair explicitly rather
 // than lowering a threshold.
 
+import { realpathSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -350,6 +351,30 @@ async function main() {
   console.log(`check-contrast: OK -- ${report.length} pairs checked, all at or above their minimum`);
 }
 
-if (import.meta.main) {
+/**
+ * True when this module is being run directly (as a CLI entry point)
+ * rather than imported, e.g. by a test. Prefers `import.meta.main`, which
+ * is symlink-safe and has no false-negative on a symlinked checkout (Node
+ * >= 22.18/24.2; CI runs Node 24). Where that is not exposed, falls back
+ * to comparing realpaths of `process.argv[1]` and this module's URL --
+ * realpath, not a raw string compare, so a symlinked checkout does not
+ * make the guard silently evaluate false and skip the check with exit 0
+ * and no error.
+ */
+function isEntryPoint() {
+  if (typeof import.meta.main !== 'undefined') {
+    return import.meta.main;
+  }
+  if (!process.argv[1]) {
+    return false;
+  }
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isEntryPoint()) {
   await main();
 }
