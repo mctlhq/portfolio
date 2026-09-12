@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.20](https://github.com/mctlhq/portfolio/compare/0.1.19...0.1.20) (2026-09-12)
+
+
+### Features
+
+* **agents:** issue-75-q10-check-no-metrics-mjs-exits-0-without ([317fafc](https://github.com/mctlhq/portfolio/commit/317fafc5a9784a86f2536a14cd865ffdcafaa08d))
+
+
+### Bug Fixes
+
+* **agents:** issue-75-q10-check-no-metrics-mjs-exits-0-without ([afa9c62](https://github.com/mctlhq/portfolio/commit/afa9c622469fc88f4802539c3c3cbecacbf22a15))
+
 ## [0.1.19](https://github.com/mctlhq/portfolio/compare/0.1.18...0.1.19) (2026-09-12)
 
 
