@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.1.17](https://github.com/mctlhq/portfolio/compare/0.1.16...0.1.17) (2026-09-12)
+
+
+### Features
+
+* **agents:** add shared content-hash module for asset checks ([ea87b93](https://github.com/mctlhq/portfolio/commit/ea87b93f3d5669a8053fa9ed049b9bd2ee65d644))
+* **agents:** issue-52-q7-fourteen-accumulated-findings-from-th ([efdb072](https://github.com/mctlhq/portfolio/commit/efdb072dc3cb7ea39ce507249080b8dcc4d7c5b0))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-52-q7-fourteen-accumulated-findings-from-th ([1cf7bbc](https://github.com/mctlhq/portfolio/commit/1cf7bbcb8edc7e6a2a9f9881104b4c34aaf1d393))
+* **agents:** Class A -- guards that passed because their subject was absent ([4b7e7aa](https://github.com/mctlhq/portfolio/commit/4b7e7aaa8d75a99231a65530f7ad35d4ba62f9e2))
+* **agents:** Class B -- guards that failed open ([d3ab469](https://github.com/mctlhq/portfolio/commit/d3ab46902baf4994c2332078ec43b7894407f7bb))
+* **agents:** Class C -- evidence computed and discarded ([59a6041](https://github.com/mctlhq/portfolio/commit/59a604106dc2e3e4c3b7909a90e5fe0c6a6bc8a0))
+* **agents:** Class D -- assertions that tested the wrong object ([6b87586](https://github.com/mctlhq/portfolio/commit/6b87586234f8c30c49ee0fef4040ac2110994e19))
+* **agents:** Class E -- documentation that contradicted the code ([02f2197](https://github.com/mctlhq/portfolio/commit/02f219708f321a667301ab6cd03eaa13f00e355b))
+* **agents:** Class F -- cache lifetime and CI vendored-tree pathspec ([9a59956](https://github.com/mctlhq/portfolio/commit/9a599567d2f7de5fb5e81e45394bcad00798a17c))
+
+
+### Documentation
+
+* **agents:** journal entry for Q7 polish wave findings cycle ([3ae26f2](https://github.com/mctlhq/portfolio/commit/3ae26f2e381733c699af7e78f40834b87cfb479a))
+
 ## [0.1.16](https://github.com/mctlhq/portfolio/compare/0.1.15...0.1.16) (2026-09-12)
 
 
