@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.15](https://github.com/mctlhq/portfolio/compare/0.1.14...0.1.15) (2026-09-12)
+
+
+### Features
+
+* **agents:** issue-49-q5-navigation-state-disclosure-defaults ([c4e759b](https://github.com/mctlhq/portfolio/commit/c4e759b15a639420419ab1bf744333159de0f919))
+* **agents:** issue-49-q5-navigation-state-disclosure-defaults ([7d23cf1](https://github.com/mctlhq/portfolio/commit/7d23cf1b0dc41e37522210e6409852d1777180a2))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-49-q5-navigation-state-disclosure-defaults ([a79f323](https://github.com/mctlhq/portfolio/commit/a79f3238c3c41db08aedf45b9135fb0e8d3346df))
+
 ## [0.1.14](https://github.com/mctlhq/portfolio/compare/0.1.13...0.1.14) (2026-09-12)
 
 
