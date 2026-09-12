@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.16](https://github.com/mctlhq/portfolio/compare/0.1.15...0.1.16) (2026-09-12)
+
+
+### Features
+
+* **agents:** issue-65-q6-share-image-asset-hashing-cache-lifet ([bb4b23c](https://github.com/mctlhq/portfolio/commit/bb4b23c3fb92059876fa8b0a8475e2830020498b))
+* **agents:** issue-65-q6-share-image-asset-hashing-cache-lifet ([84ede63](https://github.com/mctlhq/portfolio/commit/84ede6386a60523423e1ac481ba35de505aff805))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-65-q6-share-image-asset-hashing-cache-lifet ([3bfeb3d](https://github.com/mctlhq/portfolio/commit/3bfeb3d8e3902aa8196ff6a136a4bac5fad9795f))
+* **agents:** address P1/P2 codex findings on issue-65-q6-share-image-asset-hashing-cache-lifet ([06f5035](https://github.com/mctlhq/portfolio/commit/06f5035f108ed6a9365d6be2fcc050f5f2677ef1))
+
 ## [0.1.15](https://github.com/mctlhq/portfolio/compare/0.1.14...0.1.15) (2026-09-12)
 
 
