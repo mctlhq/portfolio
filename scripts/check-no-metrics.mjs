@@ -21,6 +21,7 @@
 // Modelled on scripts/check-dist.mjs: problems accumulated into an array
 // and printed together, process.exitCode = 1 rather than process.exit.
 
+import { realpathSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -290,6 +291,28 @@ async function main() {
   );
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+/**
+ * True when this module is being run directly (as a CLI entry point)
+ * rather than imported, e.g. by a test -- same hybrid form (B1) as
+ * scripts/check-contrast.mjs, scripts/check-links.mjs and
+ * scripts/check-headers.mjs: import.meta.main where defined, falling back
+ * to a realpathSync() comparison so a symlinked checkout does not silently
+ * skip the check.
+ */
+function isEntryPoint() {
+  if (typeof import.meta.main !== 'undefined') {
+    return import.meta.main;
+  }
+  if (!process.argv[1]) {
+    return false;
+  }
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isEntryPoint()) {
   await main();
 }

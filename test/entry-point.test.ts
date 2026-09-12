@@ -1,27 +1,80 @@
-// B1: scripts/check-contrast.mjs, scripts/check-links.mjs and
-// scripts/check-headers.mjs each carry an isEntryPoint() that must keep its
+// B1: every scripts/*.mjs whose source carries a top-level
+// `if (...) { await main(); }` block must declare an isEntryPoint() in the
 // hybrid form -- import.meta.main when defined, a realpathSync() comparison
 // of process.argv[1] against fileURLToPath(import.meta.url) below it --
 // rather than drifting to a bare process.argv[1] string comparison (not
 // symlink-safe: a symlinked checkout would silently skip the check with exit
 // 0) or to import.meta.main with no fallback (unavailable before Node
-// 22.18/24.2). scripts/check-headers.mjs is the one whose silent pass would
-// make the build job's only assertion vacuous --
+// 22.18/24.2). The set of files to check is derived by scanning
+// scripts/*.mjs for that shape, not typed by hand: a hand-typed list was
+// wrong once (issue #69 had to add scripts/check-headers.mjs to it) and
+// wrong again (issue #75 found it still missing scripts/check-no-metrics.mjs
+// and scripts/snapshot-metrics.mjs), so a new script now gets covered the
+// day it is written instead of the day someone remembers to edit an array.
+// scripts/check-dist.mjs, scripts/csp-hash.mjs, scripts/render-og.mjs and
+// scripts/vendor-assets.mjs call an unconditional top-level `await main();`
+// with no `if (...)` wrapper -- a different shape -- and are excluded by the
+// matcher itself, not by a skip list.
+//
+// The derivation is asserted at a floor of four files (below today's true
+// count of five) plus by name for all five known scripts, so a scan that
+// regresses to matching nothing -- or drops one of the five -- fails loudly
+// instead of silently reducing coverage. scripts/check-headers.mjs is the
+// one whose silent pass would make the build job's only assertion vacuous --
 // .github/workflows/build.yml's final step,
 // `node scripts/check-headers.mjs http://127.0.0.1:8080`, is that job's sole
-// check. This proves the shape by
-// isolating the real `function isEntryPoint() { ... }` block out of each
-// committed file and asserting on it, and proves the matcher discriminates
-// by running it over synthetic bare-form sources.
+// check -- and scripts/check-no-metrics.mjs is the first command `npm test`
+// runs. This proves the shape by isolating the real
+// `function isEntryPoint() { ... }` block out of each derived file and
+// asserting on it, and proves the matcher discriminates by running it over
+// synthetic bare-form sources.
 
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { readdirSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
-const FILES = ['scripts/check-contrast.mjs', 'scripts/check-links.mjs', 'scripts/check-headers.mjs'];
+const SCRIPTS_DIR = path.join(ROOT, 'scripts');
+const ENTRY_BLOCK_RE = /^if \(.*\) \{\r?\n\s*await main\(\);\r?\n\}/m;
+const REQUIRED = [
+  'scripts/check-contrast.mjs',
+  'scripts/check-links.mjs',
+  'scripts/check-headers.mjs',
+  'scripts/check-no-metrics.mjs',
+  'scripts/snapshot-metrics.mjs',
+];
+const MIN_DERIVED = 4;
+
+/**
+ * Enumerates `scriptsDir` for `.mjs` files whose source carries a top-level
+ * `if (...) { await main(); }` block, and returns their repo-relative POSIX
+ * paths (`scripts/<name>.mjs`), sorted. Takes the directory as a parameter
+ * (rather than reading SCRIPTS_DIR from module scope) so a test can point it
+ * at an empty directory and prove the emptiness case actually fires.
+ */
+function deriveEntryPointScripts(scriptsDir: string): string[] {
+  let entries;
+  try {
+    entries = readdirSync(scriptsDir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const matches: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith('.mjs')) {
+      continue;
+    }
+    const source = readFileSync(path.join(scriptsDir, entry.name), 'utf8');
+    if (ENTRY_BLOCK_RE.test(source)) {
+      matches.push(`scripts/${entry.name}`);
+    }
+  }
+  return matches.sort();
+}
 
 /** Isolates the `function isEntryPoint() { ... }` block's source text out
  * of a script's full source, by brace counting from the function keyword. */
@@ -65,7 +118,49 @@ function entryPointProblems(source: string, label: string): string[] {
   return problems;
 }
 
-for (const file of FILES) {
+// -- B1: the derivation itself is trustworthy --------------------------------
+
+const derived = deriveEntryPointScripts(SCRIPTS_DIR);
+
+test(`the derivation over scripts/*.mjs matches at least ${MIN_DERIVED} files`, () => {
+  assert.ok(
+    derived.length >= MIN_DERIVED,
+    `derivation over scripts/*.mjs matched ${derived.length} file(s), expected at least ${MIN_DERIVED} -- short by ${MIN_DERIVED - derived.length}; the enumeration is broken, not the scripts`,
+  );
+});
+
+for (const required of REQUIRED) {
+  test(`the derivation includes ${required}`, () => {
+    assert.ok(
+      derived.includes(required),
+      `expected ${required} in the derived set, got: ${JSON.stringify(derived)}`,
+    );
+  });
+}
+
+test('deriveEntryPointScripts over an empty directory returns no files', async () => {
+  const emptyDir = await mkdtemp(path.join(tmpdir(), 'entry-point-empty-'));
+  try {
+    assert.deepEqual(deriveEntryPointScripts(emptyDir), []);
+  } finally {
+    await rm(emptyDir, { recursive: true, force: true });
+  }
+});
+
+test('the derivation excludes the unconditional-await-main scripts', () => {
+  for (const excluded of [
+    'scripts/check-dist.mjs',
+    'scripts/csp-hash.mjs',
+    'scripts/render-og.mjs',
+    'scripts/vendor-assets.mjs',
+  ]) {
+    assert.ok(!derived.includes(excluded), `expected ${excluded} to be excluded from the derived set`);
+  }
+});
+
+// -- B1: every derived file keeps the hybrid form ----------------------------
+
+for (const file of derived) {
   test(`${file}'s isEntryPoint() keeps the hybrid import.meta.main / realpathSync() form`, () => {
     const source = readFileSync(path.join(ROOT, file), 'utf8');
     const block = isolateIsEntryPoint(source);
