@@ -4,6 +4,7 @@ lang: ru
 name: "pfeifenpatenschaft-backend"
 group: product
 order: 13
+private: true
 stack: ["TypeScript", "Express", "PostgreSQL"]
 summary: "Backend спонсорства органных труб."
 ---

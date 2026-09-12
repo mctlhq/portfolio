@@ -117,6 +117,7 @@ export const ui = {
   workGroupProducts: { en: 'Products', ru: 'Продукты' },
   workDetailsSummary: { en: 'Details', ru: 'Подробнее' },
   workMetricsLabel: { en: 'Repository metrics', ru: 'Метрики репозитория' },
+  workPrivateRepo: { en: 'private repo', ru: 'приватный репозиторий' },
   workPageTitle: { en: 'Work — Dmitrii Mashkov', ru: 'Work — Dmitrii Mashkov' },
 
   approachPageTitle: { en: 'Approach — Dmitrii Mashkov', ru: 'Approach — Dmitrii Mashkov' },
@@ -276,6 +277,18 @@ export const stackChipRu: Record<string, string> = {
 // set cannot be enforced by TypeScript; ProjectCard checks every chip against
 // `stackChipRu` and this set and warns at build time when a chip is in
 // neither, so a forgotten translation cannot ship silently.
+// Two pure functions over stackChipRu, used by ProjectCard.astro so the
+// chip guard and the chip lookup share one implementation. Object.hasOwn
+// (rather than `in` or `stackChipRu[chip]`) keeps a chip named
+// "constructor", "toString", "__proto__" or "valueOf" from resolving to an
+// inherited Object.prototype member.
+export function chipRu(chip: string): string {
+  return Object.hasOwn(stackChipRu, chip) ? stackChipRu[chip] : chip;
+}
+export function chipIsKnown(chip: string): boolean {
+  return Object.hasOwn(stackChipRu, chip) || stackChipUntranslated.has(chip);
+}
+
 export const stackChipUntranslated: ReadonlySet<string> = new Set([
   'AlertManager',
   'Argo Workflows',

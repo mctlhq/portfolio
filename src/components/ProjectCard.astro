@@ -1,8 +1,9 @@
 ---
 import type { CollectionEntry } from 'astro:content';
 import { render } from 'astro:content';
+import Details from './Details.astro';
 import Lang from '../i18n/Lang.astro';
-import { ui, stackChipRu, stackChipUntranslated } from '../i18n/ui';
+import { ui, chipIsKnown, chipRu } from '../i18n/ui';
 import { formatStat, repoMetrics, snapshotDate, type Metrics } from '../lib/metrics';
 import rawMetrics from '../data/metrics.json';
 
@@ -20,9 +21,10 @@ const ruLinks = ru.data.links ?? [];
 const metrics = rawMetrics as Metrics;
 const repoStats = repoMetrics(metrics, en.data.repo);
 const snapshot = snapshotDate(metrics.generated_at);
+const hasLinks = Boolean(en.data.repo) || links.length > 0;
 
 for (const chip of en.data.stack) {
-  if (!(chip in stackChipRu) && !stackChipUntranslated.has(chip)) {
+  if (!chipIsKnown(chip)) {
     throw new Error(
       `ProjectCard (${en.data.slug}): stack chip "${chip}" has no Russian ` +
         'translation in stackChipRu and is not listed in stackChipUntranslated ' +
@@ -37,17 +39,11 @@ for (const chip of en.data.stack) {
   <p class="project-summary"><Lang en={en.data.summary} ru={ru.data.summary} /></p>
   <ul class="chips">
     {en.data.stack.map((chip) => (
-      <li class="chip"><Lang en={chip} ru={stackChipRu[chip] ?? chip} /></li>
+      <li class="chip"><Lang en={chip} ru={chipRu(chip)} /></li>
     ))}
   </ul>
-  <details class="block project-details">
-    <summary><Lang en={ui.workDetailsSummary.en} ru={ui.workDetailsSummary.ru} /></summary>
-    <div class="l en">
-      <BodyEn />
-    </div>
-    <div class="l ru" lang="ru">
-      <BodyRu />
-    </div>
+
+  {hasLinks && (
     <ul class="project-links">
       {en.data.repo && (
         <li><a href={en.data.repo}>{repoLabel}</a></li>
@@ -60,13 +56,32 @@ for (const chip of en.data.stack) {
         </li>
       ))}
     </ul>
+  )}
+  {en.data.repo && (
     <p class="project-metrics">
-      <Lang en={ui.workMetricsLabel.en} ru={ui.workMetricsLabel.ru} />{' '}
-      <span data-stat>
-        <Lang en={ui.statCommits.en} ru={ui.statCommits.ru} /> {formatStat(repoStats.commits)},{' '}
-        <Lang en={ui.statReleases.en} ru={ui.statReleases.ru} /> {formatStat(repoStats.releases)}
-      </span>{' '}
+      <Lang en={ui.workMetricsLabel.en} ru={ui.workMetricsLabel.ru} /> ·{' '}
+      <Lang en={ui.statCommits.en} ru={ui.statCommits.ru} /> <span data-stat>{formatStat(repoStats.commits)}</span> ·{' '}
+      <Lang en={ui.statReleases.en} ru={ui.statReleases.ru} /> <span data-stat>{formatStat(repoStats.releases)}</span> ·{' '}
       <Lang en={`${ui.statCaptionPrefix.en} ${snapshot}`} ru={`${ui.statCaptionPrefix.ru} ${snapshot}`} />
     </p>
-  </details>
+  )}
+  {en.data.private && (
+    <ul class="chips">
+      <li class="chip"><Lang en={ui.workPrivateRepo.en} ru={ui.workPrivateRepo.ru} /></li>
+    </ul>
+  )}
+
+  <Details
+    summaryEn={ui.workDetailsSummary.en}
+    summaryRu={ui.workDetailsSummary.ru}
+    suffixEn={en.data.name}
+    suffixRu={ru.data.name}
+  >
+    <div class="l en">
+      <BodyEn />
+    </div>
+    <div class="l ru" lang="ru">
+      <BodyRu />
+    </div>
+  </Details>
 </article>
