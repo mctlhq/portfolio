@@ -598,6 +598,14 @@ async function verifyExistingTree() {
   // Every `url(...)` it declares must also resolve on disk -- this is what
   // covers the 24 font files (JetBrains Mono, Instrument Serif, and the
   // non-preloaded Onest weights) that the manifest itself never names.
+  // Filenames are no longer reconstructed from FAMILIES here because emit()
+  // content-hashes them, but the *count* is: url() resolving is only
+  // self-consistency (every reference that exists on disk does point to a
+  // real file), so on its own it would report an offline tree "valid" even
+  // if fonts.css were missing entries FAMILIES currently declares (e.g. a
+  // stale committed tree left over from a FAMILIES edit that never got a
+  // successful network vendor run). Cross-checking the url() count against
+  // the count FAMILIES independently implies restores that coverage.
   let fontsCss;
   try {
     fontsCss = await readFile(publicPathForHref(manifest.styles[3]), 'utf8');
@@ -611,7 +619,11 @@ async function verifyExistingTree() {
     fontUrlCount++;
     if (!(await nonEmptyFile(publicPathForHref(fontUrlMatch[1])))) return false;
   }
-  if (fontUrlCount === 0) return false;
+  const expectedFontFileCount = FAMILIES.reduce(
+    (sum, fam) => sum + fam.weights.length * fam.styles.length * fam.subsets.length,
+    0,
+  );
+  if (fontUrlCount !== expectedFontFileCount) return false;
 
   for (const fam of FAMILIES) {
     if (!(await nonEmptyFile(path.join(LICENSES_DIR, `${fam.slug}.txt`)))) return false;
