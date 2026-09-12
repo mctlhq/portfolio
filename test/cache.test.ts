@@ -7,6 +7,7 @@
 // is scoped to the two new locations' cache directives and the manifest.
 
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -61,6 +62,31 @@ test('every href in src/data/assets.json.preload carries an 8-hex content hash a
     assert.match(href, HASHED_HREF_RE, `${href} does not carry an 8-hex content hash`);
     const filePath = path.join(ROOT, 'public', href.replace(/^\/+/, ''));
     assert.ok(existsSync(filePath), `${href} does not resolve to an existing file`);
+  }
+});
+
+// The immutable, year-long Cache-Control on /assets/ and /styles/ (asserted
+// above) relies entirely on the embedded 8-hex segment tracking the file's
+// real bytes -- scripts/vendor-assets.mjs's emit() derives it as
+// sha256(bytes).slice(0, 8). If that derivation ever drifted (stale cache,
+// wrong buffer, truncated hash), a reader would be stranded on stale bytes
+// for a year with no cache-buster to escape it, and nothing above would
+// catch it since those tests only check the hash's shape, not its value.
+const HASHED_HREF_CAPTURE_RE = /\.([0-9a-f]{8})\.(?:css|woff2)$/;
+
+test('every hashed href in src/data/assets.json actually hashes to its own file bytes', () => {
+  const hrefs = [...assets.styles, ...(Object.values(assets.preload) as string[])];
+  assert.ok(hrefs.length > 0, 'expected at least one hashed href to verify');
+  for (const href of hrefs) {
+    const match = href.match(HASHED_HREF_CAPTURE_RE);
+    assert.ok(match, `${href} does not carry an 8-hex content hash`);
+    const filePath = path.join(ROOT, 'public', href.replace(/^\/+/, ''));
+    const actualHash = createHash('sha256').update(readFileSync(filePath)).digest('hex').slice(0, 8);
+    assert.equal(
+      actualHash,
+      match![1],
+      `${href}'s embedded hash ${match![1]} does not match its file's actual SHA-256 (${actualHash})`,
+    );
   }
 });
 
