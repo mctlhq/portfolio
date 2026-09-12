@@ -42,6 +42,19 @@ test('the placeholder #work and #approach sections are gone', () => {
   assert.doesNotMatch(source, /id="approach"/);
 });
 
+test('index.astro renders exactly three <Details tags, every one carrying heading, and exactly one carrying open, bound to ui.detailsContactSummary', () => {
+  const detailsTagRe = /<Details\b[^>]*(?:\/>|>)/g;
+  const detailsTags = source.match(detailsTagRe) ?? [];
+  assert.equal(detailsTags.length, 3, 'expected exactly three <Details tags on index.astro');
+
+  const withHeading = detailsTags.filter((tag) => /\bheading\b/.test(tag));
+  assert.equal(withHeading.length, 3, 'expected every <Details tag to carry the heading prop');
+
+  const withOpen = detailsTags.filter((tag) => /\bopen\b/.test(tag));
+  assert.equal(withOpen.length, 1, 'expected exactly one <Details tag to carry open');
+  assert.match(withOpen[0], /summaryEn=\{ui\.detailsContactSummary\.en\}/, 'the open block must be bound to ui.detailsContactSummary');
+});
+
 test('both CTAs link to their trailing-slash paths', () => {
   assert.match(source, /href="\/work\/"/);
   assert.match(source, /href="\/colophon\/"/);

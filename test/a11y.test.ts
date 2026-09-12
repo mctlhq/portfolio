@@ -19,7 +19,7 @@ test('site.css keeps a :focus-visible outline rule', () => {
   assert.match(siteCss, /:focus-visible\s*\{[^}]*outline:/);
 });
 
-const TARGET_SELECTORS = ['.site-nav a', '.toggle-group button', '.site-footer a', '.cta', '.block > summary'];
+const TARGET_SELECTORS = ['.site-nav a', '.toggle-group button', '.site-footer a', '.cta', '.block > summary', '.skip-link:focus'];
 
 for (const selector of TARGET_SELECTORS) {
   test(`site.css declares a min-block-size of at least ${MIN_TARGET_PX}px on ${selector}`, () => {
@@ -53,6 +53,33 @@ for (const selector of TARGET_SELECTORS) {
 test('site.css declares no animation or transition anywhere', () => {
   assert.doesNotMatch(siteCss, /\banimation(-[a-z]+)?\s*:/);
   assert.doesNotMatch(siteCss, /\btransition(-[a-z]+)?\s*:/);
+});
+
+test('site.css declares the .toggle-bar rule with display: flex, flex-wrap: wrap and gap: var(--mctl-space-4)', () => {
+  const ruleRe = /([^{}]+)\{([^}]*)\}/g;
+  let block = null;
+  let m;
+  while ((m = ruleRe.exec(siteCss))) {
+    const selectors = m[1].split(',').map((s) => s.trim().replace(/\s+/g, ' '));
+    if (selectors.includes('.toggle-bar')) block = m[2];
+  }
+  assert.ok(block, 'expected a .toggle-bar rule in site.css');
+  assert.match(block, /display:\s*flex/);
+  assert.match(block, /flex-wrap:\s*wrap/);
+  assert.match(block, /gap:\s*var\(--mctl-space-4\)/);
+});
+
+test('site.css declares .site-nav a[aria-current] with both a color and a text-decoration', () => {
+  const ruleRe = /([^{}]+)\{([^}]*)\}/g;
+  let block = null;
+  let m;
+  while ((m = ruleRe.exec(siteCss))) {
+    const selectors = m[1].split(',').map((s) => s.trim().replace(/\s+/g, ' '));
+    if (selectors.includes('.site-nav a[aria-current]')) block = m[2];
+  }
+  assert.ok(block, 'expected a rule whose selector list includes .site-nav a[aria-current]');
+  assert.match(block, /\bcolor:\s*[^;]+;/);
+  assert.match(block, /\btext-decoration:\s*[^;]+;/);
 });
 
 test('Lang.astro emits lang="ru" on the Russian span', () => {

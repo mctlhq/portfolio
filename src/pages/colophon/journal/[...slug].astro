@@ -1,6 +1,7 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import Lang from '../../../i18n/Lang.astro';
+import Breadcrumb from '../../../components/Breadcrumb.astro';
 import { ui } from '../../../i18n/ui';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { publicEntries } from '../../../lib/content';
@@ -52,74 +53,73 @@ const leadTime = leadTimeHours(data);
 ---
 
 <Base title={`${data.title.en} — Dmitrii Mashkov`} description={description}>
-  <main>
-    <h1><Lang en={data.title.en} ru={data.title.ru} /></h1>
+  <Breadcrumb currentEn={data.title.en} currentRu={data.title.ru} />
+  <h1><Lang en={data.title.en} ru={data.title.ru} /></h1>
 
-    <dl class="journal-meta">
-      <dt><Lang en={ui.journalServiceLabel.en} ru={ui.journalServiceLabel.ru} /></dt>
-      <dd>{data.service}</dd>
-      <dt><Lang en={ui.journalIssueLabel.en} ru={ui.journalIssueLabel.ru} /></dt>
-      <dd><a href={data.issue}>{githubRef(data.issue)}</a></dd>
-      <dt><Lang en={ui.journalPrLabel.en} ru={ui.journalPrLabel.ru} /></dt>
-      <dd>{data.pr ? <a href={data.pr}>{githubRef(data.pr)}</a> : EM_DASH}</dd>
-      <dt><Lang en={ui.journalReleaseLabel.en} ru={ui.journalReleaseLabel.ru} /></dt>
-      <dd>{data.release ?? EM_DASH}</dd>
-      <dt><Lang en={ui.journalLeadTimeLabel.en} ru={ui.journalLeadTimeLabel.ru} /></dt>
-      <dd>
-        {leadTime === null ? (
-          <>
-            <span class="lead-time-missing">{formatLeadTime(leadTime)}</span>
-            <span class="visually-hidden">
-              <Lang en={ui.leadTimeMissing.en} ru={ui.leadTimeMissing.ru} />
-            </span>
-          </>
-        ) : (
-          formatLeadTime(leadTime)
-        )}
-      </dd>
-    </dl>
-
-    <h2><Lang en={ui.journalDecidedHeading.en} ru={ui.journalDecidedHeading.ru} /></h2>
-    <p class="journal-decided"><Lang en={data.decided.en} ru={data.decided.ru} /></p>
-
-    <section class="colophon-section">
-      <h2><Lang en={ui.journalTimelineHeading.en} ru={ui.journalTimelineHeading.ru} /></h2>
-      <ol class="journal-timeline">
-        {steps.map((step) => (
-          <li>
-            <Lang en={step.label.en} ru={step.label.ru} />:{' '}
-            <time datetime={step.iso}><Lang en={step.en} ru={step.ru} /></time>
-            {step.interval && (
-              <span class="step-interval">
-                <Lang en={step.interval.en} ru={step.interval.ru} />
-              </span>
-            )}
-          </li>
-        ))}
-      </ol>
-    </section>
-
-    <section class="colophon-section">
-      <h2><Lang en={ui.journalInterventionsHeading.en} ru={ui.journalInterventionsHeading.ru} /></h2>
-      {interventions.length > 0 ? (
+  <dl class="journal-meta">
+    <dt><Lang en={ui.journalServiceLabel.en} ru={ui.journalServiceLabel.ru} /></dt>
+    <dd>{data.service}</dd>
+    <dt><Lang en={ui.journalIssueLabel.en} ru={ui.journalIssueLabel.ru} /></dt>
+    <dd><a href={data.issue}>{githubRef(data.issue)}</a></dd>
+    <dt><Lang en={ui.journalPrLabel.en} ru={ui.journalPrLabel.ru} /></dt>
+    <dd>{data.pr ? <a href={data.pr}>{githubRef(data.pr)}</a> : EM_DASH}</dd>
+    <dt><Lang en={ui.journalReleaseLabel.en} ru={ui.journalReleaseLabel.ru} /></dt>
+    <dd>{data.release ?? EM_DASH}</dd>
+    <dt><Lang en={ui.journalLeadTimeLabel.en} ru={ui.journalLeadTimeLabel.ru} /></dt>
+    <dd>
+      {leadTime === null ? (
         <>
-          <p class="l en">{ui.journalInterventionsNote.en}</p>
-          <p class="l ru" lang="ru">{ui.journalInterventionsNote.ru}</p>
-          <ol class="interventions" lang="en">
-            {interventions.map((item) => (
-              <li>
-                <p class="intervention-what">{item.what}</p>
-                <p class="intervention-why">{item.why}</p>
-                <p class="intervention-at">{isoStamp(item.at)}</p>
-              </li>
-            ))}
-          </ol>
+          <span class="lead-time-missing">{formatLeadTime(leadTime)}</span>
+          <span class="visually-hidden">
+            <Lang en={ui.leadTimeMissing.en} ru={ui.leadTimeMissing.ru} />
+          </span>
         </>
       ) : (
-        <p><Lang en={ui.journalNoInterventions.en} ru={ui.journalNoInterventions.ru} /></p>
+        formatLeadTime(leadTime)
       )}
-    </section>
+    </dd>
+  </dl>
 
-    <p><a href="/colophon/"><Lang en={ui.journalBackToColophon.en} ru={ui.journalBackToColophon.ru} /></a></p>
-  </main>
+  <h2><Lang en={ui.journalDecidedHeading.en} ru={ui.journalDecidedHeading.ru} /></h2>
+  <p class="journal-decided"><Lang en={data.decided.en} ru={data.decided.ru} /></p>
+
+  <section class="colophon-section">
+    <h2><Lang en={ui.journalTimelineHeading.en} ru={ui.journalTimelineHeading.ru} /></h2>
+    <ol class="journal-timeline">
+      {steps.map((step) => (
+        <li>
+          <Lang en={step.label.en} ru={step.label.ru} />:{' '}
+          <time datetime={step.iso}><Lang en={step.en} ru={step.ru} /></time>
+          {step.interval && (
+            <span class="step-interval">
+              <Lang en={step.interval.en} ru={step.interval.ru} />
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="colophon-section">
+    <h2><Lang en={ui.journalInterventionsHeading.en} ru={ui.journalInterventionsHeading.ru} /></h2>
+    {interventions.length > 0 ? (
+      <>
+        <p class="l en">{ui.journalInterventionsNote.en}</p>
+        <p class="l ru" lang="ru">{ui.journalInterventionsNote.ru}</p>
+        <ol class="interventions" lang="en">
+          {interventions.map((item) => (
+            <li>
+              <p class="intervention-what">{item.what}</p>
+              <p class="intervention-why">{item.why}</p>
+              <p class="intervention-at">{isoStamp(item.at)}</p>
+            </li>
+          ))}
+        </ol>
+      </>
+    ) : (
+      <p><Lang en={ui.journalNoInterventions.en} ru={ui.journalNoInterventions.ru} /></p>
+    )}
+  </section>
+
+  <p><a href="/colophon/"><Lang en={ui.journalBackToColophon.en} ru={ui.journalBackToColophon.ru} /></a></p>
 </Base>

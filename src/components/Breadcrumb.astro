@@ -1,0 +1,20 @@
+---
+import Lang from '../i18n/Lang.astro';
+import { ui } from '../i18n/ui';
+
+interface Props {
+  currentEn: string;
+  currentRu: string;
+}
+
+const { currentEn, currentRu } = Astro.props;
+---
+
+<nav class="breadcrumb" aria-labelledby="breadcrumb-label">
+  <span id="breadcrumb-label" class="visually-hidden"><Lang en={ui.breadcrumbLabel.en} ru={ui.breadcrumbLabel.ru} /></span>
+  <ol>
+    <li><a href="/"><Lang en={ui.navHome.en} ru={ui.navHome.ru} /></a></li>
+    <li><a href="/colophon/"><Lang en={ui.navColophon.en} ru={ui.navColophon.ru} /></a></li>
+    <li><span aria-current="page"><Lang en={currentEn} ru={currentRu} /></span></li>
+  </ol>
+</nav>

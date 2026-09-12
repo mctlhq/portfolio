@@ -16,41 +16,39 @@ const date = snapshotDate(metrics.generated_at);
   title={ui.approachPageTitle.en}
   description="The DevLoop in detail: an issue becomes a reviewed proposal, an agent pull request, an automated review gate, a release and a deployment."
 >
-  <main>
-    <h1><Lang en={ui.navApproach.en} ru={ui.navApproach.ru} /></h1>
-    <p class="subline"><Lang en={ui.approachIntro.en} ru={ui.approachIntro.ru} /></p>
+  <h1><Lang en={ui.navApproach.en} ru={ui.navApproach.ru} /></h1>
+  <p class="subline"><Lang en={ui.approachIntro.en} ru={ui.approachIntro.ru} /></p>
 
-    <figure class="cycle">
-      <CycleDiagram />
-    </figure>
+  <figure class="cycle">
+    <CycleDiagram />
+  </figure>
 
-    <Details summaryEn={ui.detailsGatesSummary.en} summaryRu={ui.detailsGatesSummary.ru}>
-      <ul class="l en">
-        {ui.detailsGatesItems.en.map((item) => <li>{item}</li>)}
-      </ul>
-      <ul class="l ru" lang="ru">
-        {ui.detailsGatesItems.ru.map((item) => <li>{item}</li>)}
-      </ul>
-    </Details>
+  <Details summaryEn={ui.detailsGatesSummary.en} summaryRu={ui.detailsGatesSummary.ru} open>
+    <ul class="l en">
+      {ui.detailsGatesItems.en.map((item) => <li>{item}</li>)}
+    </ul>
+    <ul class="l ru" lang="ru">
+      {ui.detailsGatesItems.ru.map((item) => <li>{item}</li>)}
+    </ul>
+  </Details>
 
-    <Details summaryEn={ui.detailsNumbersSummary.en} summaryRu={ui.detailsNumbersSummary.ru}>
-      <div class="stats">
-        <Stat value={metrics.sources.mctl.devloop_proposals} labelEn={ui.statDevloopProposals.en} labelRu={ui.statDevloopProposals.ru} />
-        <Stat value={metrics.sources.mctl.services} labelEn={ui.statServices.en} labelRu={ui.statServices.ru} />
-        <Stat value={metrics.sources.github.releases} labelEn={ui.statReleasesCount.en} labelRu={ui.statReleasesCount.ru} />
-        <p class="stat-caption">
-          <Lang en={`${ui.statCaptionPrefix.en} ${date}`} ru={`${ui.statCaptionPrefix.ru} ${date}`} />
-        </p>
-      </div>
-    </Details>
+  <Details summaryEn={ui.detailsNumbersSummary.en} summaryRu={ui.detailsNumbersSummary.ru}>
+    <div class="stats">
+      <Stat value={metrics.sources.mctl.devloop_proposals} labelEn={ui.statDevloopProposals.en} labelRu={ui.statDevloopProposals.ru} />
+      <Stat value={metrics.sources.mctl.services} labelEn={ui.statServices.en} labelRu={ui.statServices.ru} />
+      <Stat value={metrics.sources.github.releases} labelEn={ui.statReleasesCount.en} labelRu={ui.statReleasesCount.ru} />
+      <p class="stat-caption">
+        <Lang en={`${ui.statCaptionPrefix.en} ${date}`} ru={`${ui.statCaptionPrefix.ru} ${date}`} />
+      </p>
+    </div>
+  </Details>
 
-    <Details summaryEn={ui.detailsStackSummary.en} summaryRu={ui.detailsStackSummary.ru}>
-      <ul class="l en">
-        {ui.detailsStackItems.en.map((item) => <li>{item}</li>)}
-      </ul>
-      <ul class="l ru" lang="ru">
-        {ui.detailsStackItems.ru.map((item) => <li>{item}</li>)}
-      </ul>
-    </Details>
-  </main>
+  <Details summaryEn={ui.detailsStackSummary.en} summaryRu={ui.detailsStackSummary.ru}>
+    <ul class="l en">
+      {ui.detailsStackItems.en.map((item) => <li>{item}</li>)}
+    </ul>
+    <ul class="l ru" lang="ru">
+      {ui.detailsStackItems.ru.map((item) => <li>{item}</li>)}
+    </ul>
+  </Details>
 </Base>

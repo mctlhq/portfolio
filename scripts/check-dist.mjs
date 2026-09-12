@@ -177,6 +177,20 @@ async function checkApproachPage() {
     problems.push(`check-dist: no <svg> with a "cycle-narrow" class found in ${path.relative(ROOT, approachPath)}; the ${NARROW_MAX_VIEWBOX_WIDTH}px narrow-viewBox cap was not checked`);
   }
 
+  const openDetailsCount = countDetailsOpen(html);
+  if (openDetailsCount !== 1) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, approachPath)} has ${openDetailsCount} <details open> element(s), expected exactly 1 (the Gates block)`,
+    );
+  }
+
+  const summaryH2Count = countOccurrences(html, '<summary><h2');
+  if (summaryH2Count !== 0) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, approachPath)} has ${summaryH2Count} "<summary><h2" opening(s), expected exactly 0 (approach's disclosure summaries carry no heading)`,
+    );
+  }
+
   return { problems, svgBytes };
 }
 
@@ -228,6 +242,83 @@ async function checkHomePage() {
     problems.push(
       `check-dist: <title> in ${path.relative(ROOT, indexPath)} contains a Cyrillic character; the browser tab must stay Latin regardless of data-lang`,
     );
+  }
+
+  const openDetailsCount = countDetailsOpen(html);
+  if (openDetailsCount !== 1) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, indexPath)} has ${openDetailsCount} <details open> element(s), expected exactly 1 (the Contact block)`,
+    );
+  }
+
+  const summaryH2Count = countOccurrences(html, '<summary><h2');
+  if (summaryH2Count !== 3) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, indexPath)} has ${summaryH2Count} "<summary><h2" opening(s), expected exactly 3`,
+    );
+  }
+
+  return problems;
+}
+
+/**
+ * Counts `<details ...open...>` elements in built markup: `open` renders as
+ * a bare boolean attribute (no `="..."` value), so this looks for `open` as
+ * its own token inside a `<details` opening tag rather than matching the
+ * literal substring `open` anywhere (which would also match e.g. a future
+ * class name).
+ */
+function countDetailsOpen(html) {
+  const tags = html.match(/<details\b[^>]*>/g) ?? [];
+  return tags.filter((tag) => /\bopen\b/.test(tag)).length;
+}
+
+/**
+ * Checks issue #49 (Q5) navigation-state invariants against one built page:
+ * the hoisted <main id="main" tabindex="-1">, a #main skip link before the
+ * first <nav, the expected aria-current count inside .site-nav (exactly one
+ * on every page with a matching or prefix-matching nav item, zero on the
+ * 404 page), and no aria-label value mixing a Latin and a Cyrillic letter
+ * -- with one named exemption for the .table-scroll region on
+ * dist/colophon/index.html, which this cycle does not touch.
+ */
+function checkNavigationState(html, rel) {
+  const problems = [];
+
+  if (!/<main\s+id="main"\s+tabindex="-1">/.test(html)) {
+    problems.push(`check-dist: ${rel} is missing <main id="main" tabindex="-1">`);
+  }
+
+  const skipLinkIndex = html.indexOf('href="#main"');
+  const firstNavIndex = html.indexOf('<nav');
+  if (skipLinkIndex === -1) {
+    problems.push(`check-dist: ${rel} has no href="#main" skip link`);
+  } else if (firstNavIndex === -1 || skipLinkIndex > firstNavIndex) {
+    problems.push(`check-dist: ${rel} skip link (href="#main") does not occur before the first <nav`);
+  }
+
+  const siteNavMatch = html.match(/<nav\s+class="site-nav"[^>]*>[\s\S]*?<\/nav>/);
+  if (!siteNavMatch) {
+    problems.push(`check-dist: ${rel} has no <nav class="site-nav"> element`);
+  } else {
+    const ariaCurrentCount = countOccurrences(siteNavMatch[0], 'aria-current="');
+    const expected = rel === '404.html' ? 0 : 1;
+    if (ariaCurrentCount !== expected) {
+      problems.push(
+        `check-dist: ${rel} has ${ariaCurrentCount} aria-current attribute(s) inside .site-nav, expected ${expected}`,
+      );
+    }
+  }
+
+  let scanHtml = html;
+  if (rel === path.join('colophon', 'index.html')) {
+    scanHtml = html.replace(/<div\s+class="table-scroll"[^>]*>[\s\S]*?<\/div>/g, '');
+  }
+  for (const match of scanHtml.matchAll(/aria-label="([^"]*)"/g)) {
+    const value = match[1];
+    if (/[A-Za-z]/.test(value) && /[\u0400-\u04ff]/.test(value)) {
+      problems.push(`check-dist: ${rel} has an aria-label mixing a Latin and a Cyrillic letter: "${value}"`);
+    }
   }
 
   return problems;
@@ -560,12 +651,24 @@ async function main() {
   }
   for (const file of htmlFiles) {
     const html = await readFile(file, 'utf8');
+    const rel = path.relative(DIST_DIR, file);
     const enCount = countOccurrences(html, 'class="l en"');
     const ruCount = countOccurrences(html, 'class="l ru"');
     if (enCount !== ruCount) {
       problems.push(
         `check-dist: ${path.relative(ROOT, file)} has ${enCount} occurrences of class="l en" but ${ruCount} of class="l ru"`,
       );
+    }
+
+    problems.push(...checkNavigationState(html, rel));
+
+    if (rel === path.join('work', 'index.html')) {
+      const summaryH2Count = countOccurrences(html, '<summary><h2');
+      if (summaryH2Count !== 0) {
+        problems.push(
+          `check-dist: ${rel} has ${summaryH2Count} "<summary><h2" opening(s), expected exactly 0 (work.astro's disclosures carry no heading)`,
+        );
+      }
     }
   }
 

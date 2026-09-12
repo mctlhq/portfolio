@@ -15,47 +15,46 @@ const date = snapshotDate(metrics.generated_at);
   title={ui.homeTitle.en}
   description="Platform engineering with AI on proven open source. Dmitrii Mashkov builds and runs an internal developer platform where agents ship and humans hold the gates."
 >
-  <main>
-    <h1 class="hero-name"><Lang en={ui.heroName.en} ru={ui.heroName.ru} /></h1>
-    <p class="thesis"><Lang en={ui.heroThesis.en} ru={ui.heroThesis.ru} /></p>
-    <p class="subline"><Lang en={ui.heroSubline.en} ru={ui.heroSubline.ru} /></p>
+  <h1 class="hero-name"><Lang en={ui.heroName.en} ru={ui.heroName.ru} /></h1>
+  <p class="thesis"><Lang en={ui.heroThesis.en} ru={ui.heroThesis.ru} /></p>
+  <p class="subline"><Lang en={ui.heroSubline.en} ru={ui.heroSubline.ru} /></p>
 
-    <section class="stats">
-      <Stat value={metrics.sources.github.repos} labelEn={ui.statRepositories.en} labelRu={ui.statRepositories.ru} />
-      <Stat value={metrics.sources.github.commits} labelEn={ui.statCommits.en} labelRu={ui.statCommits.ru} />
-      <Stat value={metrics.sources.github.releases} labelEn={ui.statReleases.en} labelRu={ui.statReleases.ru} />
-      <Stat value={metrics.sources.mctl.services} labelEn={ui.statServices.en} labelRu={ui.statServices.ru} />
-      <p class="stat-caption">
-        <Lang en={`${ui.statCaptionPrefix.en} ${date}`} ru={`${ui.statCaptionPrefix.ru} ${date}`} />
-      </p>
-    </section>
+  <section class="stats">
+    <Stat value={metrics.sources.github.repos} labelEn={ui.statRepositories.en} labelRu={ui.statRepositories.ru} />
+    <Stat value={metrics.sources.github.commits} labelEn={ui.statCommits.en} labelRu={ui.statCommits.ru} />
+    <Stat value={metrics.sources.github.releases} labelEn={ui.statReleases.en} labelRu={ui.statReleases.ru} />
+    <Stat value={metrics.sources.mctl.services} labelEn={ui.statServices.en} labelRu={ui.statServices.ru} />
+    <p class="stat-caption">
+      <Lang en={`${ui.statCaptionPrefix.en} ${date}`} ru={`${ui.statCaptionPrefix.ru} ${date}`} />
+    </p>
+  </section>
 
-    <nav class="ctas" aria-label={`${ui.ctaWork.en} / ${ui.ctaWork.ru}`}>
-      <a class="cta" href="/work/"><Lang en={ui.ctaWork.en} ru={ui.ctaWork.ru} /></a>
-      <a class="cta" href="/colophon/"><Lang en={ui.ctaColophon.en} ru={ui.ctaColophon.ru} /></a>
-    </nav>
+  <span id="ctas-label" class="visually-hidden"><Lang en={ui.ctasLabel.en} ru={ui.ctasLabel.ru} /></span>
+  <nav class="ctas" aria-labelledby="ctas-label">
+    <a class="cta" href="/work/"><Lang en={ui.ctaWork.en} ru={ui.ctaWork.ru} /></a>
+    <a class="cta" href="/colophon/"><Lang en={ui.ctaColophon.en} ru={ui.ctaColophon.ru} /></a>
+  </nav>
 
-    <Details summaryEn={ui.detailsRunSummary.en} summaryRu={ui.detailsRunSummary.ru}>
-      <ul class="l en">
-        {ui.detailsRunItems.en.map((item) => <li>{item}</li>)}
-      </ul>
-      <ul class="l ru" lang="ru">
-        {ui.detailsRunItems.ru.map((item) => <li>{item}</li>)}
-      </ul>
-    </Details>
+  <Details summaryEn={ui.detailsRunSummary.en} summaryRu={ui.detailsRunSummary.ru} heading>
+    <ul class="l en">
+      {ui.detailsRunItems.en.map((item) => <li>{item}</li>)}
+    </ul>
+    <ul class="l ru" lang="ru">
+      {ui.detailsRunItems.ru.map((item) => <li>{item}</li>)}
+    </ul>
+  </Details>
 
-    <Details summaryEn={ui.detailsWorkSummary.en} summaryRu={ui.detailsWorkSummary.ru}>
-      <ul class="l en">
-        {ui.detailsWorkItems.en.map((item) => <li>{item}</li>)}
-      </ul>
-      <ul class="l ru" lang="ru">
-        {ui.detailsWorkItems.ru.map((item) => <li>{item}</li>)}
-      </ul>
-    </Details>
+  <Details summaryEn={ui.detailsWorkSummary.en} summaryRu={ui.detailsWorkSummary.ru} heading>
+    <ul class="l en">
+      {ui.detailsWorkItems.en.map((item) => <li>{item}</li>)}
+    </ul>
+    <ul class="l ru" lang="ru">
+      {ui.detailsWorkItems.ru.map((item) => <li>{item}</li>)}
+    </ul>
+  </Details>
 
-    <Details summaryEn={ui.detailsContactSummary.en} summaryRu={ui.detailsContactSummary.ru}>
-      <p><a href="https://github.com/mctlhq">github.com/mctlhq</a></p>
-      <p><a href="mailto:hello@dmitriimashkov.com">hello@dmitriimashkov.com</a></p>
-    </Details>
-  </main>
+  <Details summaryEn={ui.detailsContactSummary.en} summaryRu={ui.detailsContactSummary.ru} heading open>
+    <p><a href="https://github.com/mctlhq">github.com/mctlhq</a></p>
+    <p><a href="mailto:hello@dmitriimashkov.com">hello@dmitriimashkov.com</a></p>
+  </Details>
 </Base>
