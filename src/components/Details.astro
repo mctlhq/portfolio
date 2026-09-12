@@ -5,12 +5,18 @@ interface Props {
   summaryEn: string;
   summaryRu: string;
   open?: boolean;
+  suffixEn?: string;
+  suffixRu?: string;
 }
 
-const { summaryEn, summaryRu, open = false } = Astro.props;
+const { summaryEn, summaryRu, open = false, suffixEn, suffixRu } = Astro.props;
 ---
 
 <details class="block" open={open}>
-  <summary><Lang en={summaryEn} ru={summaryRu} /></summary>
+  <summary>
+    <Lang en={summaryEn} ru={summaryRu} />{suffixEn && suffixRu && (
+      <span class="visually-hidden">, <Lang en={suffixEn} ru={suffixRu} /></span>
+    )}
+  </summary>
   <slot />
 </details>

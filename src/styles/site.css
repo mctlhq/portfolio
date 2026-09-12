@@ -204,6 +204,22 @@ pre,
   margin-block-end: var(--mctl-space-2);
 }
 
+/* Text for assistive technology only: present in the accessibility tree
+ * (so a <summary> can carry a distinct accessible name) but not painted.
+ * display:none or visibility:hidden would remove it from the tree, which
+ * is the whole point of the class. */
+.visually-hidden {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* Work page. */
 .project {
   padding-block: var(--mctl-space-5);
