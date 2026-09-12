@@ -85,18 +85,33 @@ hash-shaped token to be exactly `'<algo>-<base64>'`, and the runtime check also
 compares the token against the SHA-256 of the inline script actually served, so
 a quoted but stale hash fails as well.
 
-## Open Graph image: SVG, not raster
+## Open Graph image: build-time PNG, rendered from the SVG source
 
 `public/og.svg` is a 1200×630 text-only SVG (`Dmitrii Mashkov` /
 `Platform engineering with AI on proven open source` / `dmitriimashkov.com`),
 with no `<image>`, no `data:` URI, no `xlink:href` and no raster file
-extension anywhere in it — ADR-0005 and the issue both rule out shipping a
-PNG/JPEG/WebP or an image-processing build dependency. The cost: most social
-platforms (Facebook, LinkedIn, Slack, Telegram, X) do not rasterize an SVG
-`og:image` for a link preview and will render the card with no image at all,
-title and description only. This is a known, accepted trade-off (see
-proposal `design.md`, Open question 2) rather than an oversight; revisiting
-it requires a new issue that relaxes the no-raster rule.
+extension anywhere in it. Since issue #50 (Q6), `src/layouts/Base.astro`
+points `og:image` and `twitter:image` at `/og.png`, not `/og.svg` directly:
+`scripts/render-og.mjs` rasterises `public/og.svg` to `dist/og.png` at build
+time via `@resvg/resvg-wasm`, so the source of truth stays the hand-authored
+SVG while the served meta tags name a format every social platform actually
+rasterises for a link preview. `scripts/check-dist.mjs`'s
+`checkOgImageMeta()` asserts `og:image` and `twitter:image` carry the same
+value and that it resolves to a file under `dist/`; `checkOgPngDimensions()`
+additionally requires `dist/og.png`, when present, to be exactly 1200×630.
+
+The no-raster rule this section used to attribute to ADR-0005 does not come
+from there: ADR-0005 (`self-contained-runtime-assets`) speaks only to
+third-party origins — vendoring design tokens and fonts so the page makes no
+external request — and says nothing about the format of a same-origin,
+build-time-generated image. The rule that `/og.svg` (and now, equivalently,
+the PNG rendered from it) must never be fetched from a third party or ship an
+image-processing dependency that reaches the network is issue #50 (Q6)'s own
+constraint, not a restatement of ADR-0005.
+
+If a future `@resvg/resvg-wasm` install ever fails, `scripts/vendor-assets.mjs`
+documents a stop path: revert `og:image`/`twitter:image` in `Base.astro` back
+to `/og.svg` directly, and record the reversion in that cycle's journal entry.
 
 ## Lighthouse mobile (reviewer step, post-deployment)
 

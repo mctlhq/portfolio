@@ -9,7 +9,7 @@
     "build": "astro build && node scripts/render-og.mjs",
     "preview": "astro preview",
     "check": "astro sync && astro check",
-    "test": "node scripts/check-no-metrics.mjs && node scripts/check-contrast.mjs && node --test test/journal.test.ts test/adr.test.ts test/metrics.test.ts test/home.test.ts test/ui.test.ts test/projects.test.ts test/work.test.ts test/approach.test.ts test/content.test.ts test/colophon.test.ts test/metrics-build.test.ts test/nginx.test.ts test/a11y.test.ts test/seo.test.ts test/csp.test.ts test/link-cascade.test.ts test/check-contrast.test.ts test/footer.test.ts test/chain.test.ts test/links.test.ts test/nav.test.ts test/fonts.test.ts test/cycle-diagram.test.ts test/cache.test.ts test/vendor-assets.test.ts",
+    "test": "node scripts/check-no-metrics.mjs && node scripts/check-contrast.mjs && node --test test/journal.test.ts test/adr.test.ts test/metrics.test.ts test/home.test.ts test/ui.test.ts test/projects.test.ts test/work.test.ts test/approach.test.ts test/content.test.ts test/colophon.test.ts test/metrics-build.test.ts test/nginx.test.ts test/a11y.test.ts test/seo.test.ts test/csp.test.ts test/link-cascade.test.ts test/check-contrast.test.ts test/footer.test.ts test/chain.test.ts test/links.test.ts test/nav.test.ts test/fonts.test.ts test/cycle-diagram.test.ts test/cache.test.ts test/vendor-assets.test.ts test/check-dist.test.ts test/entry-point.test.ts test/check-headers.test.ts",
     "vendor": "node scripts/vendor-assets.mjs",
     "metrics": "node scripts/snapshot-metrics.mjs"
   },

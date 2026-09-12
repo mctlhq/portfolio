@@ -47,21 +47,48 @@ function decodeEntities(value) {
 
 const A_TAG_RE = /<a\b[^>]*>/gi;
 const CANONICAL_TAG_RE = /<link\b[^>]*\brel="canonical"[^>]*>/gi;
-const HREF_ATTR_RE = /\shref="([^"]*)"/i;
+// B2: double-, single- and unquoted href forms, in that alternation order
+// (double first, so a value that happens to contain an unescaped single
+// quote inside a double-quoted attribute is still matched by the first
+// alternative). The unquoted alternative stops at whitespace, `"`, `'`,
+// `>` or `=` -- the characters HTML forbids inside an unquoted attribute
+// value -- so it cannot run on into the rest of the tag.
+const HREF_ATTR_RE = /\shref=(?:"([^"]*)"|'([^']*)'|([^\s"'>=`]+))/i;
+// Detects an `href=` substring that HREF_ATTR_RE did not match at all --
+// the "not even shape-parseable" case B2a requires to be counted rather
+// than silently dropped.
+const HREF_PRESENT_RE = /\shref=/i;
 
 /** Extracts every `href` from an `<a ...>` element and every
- * `<link rel="canonical" ...>` element in `html`, HTML-entity-decoded. */
+ * `<link rel="canonical" ...>` element in `html`, HTML-entity-decoded.
+ * Returns `{ hrefs, unparsed }`: `unparsed` collects the opening tag text of
+ * every `<a ...>` element that carries an `href=` substring none of the
+ * three quoting alternatives matched (B2/B2a) -- malformed enough that no
+ * href can be extracted, but never silently dropped: it is counted here
+ * instead of vanishing from both `checked` and `skipped`. `<link
+ * rel="canonical">` is not tracked in `unparsed` -- a malformed canonical
+ * would be an authoring bug in Base.astro's own template, not user content,
+ * and every canonical this site emits is already double-quoted. */
 export function collectHrefs(html) {
   const hrefs = [];
+  const unparsed = [];
   for (const m of html.matchAll(A_TAG_RE)) {
     const hrefMatch = m[0].match(HREF_ATTR_RE);
-    if (hrefMatch) hrefs.push(decodeEntities(hrefMatch[1]));
+    if (hrefMatch) {
+      const raw = hrefMatch[1] ?? hrefMatch[2] ?? hrefMatch[3] ?? '';
+      hrefs.push(decodeEntities(raw));
+    } else if (HREF_PRESENT_RE.test(m[0])) {
+      unparsed.push(m[0]);
+    }
   }
   for (const m of html.matchAll(CANONICAL_TAG_RE)) {
     const hrefMatch = m[0].match(HREF_ATTR_RE);
-    if (hrefMatch) hrefs.push(decodeEntities(hrefMatch[1]));
+    if (hrefMatch) {
+      const raw = hrefMatch[1] ?? hrefMatch[2] ?? hrefMatch[3] ?? '';
+      hrefs.push(decodeEntities(raw));
+    }
   }
-  return hrefs;
+  return { hrefs, unparsed };
 }
 
 /**
@@ -166,7 +193,11 @@ function pagePathnameFor(file, distDir) {
  * Walks every `dist/**\/*.html` under `distDir`, extracts hrefs, classifies
  * and resolves each one, and returns `{ problems, checked, pages, skipped }`
  * -- `skipped` maps the raw href to how many times it was seen. Nothing
- * skipped is ever counted in `checked`.
+ * skipped is ever counted in `checked`. B2a: an `<a>` element whose `href`
+ * could not be parsed at all is neither `checked` nor `skipped` -- it is
+ * reported in `problems` by count and offending tag text instead, so no
+ * `<a>` is ever silently dropped from every count at once, which is the
+ * guarantee docs/link-check.md sells the script on.
  */
 export async function run({ distDir, origin }) {
   const files = await walkHtmlFiles(distDir);
@@ -177,7 +208,13 @@ export async function run({ distDir, origin }) {
   for (const file of files) {
     const html = await readFile(file, 'utf8');
     const pagePathname = pagePathnameFor(file, distDir);
-    const hrefs = collectHrefs(html);
+    const { hrefs, unparsed } = collectHrefs(html);
+
+    if (unparsed.length > 0) {
+      problems.push(
+        `check-links: ${pagePathname} has ${unparsed.length} <a> element(s) with an unparseable href: ${unparsed.join(', ')}`,
+      );
+    }
 
     for (const href of hrefs) {
       const classification = classifyHref(href, origin);

@@ -38,6 +38,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { contentHash8, hashMismatch } from '../src/lib/content-hash.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -54,7 +55,7 @@ const ASSETS_JSON_PATH = path.join(ROOT, 'src/data/assets.json');
 async function emit(dir, baseName, ext, bytes, managed) {
   await mkdir(dir, { recursive: true });
   const buf = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes, 'utf8');
-  const hash = sha256HexBuffer(buf).slice(0, 8);
+  const hash = contentHash8(buf);
   const filename = `${baseName}.${hash}${ext}`;
   await writeFile(path.join(dir, filename), buf);
   if (managed) {
@@ -554,14 +555,28 @@ async function nonEmptyFile(p) {
   }
 }
 
+/** Non-emptiness plus content-addressing (A3a): true only when `p` exists,
+ * is non-empty, and its bytes hash to the 8-hex segment embedded in its own
+ * filename -- via the same `hashMismatch()` predicate
+ * scripts/check-dist.mjs and scripts/check-headers.mjs share. A name/bytes
+ * divergence here would otherwise ship an `immutable`-cached URL over
+ * content that does not match it. */
+async function nonEmptyHashedFile(p) {
+  if (!(await nonEmptyFile(p))) return false;
+  const bytes = await readFile(p);
+  return hashMismatch(path.basename(p), bytes) === null;
+}
+
 function publicPathForHref(href) {
   return path.join(PUBLIC_DIR, href.replace(/^\/+/, ''));
 }
 
 /** Used only when the network step fails: is the tree already on disk (from
  * a previous, committed vendor run) complete and valid? Validates against
- * `src/data/assets.json` -- every href it names resolves to a non-empty
- * file, plus the licence and MCTL_VERSION first-line checks -- rather than
+ * `src/data/assets.json` -- every href it names resolves to a non-empty file
+ * whose bytes hash to the 8-hex segment embedded in its own name (A3a: a
+ * committed tree is not "valid" merely because a file of that name exists),
+ * plus the licence and MCTL_VERSION first-line checks -- rather than
  * reconstructing filenames from FAMILIES, since the manifest (not the
  * family table) is what Base.astro and nginx actually consume. Per-font-file
  * coverage (every woff2 fonts.css references, not just the four preloaded
@@ -583,10 +598,10 @@ async function verifyExistingTree() {
   if (!manifest.preload || typeof manifest.preload !== 'object') return false;
 
   for (const href of manifest.styles) {
-    if (typeof href !== 'string' || !(await nonEmptyFile(publicPathForHref(href)))) return false;
+    if (typeof href !== 'string' || !(await nonEmptyHashedFile(publicPathForHref(href)))) return false;
   }
   for (const href of Object.values(manifest.preload)) {
-    if (typeof href !== 'string' || !(await nonEmptyFile(publicPathForHref(href)))) return false;
+    if (typeof href !== 'string' || !(await nonEmptyHashedFile(publicPathForHref(href)))) return false;
   }
 
   // styles[0] is mctl.css by construction (see vendorMctl()); its first
@@ -617,7 +632,7 @@ async function verifyExistingTree() {
   let fontUrlCount = 0;
   while ((fontUrlMatch = fontUrlRe.exec(fontsCss))) {
     fontUrlCount++;
-    if (!(await nonEmptyFile(publicPathForHref(fontUrlMatch[1])))) return false;
+    if (!(await nonEmptyHashedFile(publicPathForHref(fontUrlMatch[1])))) return false;
   }
   const expectedFontFileCount = FAMILIES.reduce(
     (sum, fam) => sum + fam.weights.length * fam.styles.length * fam.subsets.length,
@@ -679,7 +694,8 @@ async function main() {
       throw new ValidationError(
         '@fontsource/onest carries no .woff entry for latin 400/700 -- resvg needs an sfnt buffer ' +
           'it cannot get from woff2 alone. Item 1 (share image) must take its documented stop path: ' +
-          'revert og:image/twitter:image to /og.svg and commit docs/og-image.md.',
+          'revert og:image/twitter:image in src/layouts/Base.astro to /og.svg and record the reversion ' +
+          'in this cycle\'s journal entry.',
       );
     }
 

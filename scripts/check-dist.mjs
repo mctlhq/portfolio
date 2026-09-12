@@ -37,6 +37,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { hashMismatch } from '../src/lib/content-hash.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const DIST_DIR = path.join(ROOT, 'dist');
@@ -475,15 +476,19 @@ async function checkOgPngDimensions() {
 /**
  * Checks that every `<link|script|img|source ... href|src="/assets/..."`
  * or `.../styles/...` reference on a built page carries an 8-hex-character
- * content hash before its extension (issue #50, Q6): the inverse guard to
- * `scripts/vendor-assets.mjs`'s `emit()`, so nothing unversioned can ever be
- * dropped into an `immutable`-cached location later.
+ * content hash before its extension (issue #50, Q6), and (A3b) that the hash
+ * is not merely shape-valid: the referenced file must actually exist under
+ * `dist/` and its bytes must hash to the segment named in the URL -- the
+ * inverse guard to `scripts/vendor-assets.mjs`'s `emit()`, so nothing
+ * unversioned, missing, or stale can ever be dropped into an
+ * `immutable`-cached location later. Async because it now reads the
+ * referenced file.
  */
 const HASHED_SUFFIX_RE = /\.[0-9a-f]{8}\.[a-zA-Z0-9]+$/;
 const MANAGED_PATH_RE = /^\/(?:assets|styles)\//;
 const SUBRESOURCE_TAG_RE = /<(link|script|img|source)\b[^>]*\s(?:href|src)="([^"]*)"[^>]*>/gi;
 
-function checkHashedSubresources(html, rel) {
+async function checkHashedSubresources(html, rel) {
   const problems = [];
   for (const match of html.matchAll(SUBRESOURCE_TAG_RE)) {
     const [, , url] = match;
@@ -492,6 +497,21 @@ function checkHashedSubresources(html, rel) {
       problems.push(
         `check-dist: ${rel} references "${url}" under /assets/ or /styles/ with no 8-hex content hash before its extension`,
       );
+      continue;
+    }
+    const filePath = path.join(DIST_DIR, url.replace(/^\/+/, ''));
+    let bytes;
+    try {
+      bytes = await readFile(filePath);
+    } catch {
+      problems.push(
+        `check-dist: ${rel} references "${url}", which does not exist under ${path.relative(ROOT, DIST_DIR)}/`,
+      );
+      continue;
+    }
+    const mismatch = hashMismatch(url, bytes);
+    if (mismatch) {
+      problems.push(`check-dist: ${rel} references "${url}" -- ${mismatch}`);
     }
   }
   return problems;
@@ -737,7 +757,18 @@ function extractLocs(xml) {
  */
 async function checkSitemap() {
   const problems = [];
-  const origin = await siteOrigin();
+  // B3a: siteOrigin() throws when astro.config.mjs has no `site` -- caught
+  // here and returned as a problem instead of left to abort main() before
+  // the report prints, the same treatment scripts/check-headers.mjs applies
+  // to discoverHashedAssetPath()/discoverAstroAsset() for the identical
+  // shape of defect.
+  let origin;
+  try {
+    origin = await siteOrigin();
+  } catch (err) {
+    problems.push(err.message);
+    return problems;
+  }
 
   const indexPath = path.join(DIST_DIR, 'sitemap-index.xml');
   if (!(await fileExists(indexPath))) {
@@ -836,7 +867,7 @@ async function main() {
 
     problems.push(...checkNavigationState(html, rel));
     problems.push(...(await checkOgImageMeta(html, rel)));
-    problems.push(...checkHashedSubresources(html, rel));
+    problems.push(...(await checkHashedSubresources(html, rel)));
 
     if (rel === path.join('work', 'index.html')) {
       const summaryH2Count = countOccurrences(html, '<summary><h2');

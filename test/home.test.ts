@@ -130,7 +130,17 @@ function isolateRuleBlock(css, selector) {
 
 const siteCss = readFileSync(path.join(ROOT, 'src/styles/site.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 const mctlCss = readFileSync(await resolveMctlCssPath(), 'utf8');
-const customProperties = parseCustomProperties(mctlCss);
+// D1: site.css is the declaration the page actually applies -- it redefines
+// --font-display (`'Onest', 'Onest Fallback', system-ui, ...`) on top of
+// mctl.css's own `--font-display: var(--mctl-typography-font-family-display)`.
+// Resolving against mctl.css alone (as before this cycle) would silently miss
+// that override and resolve `.hero-name`'s var(--font-display) to whatever
+// mctl.css says, not to what the page renders. Building the map from
+// mctl.css first, then site.css, makes site.css's declarations win on
+// conflict: a plain object/Map spread keeps the *last* occurrence of a
+// duplicate key, so site.css has to come second here (the opposite order
+// from parseCustomProperties' own "first wins" rule within a single file).
+const customProperties = new Map([...parseCustomProperties(mctlCss), ...parseCustomProperties(siteCss)]);
 
 const heroNameRule = isolateRuleBlock(siteCss, '.hero-name');
 assert.ok(heroNameRule !== null, 'expected a .hero-name rule in src/styles/site.css');
@@ -148,4 +158,15 @@ test('.hero-name references neither Instrument Serif nor --font-editorial', () =
   assert.doesNotMatch(resolvedStack, /Instrument Serif/);
   assert.doesNotMatch(heroNameRule, /Instrument Serif/);
   assert.doesNotMatch(heroNameRule, /--font-editorial/);
+});
+
+// D1a: proves the resolved value actually came from site.css's own
+// `--font-display` override, not from mctl.css's declaration of the same
+// custom property -- 'Onest Fallback' is declared only in site.css
+// (:root { --font-display: 'Onest', 'Onest Fallback', system-ui, ... }), so
+// a future deletion of that declaration would make this assertion fail
+// rather than silently resolve through to whatever mctl.css says instead.
+test('the resolved --font-display stack came from site.css, not mctl.css: it contains Onest Fallback', () => {
+  assert.match(resolvedStack, /Onest Fallback/);
+  assert.equal(customProperties.get('--font-display'), parseCustomProperties(siteCss).get('--font-display'));
 });

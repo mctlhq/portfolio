@@ -30,32 +30,33 @@ const CHIP_LITERALS = [
   'MCP',
 ];
 
-/**
- * Removes `<!-- ... -->`, `/* ... *\/` and `// ...` comments so a chip named
- * only inside a comment cannot fail the anchored literal check below. The
- * line-comment pass excludes a `//` immediately preceded by `:` so a
- * protocol like `https://` inside a string literal is not mistaken for the
- * start of a comment and does not swallow the rest of the line.
- */
-function stripComments(source: string): string {
-  return source
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(?<!:)\/\/.*$/gm, '');
+/** Escapes `literal` for literal (non-regex) matching inside a RegExp. */
+function escapeRegExp(literal: string): string {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
- * True when `literal` appears in `source` anchored as a quoted string
- * literal (`'`, `"`, backtick) or as element text anywhere between a `>`
- * and the next `<` -- i.e. hard-coded, not merely mentioned in prose or a
- * comment.
+ * D2: the unanchored replacement for the former `hasAnchoredLiteral()` /
+ * `stripComments()` pair -- a plain escaped-literal regex over the raw file
+ * text, in effect `assert.doesNotMatch(source, new RegExp(escaped))` per
+ * literal. No comment stripping, no "quoted string or element text" shape
+ * requirement: this reports `literal` wherever it appears in `source` at
+ * all, including inside a comment (D2a: `hasAnchoredLiteral()`'s
+ * comment-only control cases inverted -- a literal occurring only inside a
+ * comment is now reported -- named here and in the commit message per
+ * acceptance criterion 3) and including the two shapes the anchored form
+ * was blind to (D2b: after a regex terminator's `//`, and inside a
+ * frontmatter list outside both former quoted-string/element-text
+ * alternatives).
  */
-function hasAnchoredLiteral(source: string, literal: string): boolean {
-  const escaped = literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp(
-    `['"\`]\\s*${escaped}\\s*['"\`]|>[^<]*\\b${escaped}\\b[^<]*<`,
-  );
-  return pattern.test(stripComments(source));
+function chipLiteralProblems(source: string, label: string): string[] {
+  const problems: string[] = [];
+  for (const literal of CHIP_LITERALS) {
+    if (new RegExp(escapeRegExp(literal)).test(source)) {
+      problems.push(`${label} must not hard-code the chip literal "${literal}"`);
+    }
+  }
+  return problems;
 }
 
 test('ProjectCard derives chips from en.data.stack, not from a literal', () => {
@@ -63,74 +64,81 @@ test('ProjectCard derives chips from en.data.stack, not from a literal', () => {
 });
 
 test('neither work.astro nor ProjectCard.astro hard-codes a chip literal', () => {
-  for (const literal of CHIP_LITERALS) {
-    assert.ok(
-      !hasAnchoredLiteral(work, literal),
-      `work.astro must not hard-code the chip literal "${literal}"`,
-    );
-    assert.ok(
-      !hasAnchoredLiteral(card, literal),
-      `ProjectCard.astro must not hard-code the chip literal "${literal}"`,
-    );
-  }
+  assert.deepEqual(chipLiteralProblems(work, 'work.astro'), []);
+  assert.deepEqual(chipLiteralProblems(card, 'ProjectCard.astro'), []);
 });
 
-// T7: control assertions proving the anchor above means what it claims --
-// a comment-only occurrence passes, a hard-coded occurrence fails.
-test('hasAnchoredLiteral control: a literal mentioned only in a comment does not count as hard-coded', () => {
-  const lineComment = "// TypeScript is used here\nconst x = 1;";
-  const blockComment = "/* TypeScript is used here */\nconst x = 1;";
-  const htmlComment = "<!-- TypeScript is used here -->\n<div>x</div>";
-  assert.ok(!hasAnchoredLiteral(lineComment, 'TypeScript'), 'a literal inside a line comment must not be reported');
-  assert.ok(!hasAnchoredLiteral(blockComment, 'TypeScript'), 'a literal inside a block comment must not be reported');
-  assert.ok(!hasAnchoredLiteral(htmlComment, 'TypeScript'), 'a literal inside an HTML comment must not be reported');
+// T7: control/mutation assertions retargeted at chipLiteralProblems() (D2).
+// Two of these genuinely invert from the anchored form's behaviour --
+// comment-only occurrences are now reported, broader than before -- named
+// here per acceptance criterion 3, not silently changed.
+
+test('D2a (inverted): a literal mentioned only in a comment is now reported (the anchored form used to pass this)', () => {
+  const lineComment = '// TypeScript is used here\nconst x = 1;';
+  const blockComment = '/* TypeScript is used here */\nconst x = 1;';
+  const htmlComment = '<!-- TypeScript is used here -->\n<div>x</div>';
+  assert.ok(chipLiteralProblems(lineComment, 'synthetic').length > 0, 'a literal inside a line comment must now be reported');
+  assert.ok(chipLiteralProblems(blockComment, 'synthetic').length > 0, 'a literal inside a block comment must now be reported');
+  assert.ok(chipLiteralProblems(htmlComment, 'synthetic').length > 0, 'a literal inside an HTML comment must now be reported');
 });
 
-test('hasAnchoredLiteral control: a hard-coded literal is caught', () => {
+test('control: a hard-coded literal is caught', () => {
   const source = 'const stack = ["TypeScript"];';
-  assert.ok(hasAnchoredLiteral(source, 'TypeScript'), 'a quoted string literal must be reported');
+  assert.ok(chipLiteralProblems(source, 'synthetic').length > 0, 'a quoted string literal must be reported');
 });
 
-test('stripComments control: a `//` inside a string (e.g. a URL) is not treated as a line comment', () => {
+test('control: a `//` inside a string (e.g. a URL) does not prevent a later literal from being caught', () => {
   const source = 'const repo = "https://example.com"; const stack = ["TypeScript"];';
   assert.ok(
-    hasAnchoredLiteral(source, 'TypeScript'),
+    chipLiteralProblems(source, 'synthetic').length > 0,
     'a literal after an unrelated // inside a string must still be reported',
   );
 });
 
-test('hasAnchoredLiteral mutation: a literal as element text among other words is caught', () => {
+test('mutation: a literal as element text among other words is caught', () => {
   const source = '<span class="chip">Built with TypeScript today</span>';
   assert.ok(
-    hasAnchoredLiteral(source, 'TypeScript'),
+    chipLiteralProblems(source, 'synthetic').length > 0,
     'a literal surrounded by other words as element text must be reported',
   );
 });
 
-test('hasAnchoredLiteral mutation: a literal inside an interpolated template expression is caught', () => {
+test('mutation: a literal inside an interpolated template expression is caught', () => {
   const source = "const x = `stack: ${'PostgreSQL'}`;";
   assert.ok(
-    hasAnchoredLiteral(source, 'PostgreSQL'),
+    chipLiteralProblems(source, 'synthetic').length > 0,
     'a literal inside a quoted template interpolation must be reported',
   );
 });
 
-test('hasAnchoredLiteral mutation: a literal only inside a line comment is not reported', () => {
+test('D2a (inverted): a literal only inside a line comment is now reported (the anchored form used to pass this)', () => {
   const source = '// TypeScript is used here\nconst x = 1;';
   assert.ok(
-    !hasAnchoredLiteral(source, 'TypeScript'),
-    'a comment-only occurrence must not be reported',
+    chipLiteralProblems(source, 'synthetic').length > 0,
+    'a comment-only occurrence must now be reported',
   );
 });
 
-test('hasAnchoredLiteral mutation: a source containing none of the seven chip literals reports nothing', () => {
+test('mutation: a source containing none of the seven chip literals reports nothing', () => {
   const source = '<p>This project uses Python and Rust.</p>';
-  for (const literal of CHIP_LITERALS) {
-    assert.ok(
-      !hasAnchoredLiteral(source, literal),
-      `"${literal}" must not be reported in a source that does not contain it`,
-    );
-  }
+  assert.deepEqual(chipLiteralProblems(source, 'synthetic'), []);
+});
+
+// D2b: the two positions hasAnchoredLiteral() was blind to, now caught.
+
+test('D2b: a chip literal following a regex terminator\'s // is caught (stripComments() used to truncate the line there)', () => {
+  const source = "const pattern = /foo\\//; // TypeScript appears after this terminator\nconst x = 1;";
+  assert.ok(
+    chipLiteralProblems(source, 'synthetic').length > 0,
+    'a literal following a regex terminator\'s // must be reported',
+  );
+});
+
+test('D2b: a chip literal in a frontmatter list shape (outside both former quoted-string/element-text alternatives) is caught', () => {
+  const source = '---\nstack:\n  - TypeScript\n  - Go\n---\n<p>front matter list</p>';
+  const problems = chipLiteralProblems(source, 'synthetic');
+  assert.ok(problems.some((p) => p.includes('TypeScript')));
+  assert.ok(problems.some((p) => p.includes('"Go"')));
 });
 
 test('neither file references --font-editorial', () => {

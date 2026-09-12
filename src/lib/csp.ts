@@ -106,6 +106,10 @@ export function scriptSrcHashProblems(csp: string, label: string): string[] {
 export function staleHashProblems(csp: string, html: string, label: string): string[] {
   const problems: string[] = [];
   const bodies = extractInlineScripts(html);
+  if (bodies.length === 0) {
+    problems.push(`${label}: CSP hash was not compared -- no inline <script> body found in the response`);
+    return problems;
+  }
   const tokens = scriptSrcTokens(csp) ?? [];
   for (const body of bodies) {
     const expected = hashToken(sha256Base64(body));
