@@ -19,14 +19,74 @@
 // validation failure on a successful download (wrong mctl.css version,
 // missing weight/subset, missing or empty licence) always exits non-zero,
 // network state notwithstanding.
+//
+// Content hashing (issue #50, Q6): every file this script writes under
+// public/assets/ or public/styles/ is named `<baseName>.<hash8><ext>`,
+// where `hash8` is the first 8 hex characters of the file's own SHA-256.
+// This lets nginx put `Cache-Control: public, max-age=31536000, immutable`
+// on `/assets/` and `/styles/` without ever stranding a reader across a
+// content change: a changed file gets a new URL. `emit()` is the one place
+// that computes the hash and writes the file; every asset below goes
+// through it. The resulting hrefs are recorded in `src/data/assets.json`
+// (read by `Base.astro` at build time), and `pruneManaged()` deletes any
+// previously hashed file no longer named by the manifest, so a re-run never
+// leaves an orphan behind. `scripts/render-og.mjs`'s build-only TTF output
+// under `scripts/fonts/` is untouched by any of this -- it is never served.
 
-import { mkdir, writeFile, readFile, copyFile, stat } from 'node:fs/promises';
+import { mkdir, writeFile, readFile, readdir, unlink, stat } from 'node:fs/promises';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
+const PUBLIC_DIR = path.join(ROOT, 'public');
+const ASSETS_JSON_PATH = path.join(ROOT, 'src/data/assets.json');
+
+/**
+ * Computes the first 8 hex characters of `bytes`'s SHA-256, writes
+ * `<baseName>.<hash><ext>` into `dir` (creating it if needed), records the
+ * written filename against `dir` in `managed` (so callers can prune
+ * anything else in that directory afterwards), and returns the public href
+ * -- `dir`'s path relative to `public/`, with the hashed filename appended,
+ * forward-slashed regardless of platform.
+ */
+async function emit(dir, baseName, ext, bytes, managed) {
+  await mkdir(dir, { recursive: true });
+  const buf = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes, 'utf8');
+  const hash = sha256HexBuffer(buf).slice(0, 8);
+  const filename = `${baseName}.${hash}${ext}`;
+  await writeFile(path.join(dir, filename), buf);
+  if (managed) {
+    const set = managed.get(dir) ?? new Set();
+    set.add(filename);
+    managed.set(dir, set);
+  }
+  const relDir = path.relative(PUBLIC_DIR, dir).split(path.sep).join('/');
+  return `/${relDir}/${filename}`;
+}
+
+/**
+ * Deletes every file directly inside `dir` (non-recursive -- callers pass
+ * one directory at a time, and public/assets/fonts/LICENSES/ is never
+ * passed here) whose name is not in `keepNames`, so a content change or a
+ * dropped weight/subset leaves no orphaned hashed file in the committed
+ * tree.
+ */
+async function pruneDir(dir, keepNames) {
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    if (keepNames.has(entry.name)) continue;
+    await unlink(path.join(dir, entry.name));
+    console.log(`vendor: pruned orphaned ${path.relative(ROOT, path.join(dir, entry.name))}`);
+  }
+}
 
 const MCTL_VERSION = '0.5.0';
 const MCTL_BASE = `https://ui.mctl.ai/${MCTL_VERSION}/`;
@@ -58,11 +118,9 @@ function sha256HexBuffer(buf) {
 
 const FONTS_DIR = path.join(ROOT, 'public/assets/fonts');
 const LICENSES_DIR = path.join(FONTS_DIR, 'LICENSES');
-const FONTS_CSS_PATH = path.join(FONTS_DIR, 'fonts.css');
 
 const SITE_CSS_SRC = path.join(ROOT, 'src/styles/site.css');
 const SITE_CSS_DEST_DIR = path.join(ROOT, 'public/styles');
-const SITE_CSS_DEST = path.join(SITE_CSS_DEST_DIR, 'site.css');
 
 const SUBSETS = ['latin', 'latin-ext', 'cyrillic', 'cyrillic-ext'];
 
@@ -86,7 +144,7 @@ const FAMILIES = [
     version: '5.3.1',
     slug: 'onest',
     family: 'Onest',
-    weights: [300, 400, 500, 600, 700],
+    weights: [400, 500, 600, 700],
     styles: ['normal'],
     subsets: SUBSETS,
     hasCyrillic: true,
@@ -108,7 +166,7 @@ const FAMILIES = [
     version: '5.3.0',
     slug: 'jetbrains-mono',
     family: 'JetBrains Mono',
-    weights: [400, 500, 600, 700],
+    weights: [400, 500],
     styles: ['normal'],
     subsets: SUBSETS,
     hasCyrillic: true,
@@ -230,8 +288,10 @@ function parseUnicodeRanges(indexCss) {
   return map;
 }
 
-async function vendorMctl() {
-  await mkdir(MCTL_DIR, { recursive: true });
+/** Vendors public/assets/mctl/*.css, each through `emit()` so it carries a
+ * content hash. Returns `{ mctl, global, prose }` public hrefs, in that
+ * order -- the order `src/data/assets.json`'s `styles` array requires. */
+async function vendorMctl(managed) {
   const contents = {};
   const mctlCss = await fetchText(MCTL_BASE + 'mctl.css');
   const firstLine = mctlCss.split('\n')[0] ?? '';
@@ -255,18 +315,136 @@ async function vendorMctl() {
       );
     }
   }
+  const hrefs = {};
   for (const file of MCTL_FILES) {
-    await writeFile(path.join(MCTL_DIR, file), contents[file], 'utf8');
+    const baseName = file.replace(/\.css$/, '');
+    hrefs[baseName] = await emit(MCTL_DIR, baseName, '.css', contents[file], managed);
   }
   console.log(`vendor: wrote ${MCTL_FILES.length} files to public/assets/mctl/`);
+  return { mctl: hrefs.mctl, global: hrefs.global, prose: hrefs.prose };
 }
 
-async function vendorFonts() {
-  await mkdir(FONTS_DIR, { recursive: true });
+/**
+ * Reverses a WOFF1 container back into a bare sfnt (TTF/OTF): reads the
+ * 44-byte header and the per-table directory, `zlib.inflateSync`s any table
+ * whose compressed length differs from its original length (WOFF1 tables
+ * are individually zlib-deflated, never Brotli -- that is WOFF2), and
+ * rewrites the sfnt table directory with recomputed offsets, padding each
+ * table to a 4-byte boundary as the sfnt format requires. Per-table
+ * checksums are carried over from the WOFF directory unchanged; resvg's
+ * font parser (ttf-parser) does not validate them, and the wasted effort of
+ * recomputing `head`'s checksumAdjustment against new table offsets buys
+ * nothing a build-only, never-served font buffer needs.
+ */
+function woffToTtf(woffBuf) {
+  const signature = woffBuf.toString('ascii', 0, 4);
+  if (signature !== 'wOFF') {
+    throw new ValidationError(`expected a WOFF1 container, got signature "${signature}"`);
+  }
+  const flavor = woffBuf.readUInt32BE(4);
+  const numTables = woffBuf.readUInt16BE(12);
+
+  const entries = [];
+  const dirOffset = 44;
+  for (let i = 0; i < numTables; i++) {
+    const base = dirOffset + i * 20;
+    const tag = woffBuf.toString('ascii', base, base + 4);
+    const offset = woffBuf.readUInt32BE(base + 4);
+    const compLength = woffBuf.readUInt32BE(base + 8);
+    const origLength = woffBuf.readUInt32BE(base + 12);
+    const origChecksum = woffBuf.readUInt32BE(base + 16);
+    let tableData = woffBuf.subarray(offset, offset + compLength);
+    if (compLength !== origLength) {
+      tableData = zlib.inflateSync(tableData);
+    }
+    if (tableData.length !== origLength) {
+      throw new ValidationError(
+        `WOFF table "${tag}" decompressed to ${tableData.length} bytes, expected ${origLength}`,
+      );
+    }
+    entries.push({ tag, data: tableData, checksum: origChecksum });
+  }
+  entries.sort((a, b) => (a.tag < b.tag ? -1 : a.tag > b.tag ? 1 : 0));
+
+  let entrySelector = 0;
+  while (2 ** (entrySelector + 1) <= numTables) entrySelector++;
+  const searchRange = 2 ** entrySelector * 16;
+  const rangeShift = numTables * 16 - searchRange;
+
+  const headerSize = 12 + numTables * 16;
+  const paddedLengths = entries.map((e) => Math.ceil(e.data.length / 4) * 4);
+  const bodySize = paddedLengths.reduce((sum, n) => sum + n, 0);
+
+  const out = Buffer.alloc(headerSize + bodySize);
+  out.writeUInt32BE(flavor, 0);
+  out.writeUInt16BE(numTables, 4);
+  out.writeUInt16BE(searchRange, 6);
+  out.writeUInt16BE(entrySelector, 8);
+  out.writeUInt16BE(rangeShift, 10);
+
+  let dataOffset = headerSize;
+  entries.forEach((e, i) => {
+    const dirBase = 12 + i * 16;
+    out.write(e.tag, dirBase, 'ascii');
+    out.writeUInt32BE(e.checksum >>> 0, dirBase + 4);
+    out.writeUInt32BE(dataOffset, dirBase + 8);
+    out.writeUInt32BE(e.data.length, dirBase + 12);
+    e.data.copy(out, dataOffset);
+    dataOffset += paddedLengths[i];
+  });
+
+  return out;
+}
+
+const SCRIPT_FONTS_DIR = path.join(ROOT, 'scripts/fonts');
+const OG_RENDER_WEIGHTS = [400, 700];
+
+/**
+ * Extracts the WOFF1 `onest-latin-{400,700}-normal.woff` entries out of the
+ * already-fetched, already-SHA-256-verified `@fontsource/onest` tarball,
+ * converts each to a bare TTF via `woffToTtf()`, and writes them to
+ * `scripts/fonts/` -- build-only, never under `public/`, so they are never
+ * served. `scripts/render-og.mjs` loads these as font buffers for resvg,
+ * which needs sfnt (TTF/OTF), not woff2. Returns the list of files written,
+ * or `null` if the tarball carries no `.woff` entry for either weight (the
+ * documented stop-path trigger for item 1 of issue #50 Q6).
+ */
+async function extractOnestTtfs(onestTar) {
+  await mkdir(SCRIPT_FONTS_DIR, { recursive: true });
+  const written = [];
+  for (const weight of OG_RENDER_WEIGHTS) {
+    const woffData = onestTar.get(`package/files/onest-latin-${weight}-normal.woff`);
+    if (!woffData) {
+      return null;
+    }
+    const ttf = woffToTtf(woffData);
+    if (ttf.readUInt32BE(0) !== 0x00010000) {
+      throw new ValidationError(
+        `onest-latin-${weight}-normal.woff did not convert to a valid sfnt (bad magic)`,
+      );
+    }
+    const outPath = path.join(SCRIPT_FONTS_DIR, `onest-latin-${weight}-normal.ttf`);
+    await writeFile(outPath, ttf);
+    written.push(outPath);
+  }
+  console.log(`vendor: wrote ${written.length} build-only TTF file(s) to scripts/fonts/ for render-og.mjs`);
+  return written;
+}
+
+/** Vendors every font file and the generated fonts.css through `emit()`.
+ * Returns `{ fontsHref, preload }`: `fontsHref` is the hashed href of the
+ * generated fonts.css, and `preload` maps the four preload keys
+ * `src/data/assets.json` needs to their hashed woff2 hrefs. Also extracts
+ * the two build-only Onest TTFs render-og.mjs needs (see
+ * `extractOnestTtfs()`); `og` in the return value is `null` when that
+ * extraction found no `.woff` entry, the documented stop-path trigger. */
+async function vendorFonts(managed) {
   await mkdir(LICENSES_DIR, { recursive: true });
 
   const faceRules = [];
   let fontFileCount = 0;
+  const hrefByBase = new Map();
+  let ogTtfPaths = null;
 
   for (const fam of FAMILIES) {
     const tar = await fetchPackageTarball(fam.pkgName, fam.version, fam.sha256);
@@ -276,6 +454,10 @@ async function vendorFonts() {
       throw new ValidationError(`${fam.pkgName}@${fam.version} has no (or empty) LICENSE file`);
     }
     await writeFile(path.join(LICENSES_DIR, `${fam.slug}.txt`), licenseData);
+
+    if (fam.slug === 'onest') {
+      ogTtfPaths = await extractOnestTtfs(tar);
+    }
 
     // Each fontsource package ships one per-weight(-style) CSS file with
     // every subset's unicode-range (e.g. `400.css`, `400-italic.css`).
@@ -311,15 +493,15 @@ async function vendorFonts() {
               `${fam.pkgName}@${fam.version}: requested ${subset}/${weight}/${style} resolved to no file`,
             );
           }
-          const outName = `${base}.woff2`;
-          await writeFile(path.join(FONTS_DIR, outName), data);
+          const href = await emit(FONTS_DIR, base, '.woff2', data, managed);
+          hrefByBase.set(base, href);
           fontFileCount++;
           if (subset === 'cyrillic' || subset === 'cyrillic-ext') familyHasCyrillic = true;
           faceRules.push({
             family: fam.family,
             weight,
             style,
-            file: outName,
+            href,
             range,
           });
         }
@@ -339,14 +521,28 @@ async function vendorFonts() {
   font-style: ${r.style};
   font-weight: ${r.weight};
   font-display: swap;
-  src: url('/assets/fonts/${r.file}') format('woff2');
+  src: url('${r.href}') format('woff2');
   unicode-range: ${r.range};
 }
 `,
     )
     .join('\n');
-  await writeFile(FONTS_CSS_PATH, css, 'utf8');
+  const fontsHref = await emit(FONTS_DIR, 'fonts', '.css', css, managed);
   console.log(`vendor: wrote ${fontFileCount} font files and fonts.css`);
+
+  const preload = {
+    onestLatin400: hrefByBase.get('onest-latin-400-normal'),
+    onestLatin700: hrefByBase.get('onest-latin-700-normal'),
+    onestCyrillic400: hrefByBase.get('onest-cyrillic-400-normal'),
+    onestCyrillic700: hrefByBase.get('onest-cyrillic-700-normal'),
+  };
+  for (const [key, href] of Object.entries(preload)) {
+    if (!href) {
+      throw new ValidationError(`vendor: could not resolve preload href for "${key}"`);
+    }
+  }
+
+  return { fontsHref, preload, og: ogTtfPaths };
 }
 
 async function nonEmptyFile(p) {
@@ -358,44 +554,85 @@ async function nonEmptyFile(p) {
   }
 }
 
+function publicPathForHref(href) {
+  return path.join(PUBLIC_DIR, href.replace(/^\/+/, ''));
+}
+
 /** Used only when the network step fails: is the tree already on disk (from
- * a previous, committed vendor run) complete and valid? */
+ * a previous, committed vendor run) complete and valid? Validates against
+ * `src/data/assets.json` -- every href it names resolves to a non-empty
+ * file, plus the licence and MCTL_VERSION first-line checks -- rather than
+ * reconstructing filenames from FAMILIES, since the manifest (not the
+ * family table) is what Base.astro and nginx actually consume. */
 async function verifyExistingTree() {
-  const mctlCssPath = path.join(MCTL_DIR, 'mctl.css');
-  if (!(await nonEmptyFile(mctlCssPath))) return false;
-  const firstLine = (await readFile(mctlCssPath, 'utf8')).split('\n')[0] ?? '';
-  if (!firstLine.includes(MCTL_VERSION)) return false;
-  for (const file of MCTL_FILES) {
-    if (!(await nonEmptyFile(path.join(MCTL_DIR, file)))) return false;
+  let manifest;
+  try {
+    manifest = JSON.parse(await readFile(ASSETS_JSON_PATH, 'utf8'));
+  } catch {
+    return false;
   }
+  if (!Array.isArray(manifest.styles) || manifest.styles.length !== 5) return false;
+  if (!manifest.preload || typeof manifest.preload !== 'object') return false;
+
+  for (const href of manifest.styles) {
+    if (typeof href !== 'string' || !(await nonEmptyFile(publicPathForHref(href)))) return false;
+  }
+  for (const href of Object.values(manifest.preload)) {
+    if (typeof href !== 'string' || !(await nonEmptyFile(publicPathForHref(href)))) return false;
+  }
+
+  // styles[0] is mctl.css by construction (see vendorMctl()); its first
+  // line must still name the pinned MCTL_VERSION.
+  const firstLine = (await readFile(publicPathForHref(manifest.styles[0]), 'utf8')).split('\n')[0] ?? '';
+  if (!firstLine.includes(MCTL_VERSION)) return false;
 
   for (const fam of FAMILIES) {
     if (!(await nonEmptyFile(path.join(LICENSES_DIR, `${fam.slug}.txt`)))) return false;
-    for (const subset of fam.subsets) {
-      for (const weight of fam.weights) {
-        for (const style of fam.styles) {
-          const p = path.join(FONTS_DIR, `${fam.slug}-${subset}-${weight}-${style}.woff2`);
-          if (!(await nonEmptyFile(p))) return false;
-        }
-      }
-    }
   }
-  if (!(await nonEmptyFile(FONTS_CSS_PATH))) return false;
+
   return true;
 }
 
-async function copySiteCss() {
-  await mkdir(SITE_CSS_DEST_DIR, { recursive: true });
-  await copyFile(SITE_CSS_SRC, SITE_CSS_DEST);
+/** Copies src/styles/site.css to public/styles/ through `emit()` (a plain
+ * local read -- no network dependency, always safe to run). Returns the
+ * hashed public href. */
+async function copySiteCss(managed) {
+  const bytes = await readFile(SITE_CSS_SRC);
+  return emit(SITE_CSS_DEST_DIR, 'site', '.css', bytes, managed);
+}
+
+/** Deletes every previously hashed file under the three managed directories
+ * that this run did not (re)write, so a content change or a dropped
+ * weight/subset never leaves an orphan in the committed tree.
+ * public/assets/fonts/LICENSES/ is a subdirectory, never touched here. */
+async function pruneManaged(managed) {
+  for (const dir of [MCTL_DIR, FONTS_DIR, SITE_CSS_DEST_DIR]) {
+    await pruneDir(dir, managed.get(dir) ?? new Set());
+  }
 }
 
 async function main() {
+  const managed = new Map();
   // site.css is a plain local copy -- no network dependency, always safe.
-  await copySiteCss();
+  const siteHref = await copySiteCss(managed);
 
   try {
-    await vendorMctl();
-    await vendorFonts();
+    const mctlHrefs = await vendorMctl(managed);
+    const fontsResult = await vendorFonts(managed);
+    if (!fontsResult.og) {
+      throw new ValidationError(
+        '@fontsource/onest carries no .woff entry for latin 400/700 -- resvg needs an sfnt buffer ' +
+          'it cannot get from woff2 alone. Item 1 (share image) must take its documented stop path: ' +
+          'revert og:image/twitter:image to /og.svg and commit docs/og-image.md.',
+      );
+    }
+
+    const manifest = {
+      styles: [mctlHrefs.mctl, mctlHrefs.global, mctlHrefs.prose, fontsResult.fontsHref, siteHref],
+      preload: fontsResult.preload,
+    };
+    await writeFile(ASSETS_JSON_PATH, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+    await pruneManaged(managed);
   } catch (err) {
     if (err instanceof ValidationError) {
       console.error(`vendor: ${err.message}`);
@@ -405,7 +642,7 @@ async function main() {
     console.warn(`vendor: network step failed (${err.message})`);
     console.warn('vendor: checking existing committed tree...');
     if (await verifyExistingTree()) {
-      console.log('vendor: existing tree under public/assets/ is complete and valid; continuing offline.');
+      console.log('vendor: existing tree under public/assets/, public/styles/ and src/data/assets.json is complete and valid; continuing offline.');
       return;
     }
     console.error('vendor: no valid existing tree and the network step failed; failing.');

@@ -14,11 +14,11 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
-import { contentLinkProblems, parseContentLinkColours } from '../scripts/check-contrast.mjs';
+import { contentLinkProblems, parseContentLinkColours, resolveMctlCssPath } from '../scripts/check-contrast.mjs';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const siteCssText = readFileSync(path.join(ROOT, 'src/styles/site.css'), 'utf8');
-const mctlCssText = readFileSync(path.join(ROOT, 'public/assets/mctl/mctl.css'), 'utf8');
+const mctlCssText = readFileSync(await resolveMctlCssPath(), 'utf8');
 
 function parseTokens(css: string): Map<string, string> {
   const tokens = new Map<string, string>();

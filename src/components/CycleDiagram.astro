@@ -23,16 +23,20 @@ interface Variant {
   edges: string[];
 }
 
-// Wide: five nodes left-to-right across the top row (Issue..Implement),
-// a connector down the right margin into the bottom row, five nodes
-// right-to-left across the bottom row (Review gate..Monitor), and a
-// return connector up the left margin from Monitor back to Issue.
+// Wide: five nodes left-to-right across the top row (Issue..Implement), a
+// straight vertical connector down into the bottom row (Implement and
+// Review gate share a column), five nodes right-to-left across the bottom
+// row (Review gate..Monitor), and a straight vertical return connector up
+// from Monitor back to Issue (Monitor and Issue also share a column) --
+// right along the top, down at the right end, left along the bottom, up at
+// the left end, with no side margin: both vertical connectors are within
+// the column the two nodes they join already share.
 function buildWide(): Variant {
-  const w = 112;
+  const w = 130;
   const h = 44;
-  const cols = [24, 160, 296, 432, 568];
+  const cols = [0, 1, 2, 3, 4].map((i) => 13 + i * 146);
   const topY = 30;
-  const botY = 226;
+  const botY = 130;
   const topMid = topY + h / 2;
   const botMid = botY + h / 2;
 
@@ -53,21 +57,16 @@ function buildWide(): Variant {
   for (let i = 0; i < 4; i++) {
     edges.push(`M${cols[i] + w},${topMid} L${cols[i + 1]},${topMid}`);
   }
-  // Implement -> Review gate, right margin.
-  const rightMargin = cols[4] + w + 30;
-  edges.push(
-    `M${cols[4] + w},${topMid} L${rightMargin},${topMid} L${rightMargin},${botMid} L${cols[4] + w},${botMid}`,
-  );
+  // Implement -> Review gate: straight vertical, both already in cols[4].
+  edges.push(`M${cols[4] + w / 2},${topY + h} L${cols[4] + w / 2},${botY}`);
   for (let i = 4; i > 0; i--) {
     edges.push(`M${cols[i]},${botMid} L${cols[i - 1] + w},${botMid}`);
   }
-  // Monitor -> Issue, left margin (the loop closes).
-  const leftMargin = cols[0] - 12;
-  edges.push(
-    `M${cols[0]},${botMid} L${leftMargin},${botMid} L${leftMargin},${topMid} L${cols[0]},${topMid}`,
-  );
+  // Monitor -> Issue (the loop closes): straight vertical mirror of the
+  // Implement -> Review gate connector above, both already in cols[0].
+  edges.push(`M${cols[0] + w / 2},${botY} L${cols[0] + w / 2},${topY + h}`);
 
-  return { key: 'wide', viewBox: `0 0 ${cols[4] + w + 60} 300`, rects, edges };
+  return { key: 'wide', viewBox: `0 0 ${cols[4] + w + 13} 200`, rects, edges };
 }
 
 // Narrow: one column of ten nodes top to bottom, with the return path

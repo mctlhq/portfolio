@@ -27,8 +27,23 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
-const MCTL_CSS_PATH = path.join(ROOT, 'public/assets/mctl/mctl.css');
 const SITE_CSS_PATH = path.join(ROOT, 'src/styles/site.css');
+
+/**
+ * Resolves the committed, content-hashed path of public/assets/mctl/mctl.css
+ * (issue #50, Q6: scripts/vendor-assets.mjs names it `mctl.<hash8>.css`) via
+ * src/data/assets.json's `styles` array, whose first entry is mctl.css by
+ * construction (see vendor-assets.mjs's vendorMctl()). Exported so
+ * test/check-contrast.test.ts resolves the same path without hardcoding it.
+ */
+export async function resolveMctlCssPath() {
+  const manifest = JSON.parse(await readFile(path.join(ROOT, 'src/data/assets.json'), 'utf8'));
+  const href = manifest.styles.find((h) => /\/assets\/mctl\/mctl\.[0-9a-f]{8}\.css$/.test(h));
+  if (!href) {
+    throw new Error('check-contrast: could not find a hashed mctl.css href in src/data/assets.json');
+  }
+  return path.join(ROOT, 'public', href.replace(/^\/+/, ''));
+}
 
 const TEXT_MIN_RATIO = 4.5;
 const FOCUS_RING_MIN_RATIO = 3;
@@ -303,7 +318,8 @@ export function contentLinkProblems({ siteCssText, tokens }) {
 }
 
 async function main() {
-  const [mctlCss, siteCss] = await Promise.all([readFile(MCTL_CSS_PATH, 'utf8'), readFile(SITE_CSS_PATH, 'utf8')]);
+  const mctlCssPath = await resolveMctlCssPath();
+  const [mctlCss, siteCss] = await Promise.all([readFile(mctlCssPath, 'utf8'), readFile(SITE_CSS_PATH, 'utf8')]);
   const tokens = parseTokens(mctlCss);
 
   const problems = [];
@@ -318,7 +334,7 @@ async function main() {
       const bgHex = tokens.get(bgRaw);
       if (!fgHex || !bgHex) {
         problems.push(
-          `check-contrast: could not resolve ${theme}/${fg} (${fgRaw}) or ${theme}/${bg} (${bgRaw}) from ${path.relative(ROOT, MCTL_CSS_PATH)}`,
+          `check-contrast: could not resolve ${theme}/${fg} (${fgRaw}) or ${theme}/${bg} (${bgRaw}) from ${path.relative(ROOT, mctlCssPath)}`,
         );
         continue;
       }
