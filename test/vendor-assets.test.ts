@@ -113,3 +113,30 @@ test('mutant: vendor-assets.mjs rejects a hashed .woff2 whose bytes no longer ma
     await rm(tmp, { recursive: true, force: true });
   }
 });
+
+/** A3 (issue #71): points the copied manifest's styles[4] (site.css) at a
+ * name that carries no content hash at all, and writes a non-empty file of
+ * that exact name -- the shape `nonEmptyHashedFile()` used to accept because
+ * `hashMismatch()` returns null both for "matches" and for "nothing to
+ * check". Located through the copy's own src/data/assets.json, the same
+ * manifest-driven posture as the other two mutants in this file. */
+async function unhashSiteCssEntry(tmp: string): Promise<void> {
+  const manifestPath = path.join(tmp, 'src/data/assets.json');
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  manifest.styles[4] = '/styles/site.css';
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  await mkdir(path.join(tmp, 'public/styles'), { recursive: true });
+  await writeFile(path.join(tmp, 'public/styles/site.css'), 'body { color: red }\n', 'utf8');
+}
+
+test('mutant: vendor-assets.mjs rejects a manifest entry whose filename carries no content hash at all', async () => {
+  const tmp = await makeTreeCopy();
+  try {
+    await unhashSiteCssEntry(tmp);
+    const result = runVendorOffline(tmp);
+    assert.equal(result.status, 1, `expected exit 1, got ${result.status}; stdout: ${result.stdout}`);
+    assert.match(result.stderr, /vendor: no valid existing tree/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});

@@ -11,4 +11,4 @@ summary: "The shared design system: tokens, CSS themes, a Tailwind preset and Vu
 
 - immutable versioned stylesheets
 - CI refuses to change a published version
-- this site vendors version 0.5.0
+- this site vendors the design system
