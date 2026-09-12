@@ -1,10 +1,15 @@
-// B1: scripts/check-contrast.mjs and scripts/check-links.mjs each carry an
-// isEntryPoint() that must keep its hybrid form -- import.meta.main when
-// defined, a realpathSync() comparison of process.argv[1] against
-// fileURLToPath(import.meta.url) below it -- rather than drifting to a bare
-// process.argv[1] string comparison (not symlink-safe: a symlinked checkout
-// would silently skip the check with exit 0) or to import.meta.main with no
-// fallback (unavailable before Node 22.18/24.2). This proves the shape by
+// B1: scripts/check-contrast.mjs, scripts/check-links.mjs and
+// scripts/check-headers.mjs each carry an isEntryPoint() that must keep its
+// hybrid form -- import.meta.main when defined, a realpathSync() comparison
+// of process.argv[1] against fileURLToPath(import.meta.url) below it --
+// rather than drifting to a bare process.argv[1] string comparison (not
+// symlink-safe: a symlinked checkout would silently skip the check with exit
+// 0) or to import.meta.main with no fallback (unavailable before Node
+// 22.18/24.2). scripts/check-headers.mjs is the one whose silent pass would
+// make the build job's only assertion vacuous --
+// .github/workflows/build.yml's final step,
+// `node scripts/check-headers.mjs http://127.0.0.1:8080`, is that job's sole
+// check. This proves the shape by
 // isolating the real `function isEntryPoint() { ... }` block out of each
 // committed file and asserting on it, and proves the matcher discriminates
 // by running it over synthetic bare-form sources.

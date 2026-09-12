@@ -47,12 +47,16 @@ function escapeRegExp(literal: string): string {
  * acceptance criterion 3) and including the two shapes the anchored form
  * was blind to (D2b: after a regex terminator's `//`, and inside a
  * frontmatter list outside both former quoted-string/element-text
- * alternatives).
+ * alternatives). B1 (issue #71): the match is word-bounded on both sides
+ * (`\b...\b`) so a longer word that merely contains a chip literal (e.g.
+ * "Golang", "Google" containing "Go") does not falsely report a hard-coded
+ * literal that is not actually there as its own word; every literal here,
+ * including the two with an internal space, still matches as a whole word.
  */
 function chipLiteralProblems(source: string, label: string): string[] {
   const problems: string[] = [];
   for (const literal of CHIP_LITERALS) {
-    if (new RegExp(escapeRegExp(literal)).test(source)) {
+    if (new RegExp(`\\b${escapeRegExp(literal)}\\b`).test(source)) {
       problems.push(`${label} must not hard-code the chip literal "${literal}"`);
     }
   }
@@ -139,6 +143,19 @@ test('D2b: a chip literal in a frontmatter list shape (outside both former quote
   const problems = chipLiteralProblems(source, 'synthetic');
   assert.ok(problems.some((p) => p.includes('TypeScript')));
   assert.ok(problems.some((p) => p.includes('"Go"')));
+});
+
+// B1: word-boundary tests for the chip-literal matcher.
+
+test('B1: a longer word merely containing the chip literal "Go" is not reported', () => {
+  const source = '<!-- Golang and Google are mentioned -->';
+  assert.deepEqual(chipLiteralProblems(source, 'synthetic'), []);
+});
+
+test('B1: the chip literal "Go" as its own word is still reported', () => {
+  const source = '<p>Go is a language</p>';
+  const problems = chipLiteralProblems(source, 'synthetic');
+  assert.ok(problems.some((p) => /must not hard-code the chip literal "Go"/.test(p)));
 });
 
 test('neither file references --font-editorial', () => {

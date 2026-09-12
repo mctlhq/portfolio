@@ -38,7 +38,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { contentHash8, hashMismatch } from '../src/lib/content-hash.ts';
+import { contentHash8, hashInName, hashMismatch } from '../src/lib/content-hash.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -563,8 +563,14 @@ async function nonEmptyFile(p) {
  * content that does not match it. */
 async function nonEmptyHashedFile(p) {
   if (!(await nonEmptyFile(p))) return false;
+  const name = path.basename(p);
+  // A name with no hash segment at all is not "checked and fine" -- it is
+  // unpinnable. hashMismatch() returns null for it ("nothing to check"), a
+  // contract that is correct for the two post-build checkers that meet
+  // unhashed names legitimately, so the rejection belongs here.
+  if (hashInName(name) === null) return false;
   const bytes = await readFile(p);
-  return hashMismatch(path.basename(p), bytes) === null;
+  return hashMismatch(name, bytes) === null;
 }
 
 function publicPathForHref(href) {

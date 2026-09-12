@@ -297,7 +297,7 @@ export const stackChipRu: Record<string, string> = {
 // or tool name (e.g. "TypeScript", "PostgreSQL") rather than a plain word.
 // `stack` in the projects content schema is a free-form string array, so this
 // set cannot be enforced by TypeScript; ProjectCard checks every chip against
-// `stackChipRu` and this set and warns at build time when a chip is in
+// `stackChipRu` and this set and throws at build time when a chip is in
 // neither, so a forgotten translation cannot ship silently.
 // Two pure functions over stackChipRu, used by ProjectCard.astro so the
 // chip guard and the chip lookup share one implementation. Object.hasOwn

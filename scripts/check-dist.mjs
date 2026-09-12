@@ -766,7 +766,7 @@ async function checkSitemap() {
   try {
     origin = await siteOrigin();
   } catch (err) {
-    problems.push(err.message);
+    problems.push(err.message.startsWith('check-dist:') ? err.message : `check-dist: ${err.message}`);
     return problems;
   }
 
@@ -827,7 +827,7 @@ async function checkSitemap() {
   return problems;
 }
 
-async function main() {
+async function run() {
   let stats;
   try {
     stats = await stat(DIST_DIR);
@@ -920,6 +920,22 @@ async function main() {
   const svgBytesMsg = approachResult.svgBytes !== null ? `, approach.astro <svg> total ${approachResult.svgBytes} bytes (cap ${MAX_SVG_BYTES})` : '';
   const colophonMsg = `, colophon: ${colophonResult.cycleCount} cycles, ${colophonResult.interventionTotal} interventions`;
   console.log(`check-dist: OK -- dist/index.html is ${indexBytes} bytes (cap ${MAX_INDEX_BYTES}), class="l en" x${enTotal}, class="l ru" x${ruTotal}, no .js under dist/${svgBytesMsg}${colophonMsg}`);
+}
+
+/**
+ * B3a (issue #71, A2): wraps the whole run so any residual throw -- from a
+ * helper this file does not yet guard, or from a future edit that
+ * reintroduces one -- becomes one final problem line and a non-zero exit,
+ * rather than an uncaught rejection that discards the accumulated report.
+ * Same shape as scripts/check-headers.mjs's main()/run() split.
+ */
+async function main() {
+  try {
+    await run();
+  } catch (err) {
+    console.error(`check-dist: unhandled error: ${err.message}`);
+    process.exitCode = 1;
+  }
 }
 
 await main();

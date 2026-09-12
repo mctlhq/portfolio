@@ -29,6 +29,21 @@ const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const SCAN_DIRS = ['src/pages', 'src/components', 'src/layouts'];
 const MATCH_RE = /\b[0-9]{2,}\b/g;
 
+// C3 (issue #71): a second, independent gate over src/content/projects, the
+// directory the rule above cannot see (it is not in SCAN_DIRS) and would not
+// have caught the violation it was measured against even if it were (every
+// component of "0.5.0" is a single digit, so MATCH_RE returns null on it).
+// A version number is a distinct shape from "a metric typed into a
+// template" -- three dot-separated numeric components, bounded on both
+// sides so `1.5 seconds`, `3.14` and the `127.0.0` prefix of an IPv4
+// literal do not match. Applied to the body only (not the YAML
+// frontmatter, where `order: 10` through `order: 14` legitimately live in
+// every project file). Deliberately does not scan src/content/journal or
+// src/content/adr, where numbers (timestamps, counts, release numbers) are
+// the subject matter rather than a leak.
+const PROJECTS_CONTENT_DIR = path.join(ROOT, 'src/content/projects');
+const VERSION_RE = /(?<![\d.])\d+\.\d+\.\d+(?![\d.])/g;
+
 // Tier 1: pattern classifiers. Each returns true when it recognizes the
 // match at `line[start:end]` as a permitted kind, given the full line for
 // context. An unused rule is fine -- these are forward-looking kinds
@@ -200,16 +215,79 @@ export async function scanForTypedNumbers(root, scanDirs, rules, allow) {
   return { problems, matchCount };
 }
 
+/**
+ * Splits `text` into `{ bodyLines, bodyStartLine }`, where `bodyLines` is
+ * every line after a leading YAML frontmatter block (a line that is exactly
+ * `---`, then every line up to and including the next line that is exactly
+ * `---`) and `bodyStartLine` is the 1-based line number the body's first
+ * line occupies in the original file -- so a match found in `bodyLines` can
+ * still be reported against its real line number. A file with no leading
+ * `---` frontmatter block is scanned in full, from line 1.
+ */
+function splitFrontmatter(text) {
+  const lines = text.split('\n');
+  if (lines[0] !== '---') {
+    return { bodyLines: lines, bodyStartLine: 1 };
+  }
+  const closeIdx = lines.slice(1).findIndex((line) => line === '---');
+  if (closeIdx === -1) {
+    return { bodyLines: lines, bodyStartLine: 1 };
+  }
+  const bodyStartIdx = closeIdx + 2; // skip both '---' lines
+  return { bodyLines: lines.slice(bodyStartIdx), bodyStartLine: bodyStartIdx + 1 };
+}
+
+/**
+ * Scans every `.md` file directly under `projectsDir` for a semver-shaped
+ * literal (`VERSION_RE`) in its body (YAML frontmatter excluded via
+ * `splitFrontmatter()`). Returns `{ problems, matchCount }`; each problem
+ * names the file and line, prefixed `check-no-metrics:` like every other
+ * failure line this script emits.
+ */
+export async function scanProjectContentForVersions(root, projectsDir) {
+  const problems = [];
+  let matchCount = 0;
+  let entries;
+  try {
+    entries = await readdir(projectsDir, { withFileTypes: true });
+  } catch {
+    return { problems, matchCount };
+  }
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
+    const absFile = path.join(projectsDir, entry.name);
+    const rel = path.relative(root, absFile).split(path.sep).join('/');
+    const text = await readFile(absFile, 'utf8');
+    const { bodyLines, bodyStartLine } = splitFrontmatter(text);
+
+    bodyLines.forEach((line, idx) => {
+      VERSION_RE.lastIndex = 0;
+      let m;
+      while ((m = VERSION_RE.exec(line))) {
+        matchCount += 1;
+        problems.push(
+          `check-no-metrics: ${rel}:${bodyStartLine + idx}: matched version-shaped literal "${m[0]}" -- not permitted in project content`,
+        );
+      }
+    });
+  }
+  return { problems, matchCount };
+}
+
 async function main() {
   const { problems, matchCount } = await scanForTypedNumbers(ROOT, SCAN_DIRS, RULES, ALLOW);
-  if (problems.length > 0) {
-    for (const problem of problems) {
+  const versionResult = await scanProjectContentForVersions(ROOT, PROJECTS_CONTENT_DIR);
+  const allProblems = [...problems, ...versionResult.problems];
+  if (allProblems.length > 0) {
+    for (const problem of allProblems) {
       console.error(problem);
     }
     process.exitCode = 1;
     return;
   }
-  console.log(`check-no-metrics: OK -- ${matchCount} matches, all permitted`);
+  console.log(
+    `check-no-metrics: OK -- ${matchCount} matches, all permitted; ${versionResult.matchCount} version-shaped literal(s) in src/content/projects, all clean`,
+  );
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

@@ -88,6 +88,13 @@ function collectFaceRules(css: string): { family: string; weight: number }[] {
   return rules;
 }
 
+/** Composite family/weight key. `|` cannot occur in a CSS font-family name,
+ * so the key stays unambiguous -- and unlike the raw NUL byte this used to
+ * carry, it does not make the whole file read as binary to grep. */
+function faceKey(family: string, weight: string | number): string {
+  return `${family}|${weight}`;
+}
+
 // -- A2: family-aware weight resolution -------------------------------------
 // The check above only proves "this weight is reachable from *some*
 // family" -- JetBrains Mono 600/700 (pruned in #65, absent from FAMILIES in
@@ -294,7 +301,7 @@ test('every (family, weight) pair a rule declares together in site.css/mctl/glob
   const mctlMap = parseCustomProperties(vendoredCssFiles[0]);
   const faceRules = collectFaceRules(fontsCss);
   const faceWeights = new Set(faceRules.map((r) => r.weight));
-  const facePairKeys = new Set(faceRules.map((r) => `${r.family} ${r.weight}`));
+  const facePairKeys = new Set(faceRules.map((r) => faceKey(r.family, r.weight)));
 
   let sawAtLeastOnePair = false;
   for (const css of [stripComments(siteCss), ...vendoredCssFiles]) {
@@ -302,7 +309,7 @@ test('every (family, weight) pair a rule declares together in site.css/mctl/glob
     for (const { family, weight } of pairs) {
       sawAtLeastOnePair = true;
       assert.ok(
-        facePairKeys.has(`${family} ${weight}`),
+        facePairKeys.has(faceKey(family, weight)),
         `expected fonts.css to declare an @font-face for family "${family}" at weight ${weight}`,
       );
     }
@@ -318,7 +325,7 @@ test('A2a mutation: a synthetic rule declaring font-family: var(--font-mono); fo
   const siteMap = parseCustomProperties(stripComments(siteCss));
   const mctlMap = parseCustomProperties(vendoredCssFiles[0]);
   const faceRules = collectFaceRules(fontsCss);
-  const facePairKeys = new Set(faceRules.map((r) => `${r.family} ${r.weight}`));
+  const facePairKeys = new Set(faceRules.map((r) => faceKey(r.family, r.weight)));
 
   const syntheticCss = `.synthetic { font-family: var(--font-mono); font-weight: var(--mctl-typography-font-weight-semibold); }`;
   const { pairs } = collectFamilyWeightPairs(syntheticCss, weightTokens, siteMap, mctlMap);
@@ -326,7 +333,7 @@ test('A2a mutation: a synthetic rule declaring font-family: var(--font-mono); fo
   assert.equal(pairs[0].family, 'JetBrains Mono');
   assert.equal(pairs[0].weight, 600);
   assert.ok(
-    !facePairKeys.has(`${pairs[0].family} ${pairs[0].weight}`),
+    !facePairKeys.has(faceKey(pairs[0].family, pairs[0].weight)),
     `expected fonts.css to NOT declare JetBrains Mono at weight 600 (pruned in #65) -- the mutation case is vacuous otherwise`,
   );
 });
@@ -336,7 +343,7 @@ test('A2a control: the same synthetic rule at weight 500 (medium) is not reporte
   const siteMap = parseCustomProperties(stripComments(siteCss));
   const mctlMap = parseCustomProperties(vendoredCssFiles[0]);
   const faceRules = collectFaceRules(fontsCss);
-  const facePairKeys = new Set(faceRules.map((r) => `${r.family} ${r.weight}`));
+  const facePairKeys = new Set(faceRules.map((r) => faceKey(r.family, r.weight)));
 
   const syntheticCss = `.synthetic { font-family: var(--font-mono); font-weight: var(--mctl-typography-font-weight-medium); }`;
   const { pairs } = collectFamilyWeightPairs(syntheticCss, weightTokens, siteMap, mctlMap);
@@ -344,7 +351,7 @@ test('A2a control: the same synthetic rule at weight 500 (medium) is not reporte
   assert.equal(pairs[0].family, 'JetBrains Mono');
   assert.equal(pairs[0].weight, 500);
   assert.ok(
-    facePairKeys.has(`${pairs[0].family} ${pairs[0].weight}`),
+    facePairKeys.has(faceKey(pairs[0].family, pairs[0].weight)),
     `expected fonts.css to declare JetBrains Mono at weight 500`,
   );
 });
