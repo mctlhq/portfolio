@@ -49,6 +49,70 @@ const WASM_PATH = fileURLToPath(new URL('../node_modules/@resvg/resvg-wasm/index
 const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
 
+// A font that fails to resolve (see the module comment above) does not throw:
+// resvg silently falls back to drawing nothing for that glyph run, so a
+// dimension-only check would wave through a fully blank share image. This
+// reads the three <text> elements straight out of og.svg -- position, size
+// and content -- and, for each, scans the rendered RGBA buffer for at least
+// one pixel that differs from the background fill within that element's
+// expected footprint. og.svg stays the only source of truth: nothing here is
+// hardcoded beyond the tolerance for anti-aliasing noise.
+function assertTextRendered(svgText, rendered) {
+  const bgMatch = svgText.match(/<rect[^>]*\bfill="#([0-9a-fA-F]{6})"/);
+  if (!bgMatch) {
+    throw new Error('render-og: could not find the background <rect fill="#..."> in public/og.svg');
+  }
+  const bg = [0, 2, 4].map((offset) => parseInt(bgMatch[1].slice(offset, offset + 2), 16));
+
+  const textNodes = [];
+  for (const m of svgText.matchAll(/<text\s+([^>]*?)>([^<]*)<\/text>/g)) {
+    const attrs = m[1];
+    const content = m[2].trim();
+    const getAttr = (name) => attrs.match(new RegExp(`${name}="([^"]*)"`))?.[1];
+    const x = Number(getAttr('x'));
+    const y = Number(getAttr('y'));
+    const fontSize = Number(getAttr('font-size'));
+    if (!content || Number.isNaN(x) || Number.isNaN(y) || Number.isNaN(fontSize)) {
+      throw new Error(`render-og: could not parse a <text> element in public/og.svg: ${m[0]}`);
+    }
+    textNodes.push({ x, y, fontSize, content });
+  }
+  if (textNodes.length !== 3) {
+    throw new Error(`render-og: expected exactly 3 <text> elements in public/og.svg, found ${textNodes.length}`);
+  }
+
+  const { pixels, width, height } = rendered;
+  const hasInk = (x0, y0, x1, y1) => {
+    for (let y = Math.max(0, y0); y < Math.min(height, y1); y += 1) {
+      for (let x = Math.max(0, x0); x < Math.min(width, x1); x += 1) {
+        const idx = (y * width + x) * 4;
+        if (
+          Math.abs(pixels[idx] - bg[0]) > 20 ||
+          Math.abs(pixels[idx + 1] - bg[1]) > 20 ||
+          Math.abs(pixels[idx + 2] - bg[2]) > 20
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  for (const node of textNodes) {
+    const x0 = node.x;
+    const x1 = node.x + 400;
+    const y0 = node.y - node.fontSize;
+    const y1 = node.y + node.fontSize * 0.3;
+    if (!hasInk(x0, y0, x1, y1)) {
+      throw new Error(
+        `render-og: no rendered pixels found for <text>"${node.content}"</text> near ` +
+          `(${x0},${Math.round(y0)})-(${x1},${Math.round(y1)}) -- the font likely failed to resolve, ` +
+          `which would produce a blank share image`,
+      );
+    }
+  }
+}
+
 async function main() {
   let fontBuffers;
   try {
@@ -83,6 +147,14 @@ async function main() {
       `render-og: rendered ${rendered.width}x${rendered.height}, expected exactly ${OG_WIDTH}x${OG_HEIGHT} -- ` +
         `check public/og.svg's viewBox`,
     );
+    process.exitCode = 1;
+    return;
+  }
+
+  try {
+    assertTextRendered(svg.toString('utf8'), rendered);
+  } catch (err) {
+    console.error(err.message);
     process.exitCode = 1;
     return;
   }
