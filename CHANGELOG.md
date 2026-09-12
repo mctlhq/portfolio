@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.14](https://github.com/mctlhq/portfolio/compare/0.1.13...0.1.14) (2026-09-12)
+
+
+### Features
+
+* **agents:** issue-48-q4-colophon-tables-clip-and-lead-time-is ([bdde2f6](https://github.com/mctlhq/portfolio/commit/bdde2f6400a3b7a0c546241cede7d03be771ae8c))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-48-q4-colophon-tables-clip-and-lead-time-is ([3864b37](https://github.com/mctlhq/portfolio/commit/3864b372a3c20608663a1f392f7175b4da31848b))
+* **agents:** issue-48-q4-colophon-tables-clip-and-lead-time-is ([9366fe8](https://github.com/mctlhq/portfolio/commit/9366fe86ef9c05ce68b41d509d710e36686045a5))
+
 ## [0.1.13](https://github.com/mctlhq/portfolio/compare/0.1.12...0.1.13) (2026-09-12)
 
 
