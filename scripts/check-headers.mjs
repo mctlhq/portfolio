@@ -12,16 +12,17 @@
 // issue's `curl -sI` criterion and of the deferred item's "every response
 // still carries all six [now eight] headers".
 
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { scriptSrcHashProblems, staleHashProblems } from '../src/lib/csp.ts';
 import { hashMismatch } from '../src/lib/content-hash.ts';
 
-const [, , baseUrlArg] = process.argv;
-if (!baseUrlArg) {
-  console.error('check-headers: usage: node scripts/check-headers.mjs <base-url>');
-  process.exitCode = 1;
-  process.exit(1);
-}
-const baseUrl = baseUrlArg.replace(/\/$/, '');
+// baseUrl is read from argv only inside main(), guarded by isEntryPoint()
+// below (T8) -- so this module can be imported by node --test (as
+// test/check-headers.test.ts does, to exercise discoverHashedAssetPath()
+// and discoverStylesPath() as pure functions over fixture markup) without
+// exiting the process or requiring a live server.
+let baseUrl;
 
 const EXPECTED_HEADERS = {
   'x-content-type-options': 'nosniff',
@@ -44,8 +45,27 @@ const EXPECTED_HEADERS = {
 // via nginx's `add_header ... always`.
 const ASTRO_FALLBACK_PATH = '/_astro/probe-check-headers.css';
 
-async function discoverAstroAsset() {
-  const res = await fetch(`${baseUrl}/`);
+// B4: mirrors the /_astro/ fallback pattern above for /styles/. Base.astro
+// always links assets.json's styles[4] (site.<hash>.css) directly, so
+// discovery should normally succeed; the fallback keeps the location's
+// header set exercised even if that markup ever changed shape.
+const STYLES_FALLBACK_PATH = '/styles/probe-check-headers.css';
+
+/**
+ * B3a: GETs `/` and returns `{ path, expectStatus, homePage }` for the
+ * `/_astro/` (or fallback) probe target, where `homePage` is
+ * `{ html, headers }` on success or `null` when the fetch itself failed --
+ * pushed to `problems` as a problem rather than left to throw out of
+ * `main()`, so every remaining probe still runs and the report is complete.
+ */
+async function discoverAstroAsset(problems) {
+  let res;
+  try {
+    res = await fetch(`${baseUrl}/`);
+  } catch (err) {
+    problems.push(`${baseUrl}/: request failed: ${err.message}`);
+    return { path: ASTRO_FALLBACK_PATH, expectStatus: 404, homePage: null };
+  }
   const html = await res.text();
   const homePage = { html, headers: res.headers };
   const match = html.match(/\/_astro\/[^"'<>]+/);
@@ -65,14 +85,37 @@ async function discoverAstroAsset() {
  * `/_astro/`. Used to prove nginx's `location /assets/` block actually
  * answers with the year-plus-immutable Cache-Control at runtime, which
  * `test/cache.test.ts` cannot: that test reads nginx.conf's source text,
- * never a live response.
+ * never a live response. B3: returns `null` and pushes a problem instead of
+ * throwing, so the caller can skip the asset probe and continue with the
+ * remaining checks rather than aborting `main()` before the report prints.
  */
-function discoverHashedAssetPath(html) {
+export function discoverHashedAssetPath(html, problems) {
   const match = html.match(/\/assets\/[^"'<>]+\.[0-9a-f]{8}\.(?:css|woff2)/);
   if (!match) {
-    throw new Error('check-headers: no hashed /assets/ href found in the home page markup');
+    problems.push('check-headers: no hashed /assets/ href found in the home page markup');
+    return null;
   }
   return match[0];
+}
+
+/**
+ * B4: finds a hashed `/styles/...` href in the home page markup, falling
+ * back to a path guaranteed not to exist under `/styles/` (mirroring
+ * `discoverAstroAsset()`'s `/_astro/` fallback above), so nginx's
+ * `location /styles/` block -- added in #65, never probed at runtime before
+ * this cycle -- gets its eight-header set verified against a live response
+ * either way.
+ */
+export function discoverStylesPath(html) {
+  const match = html.match(/\/styles\/[^"'<>]+\.[0-9a-f]{8}\.css/);
+  if (!match) {
+    console.log(
+      `check-headers: no /styles/ href found in the home page markup; ` +
+        `probing ${STYLES_FALLBACK_PATH} instead to exercise the location's header set`,
+    );
+    return { path: STYLES_FALLBACK_PATH, expectStatus: 404 };
+  }
+  return { path: match[0], expectStatus: 200 };
 }
 
 function checkHeaders(url, headers, problems) {
@@ -93,75 +136,96 @@ function checkHeaders(url, headers, problems) {
   }
 }
 
-async function main() {
+async function probeAndCheck(problems, path, expectStatus) {
+  const url = `${baseUrl}${path}`;
+  let res;
+  try {
+    res = await fetch(url, { method: 'HEAD' });
+  } catch (err) {
+    problems.push(`${url}: request failed: ${err.message}`);
+    console.log(`check-headers: HEAD ${url} -> (request failed)`);
+    return;
+  }
+  console.log(`check-headers: HEAD ${url} -> ${res.status}`);
+  if (res.status !== expectStatus) {
+    problems.push(`${url}: status is ${res.status}, expected ${expectStatus}`);
+  }
+  checkHeaders(url, res.headers, problems);
+}
+
+async function run() {
   const problems = [];
 
-  const { homePage, ...astroAsset } = await discoverAstroAsset();
+  const { homePage, ...astroAsset } = await discoverAstroAsset(problems);
+
+  // B4: the /styles/ probe joins the target list so its eight headers are
+  // verified at runtime, exactly like /_astro/ and /assets/ already are.
+  // Discovery needs the home page markup; with no home page (the fetch to
+  // `/` itself failed -- B3a above), fall back to the guaranteed-404 path
+  // rather than skip the probe outright, so the location's header set is
+  // still exercised.
+  const stylesAsset = homePage ? discoverStylesPath(homePage.html) : { path: STYLES_FALLBACK_PATH, expectStatus: 404 };
 
   const targets = [
     { path: '/', expectStatus: 200 },
     { path: '/healthz', expectStatus: 200 },
     astroAsset,
+    stylesAsset,
     { path: '/this-path-does-not-exist-check-headers', expectStatus: 404 },
   ];
 
+  // B4a: every probe's result is reported, in one flat loop, before any
+  // exit -- a single failing probe (or the fetch to `/` itself failing)
+  // never suppresses the rest.
   for (const { path: p, expectStatus } of targets) {
-    const url = `${baseUrl}${p}`;
-    let res;
-    try {
-      res = await fetch(url, { method: 'HEAD' });
-    } catch (err) {
-      problems.push(`${url}: request failed: ${err.message}`);
-      console.log(`check-headers: HEAD ${url} -> (request failed)`);
-      continue;
-    }
-    console.log(`check-headers: HEAD ${url} -> ${res.status}`);
-    if (res.status !== expectStatus) {
-      problems.push(`${url}: status is ${res.status}, expected ${expectStatus}`);
-    }
-    checkHeaders(url, res.headers, problems);
+    await probeAndCheck(problems, p, expectStatus);
   }
 
-  // Cache lifetime (issue #50, Q6): a hashed /assets/ path answers with a
-  // year plus immutable, and / -- which keeps its existing, un-hashed
-  // cache policy -- carries neither directive. A3c: GETs the body (not just
-  // HEADs it) and compares contentHash8(body) to the hash segment embedded
-  // in the URL, so a byte-content-hash divergence at runtime -- not just a
-  // shape-valid URL -- fails this check too. This is a second request
-  // against the local container only; it opens no external socket.
-  const assetPath = discoverHashedAssetPath(homePage.html);
-  let assetRes;
-  let assetUrl;
-  if (assetPath) {
-    assetUrl = `${baseUrl}${assetPath}`;
-    try {
-      assetRes = await fetch(assetUrl);
-    } catch (err) {
-      problems.push(`${assetUrl}: request failed: ${err.message}`);
+  if (homePage) {
+    // Cache lifetime (issue #50, Q6): a hashed /assets/ path answers with a
+    // year plus immutable, and / -- which keeps its existing, un-hashed
+    // cache policy -- carries neither directive. A3c: GETs the body (not
+    // just HEADs it) and compares contentHash8(body) to the hash segment
+    // embedded in the URL, so a byte-content-hash divergence at runtime --
+    // not just a shape-valid URL -- fails this check too. This is a second
+    // request against the local container only; it opens no external
+    // socket. B3: discoverHashedAssetPath() no longer throws when nothing is
+    // found -- it pushes a problem and returns null, and the asset probe is
+    // simply skipped so every other check still runs.
+    const assetPath = discoverHashedAssetPath(homePage.html, problems);
+    let assetRes;
+    let assetUrl;
+    if (assetPath) {
+      assetUrl = `${baseUrl}${assetPath}`;
+      try {
+        assetRes = await fetch(assetUrl);
+      } catch (err) {
+        problems.push(`${assetUrl}: request failed: ${err.message}`);
+      }
     }
-  }
-  if (assetRes) {
-    console.log(`check-headers: GET ${assetUrl} -> ${assetRes.status}`);
-    const cacheControl = assetRes.headers.get('cache-control') ?? '';
-    if (!cacheControl.includes('max-age=31536000') || !cacheControl.includes('immutable')) {
-      problems.push(
-        `${assetUrl}: Cache-Control is "${cacheControl || '(missing)'}", expected it to contain both "max-age=31536000" and "immutable"`,
-      );
+    if (assetRes) {
+      console.log(`check-headers: GET ${assetUrl} -> ${assetRes.status}`);
+      const cacheControl = assetRes.headers.get('cache-control') ?? '';
+      if (!cacheControl.includes('max-age=31536000') || !cacheControl.includes('immutable')) {
+        problems.push(
+          `${assetUrl}: Cache-Control is "${cacheControl || '(missing)'}", expected it to contain both "max-age=31536000" and "immutable"`,
+        );
+      }
+      const body = Buffer.from(await assetRes.arrayBuffer());
+      const mismatch = hashMismatch(assetPath, body);
+      if (mismatch) {
+        problems.push(`${assetUrl}: ${mismatch}`);
+      }
     }
-    const body = Buffer.from(await assetRes.arrayBuffer());
-    const mismatch = hashMismatch(assetPath, body);
-    if (mismatch) {
-      problems.push(`${assetUrl}: ${mismatch}`);
+    const homeCacheControl = homePage.headers.get('cache-control') ?? '';
+    if (homeCacheControl.includes('max-age=31536000') || homeCacheControl.includes('immutable')) {
+      problems.push(`${baseUrl}/: Cache-Control is "${homeCacheControl}", expected it to carry neither "max-age=31536000" nor "immutable"`);
     }
-  }
-  const homeCacheControl = homePage.headers.get('cache-control') ?? '';
-  if (homeCacheControl.includes('max-age=31536000') || homeCacheControl.includes('immutable')) {
-    problems.push(`${baseUrl}/: Cache-Control is "${homeCacheControl}", expected it to carry neither "max-age=31536000" nor "immutable"`);
-  }
 
-  const homeCsp = homePage.headers.get('content-security-policy');
-  if (homeCsp) {
-    problems.push(...staleHashProblems(homeCsp, homePage.html, `${baseUrl}/`));
+    const homeCsp = homePage.headers.get('content-security-policy');
+    if (homeCsp) {
+      problems.push(...staleHashProblems(homeCsp, homePage.html, `${baseUrl}/`));
+    }
   }
 
   if (problems.length > 0) {
@@ -174,4 +238,50 @@ async function main() {
   console.log('check-headers: OK -- all responses carried the expected headers');
 }
 
-await main();
+/**
+ * B3a: wraps the whole run so any residual throw -- from a helper this file
+ * does not yet know to guard, or from a future edit that reintroduces one --
+ * becomes one final accumulated problem and a non-zero exit, rather than an
+ * uncaught rejection that skips the report entirely.
+ */
+async function main() {
+  const [, , baseUrlArg] = process.argv;
+  if (!baseUrlArg) {
+    console.error('check-headers: usage: node scripts/check-headers.mjs <base-url>');
+    process.exitCode = 1;
+    return;
+  }
+  baseUrl = baseUrlArg.replace(/\/$/, '');
+
+  try {
+    await run();
+  } catch (err) {
+    console.error(`check-headers: unhandled error: ${err.message}`);
+    process.exitCode = 1;
+  }
+}
+
+/**
+ * True when this module is being run directly (as a CLI entry point)
+ * rather than imported, e.g. by a test -- same hybrid form (B1) as
+ * scripts/check-contrast.mjs and scripts/check-links.mjs: import.meta.main
+ * where defined, falling back to a realpathSync() comparison so a
+ * symlinked checkout does not silently skip the check.
+ */
+function isEntryPoint() {
+  if (typeof import.meta.main !== 'undefined') {
+    return import.meta.main;
+  }
+  if (!process.argv[1]) {
+    return false;
+  }
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (isEntryPoint()) {
+  await main();
+}

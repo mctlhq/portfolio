@@ -757,7 +757,18 @@ function extractLocs(xml) {
  */
 async function checkSitemap() {
   const problems = [];
-  const origin = await siteOrigin();
+  // B3a: siteOrigin() throws when astro.config.mjs has no `site` -- caught
+  // here and returned as a problem instead of left to abort main() before
+  // the report prints, the same treatment scripts/check-headers.mjs applies
+  // to discoverHashedAssetPath()/discoverAstroAsset() for the identical
+  // shape of defect.
+  let origin;
+  try {
+    origin = await siteOrigin();
+  } catch (err) {
+    problems.push(err.message);
+    return problems;
+  }
 
   const indexPath = path.join(DIST_DIR, 'sitemap-index.xml');
   if (!(await fileExists(indexPath))) {

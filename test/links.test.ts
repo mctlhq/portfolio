@@ -156,8 +156,58 @@ test('resolveInternal names both candidates for an extensionless, slash-less bro
 
 test('collectHrefs extracts hrefs from <a> and <link rel="canonical">, entity-decoded', () => {
   const html = `<a href="/a?x=1&amp;y=2">x</a><link rel="canonical" href="https://dmitriimashkov.com/colophon/">`;
-  const hrefs = collectHrefs(html);
+  const { hrefs, unparsed } = collectHrefs(html);
   assert.deepEqual(hrefs, ['/a?x=1&y=2', 'https://dmitriimashkov.com/colophon/']);
+  assert.deepEqual(unparsed, []);
+});
+
+// -- B2/B2a: single-quoted, unquoted and unparseable hrefs -------------------
+
+test("collectHrefs extracts a single-quoted href", () => {
+  const html = `<a href='/single-quoted/'>x</a>`;
+  const { hrefs, unparsed } = collectHrefs(html);
+  assert.deepEqual(hrefs, ['/single-quoted/']);
+  assert.deepEqual(unparsed, []);
+});
+
+test('collectHrefs extracts an unquoted href', () => {
+  const html = `<a href=/unquoted/>x</a>`;
+  const { hrefs, unparsed } = collectHrefs(html);
+  assert.deepEqual(hrefs, ['/unquoted/']);
+  assert.deepEqual(unparsed, []);
+});
+
+test('collectHrefs reports (never drops) an <a> whose href= is unparseable by any alternative', () => {
+  // href= immediately followed by `>` -- an empty, unquoted value with
+  // nothing for the unquoted alternative to capture (it requires at least
+  // one non-delimiter character).
+  const html = `<a href=>malformed</a>`;
+  const { hrefs, unparsed } = collectHrefs(html);
+  assert.deepEqual(hrefs, []);
+  assert.equal(unparsed.length, 1);
+  assert.match(unparsed[0], /href=/);
+});
+
+test('run() counts a single-quoted and an unquoted href in checked, and reports an unparseable one by count and tag text', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'check-links-b2-fixture-'));
+  try {
+    await writeFile(
+      path.join(dir, 'index.html'),
+      `<!doctype html><html><head></head><body>
+        <a href='/colophon/'>single-quoted</a>
+        <a href=/colophon/>unquoted</a>
+        <a href=>malformed</a>
+      </body></html>`,
+      'utf8',
+    );
+    const { problems, checked } = await run({ distDir: dir, origin: ORIGIN });
+    assert.equal(checked, 2, 'the single-quoted and unquoted hrefs must both be counted in checked');
+    const problemText = problems.join('\n');
+    assert.match(problemText, /1 <a> element\(s\) with an unparseable href/);
+    assert.match(problemText, /href=/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
 
 // -- T8: canonical resolved by origin comparison, not byte equality --------
