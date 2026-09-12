@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { resolveMctlCssPath } from '../scripts/check-contrast.mjs';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const SOURCE_PATH = fileURLToPath(new URL('../src/pages/index.astro', import.meta.url));
@@ -128,7 +129,7 @@ function isolateRuleBlock(css, selector) {
 }
 
 const siteCss = readFileSync(path.join(ROOT, 'src/styles/site.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
-const mctlCss = readFileSync(path.join(ROOT, 'public/assets/mctl/mctl.css'), 'utf8');
+const mctlCss = readFileSync(await resolveMctlCssPath(), 'utf8');
 const customProperties = parseCustomProperties(mctlCss);
 
 const heroNameRule = isolateRuleBlock(siteCss, '.hero-name');

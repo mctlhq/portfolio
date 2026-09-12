@@ -6,6 +6,40 @@
  * inlined by Astro.
  */
 
+/* Metric-matched local fallback for Onest (issue #50, Q6): a preload plus
+ * this fallback is what stops the swap from moving anything, rather than
+ * font-display: optional, which would risk never showing Onest at all on a
+ * slow connection. The percentages are starting values derived from
+ * Onest's own vertical metrics against a generic sans; a Lighthouse run is
+ * the named reviewer step that confirms them (this cannot be measured in a
+ * headless clone). Declared here, not in public/assets/mctl/mctl.css: that
+ * file is SHA-256-pinned by scripts/vendor-assets.mjs and any edit to it
+ * fails the next vendor run. Arial/Helvetica Neue are macOS and Windows
+ * only, and Liberation Sans/DejaVu Sans are not guaranteed on every Linux
+ * install either -- on Android and most Linux, none of the four resolves,
+ * so `local()` falls through the whole list and the override silently does
+ * nothing there. Roboto (Android's system sans, also shipped on ChromeOS
+ * and many Linux desktops) and Noto Sans (the broadest cross-platform sans
+ * covering the rest of Linux) are added so the override actually applies
+ * outside macOS/Windows too. */
+@font-face {
+  font-family: 'Onest Fallback';
+  src:
+    local('Arial'),
+    local('Helvetica Neue'),
+    local('Liberation Sans'),
+    local('DejaVu Sans'),
+    local('Roboto'),
+    local('Noto Sans');
+  size-adjust: 96%;
+  ascent-override: 96%;
+  descent-override: 24%;
+  line-gap-override: 0%;
+}
+:root {
+  --font-display: 'Onest', 'Onest Fallback', system-ui, -apple-system, sans-serif;
+}
+
 /* Language toggle. */
 :root[data-lang='en'] .l.ru {
   display: none;
@@ -181,7 +215,7 @@ pre,
 .hero-name {
   font-family: var(--font-display);
   font-weight: var(--mctl-typography-font-weight-bold);
-  font-size: var(--mctl-typography-font-size-hero);
+  font-size: min(var(--mctl-typography-font-size-hero), calc(var(--content-max) / 9.6));
   line-height: var(--mctl-typography-line-height-hero);
   letter-spacing: var(--mctl-typography-letter-spacing-hero);
   margin-block: var(--mctl-space-6) var(--mctl-space-4);
@@ -421,6 +455,34 @@ main a:hover {
   .cycle-node text {
     font-size: 13px;
   }
+  /* The wide variant's boxes are 130 units wide; a Russian label one step
+   * smaller keeps the longest label (Мерж шефердом) inside its box with
+   * padding to spare (test/cycle-diagram.test.ts encodes the arithmetic). */
+  :root[data-lang='ru'] .cycle-wide .cycle-node text {
+    font-size: 12px;
+  }
+}
+
+/* Approach page: the dashed-outline legend, visible below the diagram
+ * without opening a disclosure. The swatch is a CSS-drawn box, not a third
+ * inline <svg> -- it costs nothing against the 12288-byte SVG budget and
+ * keeps the component's single-<svg>-per-variant shape (test/approach.test.ts).
+ * No animation or transition (test/a11y.test.ts). */
+.cycle-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--mctl-space-2);
+  margin-block-start: var(--mctl-space-3);
+  color: var(--surface-fg-muted);
+  font-size: var(--mctl-typography-font-size-sm);
+}
+.cycle-legend-swatch {
+  display: inline-block;
+  flex: none;
+  inline-size: var(--mctl-space-4);
+  block-size: var(--mctl-space-4);
+  border: 2px dashed var(--accent);
+  border-radius: var(--mctl-radius-sm);
 }
 
 /* Tap targets: every interactive element on the page is at least 44px tall
