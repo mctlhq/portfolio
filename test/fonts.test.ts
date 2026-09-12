@@ -88,6 +88,169 @@ function collectFaceRules(css: string): { family: string; weight: number }[] {
   return rules;
 }
 
+// -- A2: family-aware weight resolution -------------------------------------
+// The check above only proves "this weight is reachable from *some*
+// family" -- JetBrains Mono 600/700 (pruned in #65, absent from FAMILIES in
+// scripts/vendor-assets.mjs) could vanish from fonts.css entirely and the
+// assertion above would stay green as long as Onest still declares a weight
+// 600/700 face. This resolves each rule's *own* font-family (literal stack
+// or a var(--font-*) chain through site.css then mctl.css) alongside its
+// font-weight, and checks the (family, weight) pair specifically. A rule
+// that declares a font-weight but no font-family in its own block keeps the
+// family-blind assertion (A2b) -- full per-selector cascade resolution is
+// out of reach for a source-level test, so coverage strictly increases
+// rather than replacing what already holds.
+
+interface CssRule {
+  selectors: string[];
+  declarations: string;
+  sourceIndex: number;
+}
+
+/** Modelled on test/link-cascade.test.ts's / test/work.test.ts's
+ * parseTopLevelRules: strips comments, skips @media blocks, and returns
+ * every other top-level `selector { body }` rule in source order. */
+function parseTopLevelRules(cssText: string): CssRule[] {
+  const css = cssText.replace(/\/\*[\s\S]*?\*\//g, '');
+  const rules: CssRule[] = [];
+  let i = 0;
+  let sourceIndex = 0;
+
+  function skipBlock(openBraceIndex: number): number {
+    let depth = 0;
+    let j = openBraceIndex;
+    for (; j < css.length; j += 1) {
+      if (css[j] === '{') depth += 1;
+      else if (css[j] === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          j += 1;
+          break;
+        }
+      }
+    }
+    return j;
+  }
+
+  while (i < css.length) {
+    while (i < css.length && /\s/.test(css[i])) i += 1;
+    if (i >= css.length) break;
+
+    if (css.startsWith('@media', i)) {
+      const braceIdx = css.indexOf('{', i);
+      if (braceIdx === -1) break;
+      i = skipBlock(braceIdx);
+      continue;
+    }
+
+    const braceIdx = css.indexOf('{', i);
+    if (braceIdx === -1) break;
+    const selectorText = css.slice(i, braceIdx).trim();
+    const closeIdx = skipBlock(braceIdx);
+    const declarations = css.slice(braceIdx + 1, closeIdx - 1);
+    const selectors = selectorText
+      .split(',')
+      .map((s) => s.trim().replace(/\s+/g, ' '))
+      .filter((s) => s.length > 0);
+    rules.push({ selectors, declarations, sourceIndex });
+    sourceIndex += 1;
+    i = closeIdx;
+  }
+
+  return rules;
+}
+
+/** Parses `--name: value;` custom-property declarations out of a CSS text
+ * into a Map, first declaration wins. */
+function parseCustomProperties(css: string): Map<string, string> {
+  const map = new Map<string, string>();
+  const re = /(--[a-zA-Z0-9-]+)\s*:\s*([^;]+);/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(css))) {
+    if (!map.has(m[1])) map.set(m[1], m[2].trim());
+  }
+  return map;
+}
+
+/** Resolves a `font-family` declaration's raw value to its first family
+ * name: a `var(--font-*)` chain resolved against `siteMap` first, falling
+ * back to `mctlMap` (mirroring test/home.test.ts's D1 convention: site.css
+ * is the declaration the page applies; mctl.css is the fallback), or the
+ * literal stack itself when the value is not a bare var() reference.
+ * Returns `null` when the chain cannot be resolved to a literal (an
+ * undeclared or circular custom property) -- the caller treats that the
+ * same as "no family declared", never as a false positive. */
+function resolveFamilyName(rawValue: string, siteMap: Map<string, string>, mctlMap: Map<string, string>): string | null {
+  let current = rawValue.trim();
+  const seen = new Set<string>();
+  for (;;) {
+    const varMatch = current.match(/^var\(\s*(--[a-zA-Z0-9-]+)\s*\)$/);
+    if (!varMatch) break;
+    const name = varMatch[1];
+    if (seen.has(name)) return null;
+    seen.add(name);
+    if (siteMap.has(name)) {
+      current = siteMap.get(name)!.trim();
+    } else if (mctlMap.has(name)) {
+      current = mctlMap.get(name)!.trim();
+    } else {
+      return null;
+    }
+  }
+  const first = current.split(',')[0]?.trim().replace(/^['"]|['"]$/g, '');
+  return first || null;
+}
+
+interface FamilyWeightPair {
+  family: string;
+  weight: number;
+}
+
+/** For every top-level rule in `css` that declares a numeric `font-weight`
+ * (literal or resolved via `weightTokens`), resolves the *same rule's own*
+ * `font-family` (if any) via `resolveFamilyName`. Returns the resolved
+ * `(family, weight)` pairs plus the set of weights whose rule declared no
+ * family at all (or an unresolvable one) -- callers check the former against
+ * `collectFaceRules()`'s exact pairs, and keep the family-blind assertion for
+ * the latter. */
+function collectFamilyWeightPairs(
+  css: string,
+  weightTokens: Map<string, number>,
+  siteMap: Map<string, string>,
+  mctlMap: Map<string, string>,
+): { pairs: FamilyWeightPair[]; blindWeights: Set<number> } {
+  const pairs: FamilyWeightPair[] = [];
+  const blindWeights = new Set<number>();
+  for (const rule of parseTopLevelRules(css)) {
+    const weightMatch = rule.declarations.match(/font-weight:\s*([^;]+);/);
+    if (!weightMatch) continue;
+    const raw = weightMatch[1].trim();
+    let weight: number | null = null;
+    if (/^\d+$/.test(raw)) {
+      weight = Number(raw);
+    } else {
+      const varMatch = raw.match(/^var\((--[\w-]+)\)$/);
+      if (varMatch && weightTokens.has(varMatch[1])) {
+        weight = weightTokens.get(varMatch[1])!;
+      }
+    }
+    if (weight === null) continue;
+
+    const familyMatch = rule.declarations.match(/font-family:\s*([^;]+);/);
+    if (!familyMatch) {
+      blindWeights.add(weight);
+      continue;
+    }
+    const family = resolveFamilyName(familyMatch[1], siteMap, mctlMap);
+    if (family === null) {
+      blindWeights.add(weight);
+      continue;
+    }
+    pairs.push({ family, weight });
+  }
+  return { pairs, blindWeights };
+}
+
 test('the generated fonts.css declares exactly the three vendored families, Instrument Serif among them', () => {
   const families = new Set(collectFaceRules(fontsCss).map((r) => r.family));
   assert.deepEqual([...families].sort(), ['Instrument Serif', 'JetBrains Mono', 'Onest'].sort());
@@ -117,6 +280,83 @@ test('every numeric font-weight reachable from site.css and the vendored mctl/gl
   assert.ok(reachableWeights.size > 0, 'expected at least one resolved font-weight token to be reachable');
   const missing = [...reachableWeights].filter((w) => !faceWeights.has(w));
   assert.deepEqual(missing, [], `font-weight(s) with no matching @font-face in fonts.css: ${missing.join(', ')}`);
+});
+
+// A2: family-aware. A rule that resolves its own font-family alongside a
+// numeric font-weight must have a matching (family, weight) @font-face in
+// fonts.css, not merely a face at that weight under any family -- the gap
+// the test above cannot see (JetBrains Mono 600/700 could vanish while
+// Onest still declares 600/700, and the family-blind check above would stay
+// green).
+test('every (family, weight) pair a rule declares together in site.css/mctl/global/prose has a matching @font-face in fonts.css; rules with no family in their own block keep the family-blind assertion', () => {
+  const weightTokens = collectWeightTokens(vendoredCssFiles[0]);
+  const siteMap = parseCustomProperties(stripComments(siteCss));
+  const mctlMap = parseCustomProperties(vendoredCssFiles[0]);
+  const faceRules = collectFaceRules(fontsCss);
+  const faceWeights = new Set(faceRules.map((r) => r.weight));
+  const facePairKeys = new Set(faceRules.map((r) => `${r.family} ${r.weight}`));
+
+  let sawAtLeastOnePair = false;
+  for (const css of [stripComments(siteCss), ...vendoredCssFiles]) {
+    const { pairs, blindWeights } = collectFamilyWeightPairs(css, weightTokens, siteMap, mctlMap);
+    for (const { family, weight } of pairs) {
+      sawAtLeastOnePair = true;
+      assert.ok(
+        facePairKeys.has(`${family} ${weight}`),
+        `expected fonts.css to declare an @font-face for family "${family}" at weight ${weight}`,
+      );
+    }
+    for (const weight of blindWeights) {
+      assert.ok(faceWeights.has(weight), `expected fonts.css to declare some @font-face at weight ${weight}`);
+    }
+  }
+  assert.ok(sawAtLeastOnePair, 'expected at least one rule to resolve both a font-family and a font-weight in its own block');
+});
+
+test('A2a mutation: a synthetic rule declaring font-family: var(--font-mono); font-weight: 600 is reported (JetBrains Mono 600 was pruned)', () => {
+  const weightTokens = collectWeightTokens(vendoredCssFiles[0]);
+  const siteMap = parseCustomProperties(stripComments(siteCss));
+  const mctlMap = parseCustomProperties(vendoredCssFiles[0]);
+  const faceRules = collectFaceRules(fontsCss);
+  const facePairKeys = new Set(faceRules.map((r) => `${r.family} ${r.weight}`));
+
+  const syntheticCss = `.synthetic { font-family: var(--font-mono); font-weight: var(--mctl-typography-font-weight-semibold); }`;
+  const { pairs } = collectFamilyWeightPairs(syntheticCss, weightTokens, siteMap, mctlMap);
+  assert.equal(pairs.length, 1);
+  assert.equal(pairs[0].family, 'JetBrains Mono');
+  assert.equal(pairs[0].weight, 600);
+  assert.ok(
+    !facePairKeys.has(`${pairs[0].family} ${pairs[0].weight}`),
+    `expected fonts.css to NOT declare JetBrains Mono at weight 600 (pruned in #65) -- the mutation case is vacuous otherwise`,
+  );
+});
+
+test('A2a control: the same synthetic rule at weight 500 (medium) is not reported', () => {
+  const weightTokens = collectWeightTokens(vendoredCssFiles[0]);
+  const siteMap = parseCustomProperties(stripComments(siteCss));
+  const mctlMap = parseCustomProperties(vendoredCssFiles[0]);
+  const faceRules = collectFaceRules(fontsCss);
+  const facePairKeys = new Set(faceRules.map((r) => `${r.family} ${r.weight}`));
+
+  const syntheticCss = `.synthetic { font-family: var(--font-mono); font-weight: var(--mctl-typography-font-weight-medium); }`;
+  const { pairs } = collectFamilyWeightPairs(syntheticCss, weightTokens, siteMap, mctlMap);
+  assert.equal(pairs.length, 1);
+  assert.equal(pairs[0].family, 'JetBrains Mono');
+  assert.equal(pairs[0].weight, 500);
+  assert.ok(
+    facePairKeys.has(`${pairs[0].family} ${pairs[0].weight}`),
+    `expected fonts.css to declare JetBrains Mono at weight 500`,
+  );
+});
+
+test('A2b control: a rule declaring font-weight with no font-family in its own block is treated as family-blind, not dropped', () => {
+  const weightTokens = collectWeightTokens(vendoredCssFiles[0]);
+  const siteMap = parseCustomProperties(stripComments(siteCss));
+  const mctlMap = parseCustomProperties(vendoredCssFiles[0]);
+  const syntheticCss = `.synthetic { font-weight: var(--mctl-typography-font-weight-bold); }`;
+  const { pairs, blindWeights } = collectFamilyWeightPairs(syntheticCss, weightTokens, siteMap, mctlMap);
+  assert.deepEqual(pairs, []);
+  assert.ok(blindWeights.has(700));
 });
 
 test('public/assets/fonts/ contains exactly the 28 vendored woff2 files, with the pruned weights (Onest 300, JetBrains Mono 600 and 700) absent from disk', () => {

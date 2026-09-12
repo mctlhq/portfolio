@@ -37,6 +37,9 @@ async function makeTreeCopy(): Promise<string> {
   await cp(path.join(ROOT, 'src/data/assets.json'), path.join(tmp, 'src/data/assets.json'));
   await mkdir(path.join(tmp, 'src/styles'), { recursive: true });
   await cp(path.join(ROOT, 'src/styles/site.css'), path.join(tmp, 'src/styles/site.css'));
+  // scripts/vendor-assets.mjs imports src/lib/content-hash.ts (A3a) --
+  // the copy needs it too, at the same relative path.
+  await cp(path.join(ROOT, 'src/lib'), path.join(tmp, 'src/lib'), { recursive: true });
   return tmp;
 }
 
@@ -78,6 +81,31 @@ test('mutant: vendor-assets.mjs rejects a fonts.css missing one @font-face block
   const tmp = await makeTreeCopy();
   try {
     await deleteOneFontFaceBlock(tmp);
+    const result = runVendorOffline(tmp);
+    assert.equal(result.status, 1, `expected exit 1, got ${result.status}; stdout: ${result.stdout}`);
+    assert.match(result.stderr, /vendor: no valid existing tree/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+/** Appends one byte to a hashed .woff2 file in the copied tree, keeping its
+ * filename (and therefore its embedded hash segment) unchanged -- a
+ * name/bytes divergence, the exact shape A3a's fix exists to reject.
+ * Located through the copy's own src/data/assets.json.preload, which always
+ * names at least one hashed .woff2. */
+async function corruptOnePreloadedWoff2(tmp: string): Promise<void> {
+  const manifest = JSON.parse(await readFile(path.join(tmp, 'src/data/assets.json'), 'utf8'));
+  const href = Object.values(manifest.preload)[0] as string;
+  const filePath = path.join(tmp, 'public', href.replace(/^\/+/, ''));
+  const original = await readFile(filePath);
+  await writeFile(filePath, Buffer.concat([original, Buffer.from([0x00])]));
+}
+
+test('mutant: vendor-assets.mjs rejects a hashed .woff2 whose bytes no longer match its own name', async () => {
+  const tmp = await makeTreeCopy();
+  try {
+    await corruptOnePreloadedWoff2(tmp);
     const result = runVendorOffline(tmp);
     assert.equal(result.status, 1, `expected exit 1, got ${result.status}; stdout: ${result.stdout}`);
     assert.match(result.stderr, /vendor: no valid existing tree/);

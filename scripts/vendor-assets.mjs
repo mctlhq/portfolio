@@ -555,14 +555,28 @@ async function nonEmptyFile(p) {
   }
 }
 
+/** Non-emptiness plus content-addressing (A3a): true only when `p` exists,
+ * is non-empty, and its bytes hash to the 8-hex segment embedded in its own
+ * filename -- via the same `hashMismatch()` predicate
+ * scripts/check-dist.mjs and scripts/check-headers.mjs share. A name/bytes
+ * divergence here would otherwise ship an `immutable`-cached URL over
+ * content that does not match it. */
+async function nonEmptyHashedFile(p) {
+  if (!(await nonEmptyFile(p))) return false;
+  const bytes = await readFile(p);
+  return hashMismatch(path.basename(p), bytes) === null;
+}
+
 function publicPathForHref(href) {
   return path.join(PUBLIC_DIR, href.replace(/^\/+/, ''));
 }
 
 /** Used only when the network step fails: is the tree already on disk (from
  * a previous, committed vendor run) complete and valid? Validates against
- * `src/data/assets.json` -- every href it names resolves to a non-empty
- * file, plus the licence and MCTL_VERSION first-line checks -- rather than
+ * `src/data/assets.json` -- every href it names resolves to a non-empty file
+ * whose bytes hash to the 8-hex segment embedded in its own name (A3a: a
+ * committed tree is not "valid" merely because a file of that name exists),
+ * plus the licence and MCTL_VERSION first-line checks -- rather than
  * reconstructing filenames from FAMILIES, since the manifest (not the
  * family table) is what Base.astro and nginx actually consume. Per-font-file
  * coverage (every woff2 fonts.css references, not just the four preloaded
@@ -584,10 +598,10 @@ async function verifyExistingTree() {
   if (!manifest.preload || typeof manifest.preload !== 'object') return false;
 
   for (const href of manifest.styles) {
-    if (typeof href !== 'string' || !(await nonEmptyFile(publicPathForHref(href)))) return false;
+    if (typeof href !== 'string' || !(await nonEmptyHashedFile(publicPathForHref(href)))) return false;
   }
   for (const href of Object.values(manifest.preload)) {
-    if (typeof href !== 'string' || !(await nonEmptyFile(publicPathForHref(href)))) return false;
+    if (typeof href !== 'string' || !(await nonEmptyHashedFile(publicPathForHref(href)))) return false;
   }
 
   // styles[0] is mctl.css by construction (see vendorMctl()); its first
@@ -618,7 +632,7 @@ async function verifyExistingTree() {
   let fontUrlCount = 0;
   while ((fontUrlMatch = fontUrlRe.exec(fontsCss))) {
     fontUrlCount++;
-    if (!(await nonEmptyFile(publicPathForHref(fontUrlMatch[1])))) return false;
+    if (!(await nonEmptyHashedFile(publicPathForHref(fontUrlMatch[1])))) return false;
   }
   const expectedFontFileCount = FAMILIES.reduce(
     (sum, fam) => sum + fam.weights.length * fam.styles.length * fam.subsets.length,

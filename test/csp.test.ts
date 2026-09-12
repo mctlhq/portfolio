@@ -115,6 +115,31 @@ test('staleHashProblems names both the expected and the found token for a stale 
   assert.match(joined, /EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE=/);
 });
 
+// -- A1: a guard that reports success without having checked anything ------
+// staleHashProblems() must not return [] merely because it found zero
+// inline <script> bodies to hash -- that shape (an "OK" that never compared
+// a hash) is exactly what let portfolio#45 ship a CSP that disabled the
+// site's only script while this guard stayed green.
+
+test('staleHashProblems reports a problem naming the label when the HTML has no <script> element at all', () => {
+  const noScriptHtml = '<!doctype html><html><head></head><body><p>no script here</p></body></html>';
+  const problems = staleHashProblems(csp(TOKEN), noScriptHtml, 'my-label');
+  assert.ok(problems.length > 0);
+  assert.match(problems.join('\n'), /my-label: CSP hash was not compared -- no inline <script> body found/);
+});
+
+test('staleHashProblems reports a problem when the HTML has only <script src="..."> (no inline body)', () => {
+  const externalOnlyHtml =
+    '<!doctype html><html><head><script src="/foo.js"></script></head><body></body></html>';
+  const problems = staleHashProblems(csp(TOKEN), externalOnlyHtml, 'my-label');
+  assert.ok(problems.length > 0);
+  assert.match(problems.join('\n'), /my-label: CSP hash was not compared -- no inline <script> body found/);
+});
+
+test('staleHashProblems still returns [] for the existing single-inline-script fixture', () => {
+  assert.deepEqual(staleHashProblems(csp(TOKEN), FIXTURE_HTML, 'label'), []);
+});
+
 // -- T4: generator contract ---------------------------------------------------
 
 test('hashToken output starts and ends with a single quote', () => {

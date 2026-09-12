@@ -13,6 +13,7 @@
 // still carries all six [now eight] headers".
 
 import { scriptSrcHashProblems, staleHashProblems } from '../src/lib/csp.ts';
+import { hashMismatch } from '../src/lib/content-hash.ts';
 
 const [, , baseUrlArg] = process.argv;
 if (!baseUrlArg) {
@@ -123,22 +124,34 @@ async function main() {
 
   // Cache lifetime (issue #50, Q6): a hashed /assets/ path answers with a
   // year plus immutable, and / -- which keeps its existing, un-hashed
-  // cache policy -- carries neither directive.
+  // cache policy -- carries neither directive. A3c: GETs the body (not just
+  // HEADs it) and compares contentHash8(body) to the hash segment embedded
+  // in the URL, so a byte-content-hash divergence at runtime -- not just a
+  // shape-valid URL -- fails this check too. This is a second request
+  // against the local container only; it opens no external socket.
   const assetPath = discoverHashedAssetPath(homePage.html);
-  const assetUrl = `${baseUrl}${assetPath}`;
   let assetRes;
-  try {
-    assetRes = await fetch(assetUrl, { method: 'HEAD' });
-  } catch (err) {
-    problems.push(`${assetUrl}: request failed: ${err.message}`);
+  let assetUrl;
+  if (assetPath) {
+    assetUrl = `${baseUrl}${assetPath}`;
+    try {
+      assetRes = await fetch(assetUrl);
+    } catch (err) {
+      problems.push(`${assetUrl}: request failed: ${err.message}`);
+    }
   }
   if (assetRes) {
-    console.log(`check-headers: HEAD ${assetUrl} -> ${assetRes.status}`);
+    console.log(`check-headers: GET ${assetUrl} -> ${assetRes.status}`);
     const cacheControl = assetRes.headers.get('cache-control') ?? '';
     if (!cacheControl.includes('max-age=31536000') || !cacheControl.includes('immutable')) {
       problems.push(
         `${assetUrl}: Cache-Control is "${cacheControl || '(missing)'}", expected it to contain both "max-age=31536000" and "immutable"`,
       );
+    }
+    const body = Buffer.from(await assetRes.arrayBuffer());
+    const mismatch = hashMismatch(assetPath, body);
+    if (mismatch) {
+      problems.push(`${assetUrl}: ${mismatch}`);
     }
   }
   const homeCacheControl = homePage.headers.get('cache-control') ?? '';

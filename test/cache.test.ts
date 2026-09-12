@@ -8,10 +8,11 @@
 
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
+import { HASHED_NAME_RE, hashMismatch } from '../src/lib/content-hash.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const nginxConf = readFileSync(path.join(ROOT, 'nginx.conf'), 'utf8');
@@ -96,4 +97,38 @@ test('src/data/assets.json.styles is ordered mctl, global, prose, fonts, site', 
     return m ? m[1] : href;
   });
   assert.deepEqual(names, ['mctl', 'global', 'prose', 'fonts', 'site']);
+});
+
+// A3: the #66 tests above only cover the 9 hrefs src/data/assets.json names
+// (5 styles + 4 preload). The 24 .woff2 files that only fonts.<hash>.css
+// references, and fonts.<hash>.css itself, sit outside that set -- a
+// diverged byte in any of them would carry nginx's year-long immutable
+// Cache-Control on stale content and nothing above would catch it. This
+// walks every content-hashed file actually committed under public/assets/
+// and checks each one against its own name, using the same predicate
+// scripts/vendor-assets.mjs, scripts/check-dist.mjs and
+// scripts/check-headers.mjs share via src/lib/content-hash.ts.
+function walkFiles(dir: string): string[] {
+  const entries = readdirSync(dir, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...walkFiles(full));
+    } else if (entry.isFile()) {
+      files.push(full);
+    }
+  }
+  return files;
+}
+
+test('every content-hashed file under public/assets/ hashes to its own name (24 .woff2 files and fonts.<hash>.css included)', () => {
+  const assetsDir = path.join(ROOT, 'public/assets');
+  const hashedFiles = walkFiles(assetsDir).filter((f) => HASHED_NAME_RE.test(path.basename(f)));
+  assert.ok(hashedFiles.length >= 29, `expected at least 29 hashed files under public/assets/, found ${hashedFiles.length}`);
+  for (const file of hashedFiles) {
+    const bytes = readFileSync(file);
+    const mismatch = hashMismatch(path.basename(file), bytes);
+    assert.equal(mismatch, null, mismatch ?? undefined);
+  }
 });
