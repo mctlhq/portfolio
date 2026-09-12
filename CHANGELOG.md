@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.12](https://github.com/mctlhq/portfolio/compare/0.1.11...0.1.12) (2026-09-12)
+
+
+### Features
+
+* **agents:** issue-55-q2-content-link-contrast-footer-and-colo ([c6f32cd](https://github.com/mctlhq/portfolio/commit/c6f32cd288bdee548de6e1ebb28e5704c772e98e))
+* **agents:** issue-55-q2-content-link-contrast-footer-and-colo ([f1fc0fb](https://github.com/mctlhq/portfolio/commit/f1fc0fb4785429a6318a6531e320af374d4b3767))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-55-q2-content-link-contrast-footer-and-colo ([f7b35fb](https://github.com/mctlhq/portfolio/commit/f7b35fb697b1b915e40a43879d08d20a46ce49bb))
+* **agents:** address P1/P2 codex findings on issue-55-q2-content-link-contrast-footer-and-colo ([a469921](https://github.com/mctlhq/portfolio/commit/a469921fe6ca3fa9498045c4d36459c6e6e5f16e))
+* **agents:** address P1/P2 codex findings on issue-55-q2-content-link-contrast-footer-and-colo ([8b28f7d](https://github.com/mctlhq/portfolio/commit/8b28f7d86eef5fbd5b80f79add449bea50e0215a))
+* **agents:** address P1/P2 codex findings on issue-55-q2-content-link-contrast-footer-and-colo ([8f68eb2](https://github.com/mctlhq/portfolio/commit/8f68eb2a133f2ab10c38e49d3dca3a08b5cba1bb))
+* **agents:** address P1/P2 codex findings on issue-55-q2-content-link-contrast-footer-and-colo ([9e57019](https://github.com/mctlhq/portfolio/commit/9e57019dde0b3dec9773cb97b43bc918e5d07219))
+
 ## [0.1.11](https://github.com/mctlhq/portfolio/compare/0.1.10...0.1.11) (2026-09-11)
 
 
