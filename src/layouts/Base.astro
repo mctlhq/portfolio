@@ -1,6 +1,8 @@
 ---
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import Lang from '../i18n/Lang.astro';
+import { ui } from '../i18n/ui';
 
 interface Props {
   title: string;
@@ -44,8 +46,11 @@ const ogImageUrl = new URL('/og.svg', Astro.site);
     <meta name="twitter:image" content={ogImageUrl.href} />
   </head>
   <body>
+    <a class="skip-link" href="#main"><Lang en={ui.skipToContent.en} ru={ui.skipToContent.ru} /></a>
     <Nav />
-    <slot />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
     <Footer />
   </body>
 </html>

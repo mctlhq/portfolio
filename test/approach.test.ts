@@ -40,6 +40,19 @@ test('stripping heading tag names leaves the rendered markup with no digit', () 
   assert.doesNotMatch(stripped, /\d/);
 });
 
+test('approach.astro renders exactly three <Details tags, exactly one carrying open, bound to ui.detailsGatesSummary, and none carrying heading', () => {
+  const detailsTagRe = /<Details\b[^>]*(?:\/>|>)/g;
+  const detailsTags = approach.match(detailsTagRe) ?? [];
+  assert.equal(detailsTags.length, 3, 'expected exactly three <Details tags on approach.astro');
+
+  const withOpen = detailsTags.filter((tag) => /\bopen\b/.test(tag));
+  assert.equal(withOpen.length, 1, 'expected exactly one <Details tag to carry open');
+  assert.match(withOpen[0], /summaryEn=\{ui\.detailsGatesSummary\.en\}/, 'the open block must be bound to ui.detailsGatesSummary');
+
+  const withHeading = detailsTags.filter((tag) => /\bheading\b/.test(tag));
+  assert.equal(withHeading.length, 0, 'no <Details tag on approach.astro should carry heading');
+});
+
 test('neither approach.astro nor CycleDiagram.astro references --font-editorial', () => {
   assert.doesNotMatch(approach, /--font-editorial/);
   assert.doesNotMatch(diagram, /--font-editorial/);

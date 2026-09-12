@@ -1,11 +1,9 @@
 ---
 import Lang from '../i18n/Lang.astro';
 import { ui } from '../i18n/ui';
-
-const groupLabel = `${ui.themeToggleLabel.en} / ${ui.themeToggleLabel.ru}`;
 ---
 
-<div class="toggle-group t dark" aria-label={groupLabel}>
+<div class="toggle-group t dark" role="group" aria-labelledby="theme-toggle-label">
   <button type="button" data-set-theme="dark" aria-pressed="true">
     <Lang en={ui.themeDark.en} ru={ui.themeDark.ru} />
   </button>
@@ -13,7 +11,7 @@ const groupLabel = `${ui.themeToggleLabel.en} / ${ui.themeToggleLabel.ru}`;
     <Lang en={ui.themeLight.en} ru={ui.themeLight.ru} />
   </button>
 </div>
-<div class="toggle-group t light" aria-label={groupLabel}>
+<div class="toggle-group t light" role="group" aria-labelledby="theme-toggle-label">
   <button type="button" data-set-theme="dark" aria-pressed="false">
     <Lang en={ui.themeDark.en} ru={ui.themeDark.ru} />
   </button>
@@ -21,6 +19,7 @@ const groupLabel = `${ui.themeToggleLabel.en} / ${ui.themeToggleLabel.ru}`;
     <Lang en={ui.themeLight.en} ru={ui.themeLight.ru} />
   </button>
 </div>
+<span id="theme-toggle-label" class="visually-hidden"><Lang en={ui.themeToggleLabel.en} ru={ui.themeToggleLabel.ru} /></span>
 <noscript>
   <p><Lang en={ui.themeNoScript.en} ru={ui.themeNoScript.ru} /></p>
 </noscript>

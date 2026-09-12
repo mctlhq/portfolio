@@ -72,11 +72,81 @@ pre,
 .site-nav a:hover {
   color: var(--accent);
 }
+/* Current-page marking (Nav.astro derives aria-current from
+ * Astro.url.pathname at build time; matched on attribute presence so both
+ * "page" and "true" hit). Colour and underline together, so colour is never
+ * the sole indicator. */
+.site-nav a[aria-current] {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  text-decoration-thickness: 2px;
+}
+
+/* Skip link: the first focusable element in <body>, clipped out of layout
+ * until it receives focus. No animation or transition (test/a11y.test.ts). */
+.skip-link {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.skip-link:focus {
+  position: fixed;
+  inset-block-start: var(--mctl-space-2);
+  inset-inline-start: var(--mctl-space-2);
+  inline-size: auto;
+  block-size: auto;
+  margin: 0;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding-inline: var(--mctl-space-4);
+  background: var(--surface-elevated);
+  color: var(--surface-fg);
+  border: 1px solid var(--surface-line);
+  border-radius: var(--mctl-radius-md);
+}
+
+/* Breadcrumb (journal and ADR pages). Separators come from CSS only, so no
+ * screen reader announces them. */
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mctl-space-2);
+  list-style: none;
+  margin: 0 0 var(--mctl-space-3);
+  padding: 0;
+  font-size: var(--mctl-typography-font-size-sm);
+}
+.breadcrumb li + li::before {
+  content: '/';
+  margin-inline-end: var(--mctl-space-2);
+  color: var(--surface-fg-muted);
+}
 
 /* Toggle groups. */
 .toggle-group {
   display: inline-flex;
   gap: var(--mctl-space-2);
+}
+.toggle-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mctl-space-4);
+  padding-block: var(--mctl-space-4);
+}
+.toggle-bar noscript {
+  flex-basis: 100%;
 }
 .toggle-group button {
   font: inherit;
@@ -192,6 +262,11 @@ pre,
   min-block-size: 44px;
   padding-block: var(--mctl-space-3);
   display: list-item;
+}
+.block > summary h2 {
+  display: inline;
+  font: inherit;
+  margin: 0;
 }
 .block ul {
   margin: 0;

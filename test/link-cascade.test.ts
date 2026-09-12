@@ -278,15 +278,23 @@ for (const base of BASES) {
 
 // -- T2: Nav and Footer render outside the element receiving <slot /> ------
 
-test('Base.astro renders <Nav />, <slot /> and <Footer /> as direct siblings inside <body>, not nested', () => {
+test('Base.astro renders <Nav />, the <main> wrapping <slot />, and <Footer /> as direct siblings inside <body>', () => {
+  // Since issue #49 (Q5), <main id="main" tabindex="-1"> is hoisted into
+  // Base.astro (so the skip link's target and the per-page <main> landmark
+  // come from one place), so <slot /> is no longer a bare sibling of <Nav />
+  // and <Footer /> -- it is the sole child of <main>. The cascade-safety
+  // property this test guards still holds under that structure: <Nav />'s
+  // <header class="site-nav"> and <Footer />'s <footer class="site-footer">
+  // remain outside <main>, as direct siblings of it, so `main a` can never
+  // also match an anchor inside `.site-nav` or `.site-footer`.
   const source = readFileSync(BASE_ASTRO_PATH, 'utf8');
   const bodyMatch = source.match(/<body[^>]*>([\s\S]*?)<\/body>/);
   assert.ok(bodyMatch, 'Base.astro has no <body>...</body> block');
   const bodyContent = bodyMatch![1];
   assert.match(
     bodyContent,
-    /^\s*<Nav\s*\/>\s*<slot\s*\/>\s*<Footer\s*\/>\s*$/,
-    'expected <body> to contain exactly <Nav />, <slot /> and <Footer /> as siblings with nothing wrapping <slot />; ' +
+    /<a\s+class="skip-link"[^>]*>[\s\S]*?<\/a>\s*<Nav\s*\/>\s*<main\s+id="main"\s+tabindex="-1">\s*<slot\s*\/>\s*<\/main>\s*<Footer\s*\/>\s*/,
+    'expected <body> to contain the skip link, then <Nav />, then <main id="main" tabindex="-1"><slot /></main>, then <Footer /> as siblings, with nothing else wrapping <slot /> other than that one <main>; ' +
       'main a can only stay out of .site-nav a / .site-footer a while this structural fact holds',
   );
 });

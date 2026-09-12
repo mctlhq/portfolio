@@ -177,6 +177,20 @@ async function checkApproachPage() {
     problems.push(`check-dist: no <svg> with a "cycle-narrow" class found in ${path.relative(ROOT, approachPath)}; the ${NARROW_MAX_VIEWBOX_WIDTH}px narrow-viewBox cap was not checked`);
   }
 
+  const openDetailsCount = countDetailsOpen(html);
+  if (openDetailsCount !== 1) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, approachPath)} has ${openDetailsCount} <details open> element(s), expected exactly 1 (the Gates block)`,
+    );
+  }
+
+  const summaryH2Count = countOccurrences(html, '<summary><h2');
+  if (summaryH2Count !== 0) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, approachPath)} has ${summaryH2Count} "<summary><h2" opening(s), expected exactly 0 (approach's disclosure summaries carry no heading)`,
+    );
+  }
+
   return { problems, svgBytes };
 }
 
@@ -228,6 +242,123 @@ async function checkHomePage() {
     problems.push(
       `check-dist: <title> in ${path.relative(ROOT, indexPath)} contains a Cyrillic character; the browser tab must stay Latin regardless of data-lang`,
     );
+  }
+
+  const openDetailsCount = countDetailsOpen(html);
+  if (openDetailsCount !== 1) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, indexPath)} has ${openDetailsCount} <details open> element(s), expected exactly 1 (the Contact block)`,
+    );
+  }
+
+  const summaryH2Count = countOccurrences(html, '<summary><h2');
+  if (summaryH2Count !== 3) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, indexPath)} has ${summaryH2Count} "<summary><h2" opening(s), expected exactly 3`,
+    );
+  }
+
+  return problems;
+}
+
+/**
+ * Counts `<details ...open...>` elements in built markup: `open` renders as
+ * a bare boolean attribute (no `="..."` value), so this looks for `open` as
+ * its own token inside a `<details` opening tag rather than matching the
+ * literal substring `open` anywhere (which would also match e.g. a future
+ * class name).
+ */
+function countDetailsOpen(html) {
+  const tags = html.match(/<details\b[^>]*>/g) ?? [];
+  return tags.filter((tag) => /\bopen\b/.test(tag)).length;
+}
+
+/**
+ * Returns the { href, value } that the .site-nav anchor for the current page
+ * must carry, or null when no anchor should carry aria-current at all (the
+ * 404 page). Mirrors the current(href) derivation in
+ * src/components/Nav.astro: an exact path match gets 'page'; a
+ * /colophon/journal/<id>/ or /colophon/adr/<id>/ page is under the Colophon
+ * prefix without being it, so the Colophon anchor gets 'true'.
+ */
+function expectedNavCurrent(rel) {
+  if (rel === 'index.html') return { href: '/', value: 'page' };
+  if (rel === path.join('work', 'index.html')) return { href: '/work/', value: 'page' };
+  if (rel === path.join('approach', 'index.html')) return { href: '/approach/', value: 'page' };
+  if (rel === path.join('colophon', 'index.html')) return { href: '/colophon/', value: 'page' };
+  if (
+    rel.startsWith(`${path.join('colophon', 'journal')}${path.sep}`) ||
+    rel.startsWith(`${path.join('colophon', 'adr')}${path.sep}`)
+  ) {
+    return { href: '/colophon/', value: 'true' };
+  }
+  return null;
+}
+
+/**
+ * Checks issue #49 (Q5) navigation-state invariants against one built page:
+ * the hoisted <main id="main" tabindex="-1">, a #main skip link before the
+ * first <nav, that exactly the anchor expectedNavCurrent() names (and no
+ * other) carries aria-current inside .site-nav, with the exact value it
+ * names (zero anchors on the 404 page), and no aria-label value mixing a
+ * Latin and a Cyrillic letter -- with one named exemption for the
+ * .table-scroll region on dist/colophon/index.html, which this cycle does
+ * not touch.
+ */
+function checkNavigationState(html, rel) {
+  const problems = [];
+
+  if (!/<main\s+id="main"\s+tabindex="-1">/.test(html)) {
+    problems.push(`check-dist: ${rel} is missing <main id="main" tabindex="-1">`);
+  }
+
+  const skipLinkIndex = html.indexOf('href="#main"');
+  const firstNavIndex = html.indexOf('<nav');
+  if (skipLinkIndex === -1) {
+    problems.push(`check-dist: ${rel} has no href="#main" skip link`);
+  } else if (firstNavIndex === -1 || skipLinkIndex > firstNavIndex) {
+    problems.push(`check-dist: ${rel} skip link (href="#main") does not occur before the first <nav`);
+  }
+
+  const siteNavMatch = html.match(/<nav\s+class="site-nav"[^>]*>[\s\S]*?<\/nav>/);
+  if (!siteNavMatch) {
+    problems.push(`check-dist: ${rel} has no <nav class="site-nav"> element`);
+  } else {
+    const currentAnchors = [...siteNavMatch[0].matchAll(/<a\b([^>]*)>/g)].filter(([, attrs]) =>
+      /\baria-current="/.test(attrs),
+    );
+    const expected = expectedNavCurrent(rel);
+    const expectedCount = expected ? 1 : 0;
+    if (currentAnchors.length !== expectedCount) {
+      problems.push(
+        `check-dist: ${rel} has ${currentAnchors.length} aria-current attribute(s) inside .site-nav, expected ${expectedCount}`,
+      );
+    } else if (expected) {
+      const attrs = currentAnchors[0][1];
+      const hrefMatch = attrs.match(/\bhref="([^"]*)"/);
+      const valueMatch = attrs.match(/\baria-current="([^"]*)"/);
+      if (!hrefMatch || hrefMatch[1] !== expected.href) {
+        problems.push(
+          `check-dist: ${rel} carries aria-current on the anchor with href="${hrefMatch?.[1] ?? '(missing)'}" inside .site-nav, expected it on href="${expected.href}"`,
+        );
+      }
+      if (!valueMatch || valueMatch[1] !== expected.value) {
+        problems.push(
+          `check-dist: ${rel} has aria-current="${valueMatch?.[1] ?? '(missing)'}" inside .site-nav, expected aria-current="${expected.value}"`,
+        );
+      }
+    }
+  }
+
+  let scanHtml = html;
+  if (rel === path.join('colophon', 'index.html')) {
+    scanHtml = html.replace(/<div\s+class="table-scroll"[^>]*>[\s\S]*?<\/div>/g, '');
+  }
+  for (const match of scanHtml.matchAll(/aria-label="([^"]*)"/g)) {
+    const value = match[1];
+    if (/[A-Za-z]/.test(value) && /[\u0400-\u04ff]/.test(value)) {
+      problems.push(`check-dist: ${rel} has an aria-label mixing a Latin and a Cyrillic letter: "${value}"`);
+    }
   }
 
   return problems;
@@ -308,6 +439,40 @@ async function fileExists(file) {
   } catch {
     return false;
   }
+}
+
+/**
+ * Checks the breadcrumb (issue #49, Q5) on one built journal or ADR page:
+ * src/components/Breadcrumb.astro renders a <nav class="breadcrumb"> with an
+ * <ol> of exactly three <li> items -- a link to "/", a link to "/colophon/",
+ * and a non-link current entry carrying aria-current="page" -- and nothing
+ * else in the check suite verifies this component's rendered output.
+ */
+function checkBreadcrumb(html, rel) {
+  const problems = [];
+  const navMatch = html.match(/<nav\s+class="breadcrumb"[^>]*>[\s\S]*?<\/nav>/);
+  if (!navMatch) {
+    problems.push(`check-dist: ${rel} has no <nav class="breadcrumb"> element`);
+    return problems;
+  }
+  const items = [...navMatch[0].matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => m[1]);
+  if (items.length !== 3) {
+    problems.push(`check-dist: ${rel} breadcrumb has ${items.length} <li> item(s), expected exactly 3`);
+    return problems;
+  }
+  if (!/<a\s+href="\/"/.test(items[0])) {
+    problems.push(`check-dist: ${rel} breadcrumb's first item is not a link to "/"`);
+  }
+  if (!/<a\s+href="\/colophon\/"/.test(items[1])) {
+    problems.push(`check-dist: ${rel} breadcrumb's second item is not a link to "/colophon/"`);
+  }
+  if (/<a\b/.test(items[2])) {
+    problems.push(`check-dist: ${rel} breadcrumb's third item is a link, expected a non-link current entry`);
+  }
+  if (!/<span\s+aria-current="page"/.test(items[2])) {
+    problems.push(`check-dist: ${rel} breadcrumb's third item is missing aria-current="page"`);
+  }
+  return problems;
 }
 
 /**
@@ -409,6 +574,14 @@ async function checkColophonPages(allFiles) {
       problems.push(...checkFooter(html, rel, pkgVersion));
     }
     problems.push(...checkMainLandmark(html, rel));
+
+    const distRel = path.relative(DIST_DIR, file);
+    if (
+      distRel.startsWith(`${path.join('colophon', 'journal')}${path.sep}`) ||
+      distRel.startsWith(`${path.join('colophon', 'adr')}${path.sep}`)
+    ) {
+      problems.push(...checkBreadcrumb(html, rel));
+    }
 
     for (const match of html.matchAll(SUBRESOURCE_RE)) {
       const [full, tag, url] = match;
@@ -560,12 +733,24 @@ async function main() {
   }
   for (const file of htmlFiles) {
     const html = await readFile(file, 'utf8');
+    const rel = path.relative(DIST_DIR, file);
     const enCount = countOccurrences(html, 'class="l en"');
     const ruCount = countOccurrences(html, 'class="l ru"');
     if (enCount !== ruCount) {
       problems.push(
         `check-dist: ${path.relative(ROOT, file)} has ${enCount} occurrences of class="l en" but ${ruCount} of class="l ru"`,
       );
+    }
+
+    problems.push(...checkNavigationState(html, rel));
+
+    if (rel === path.join('work', 'index.html')) {
+      const summaryH2Count = countOccurrences(html, '<summary><h2');
+      if (summaryH2Count !== 0) {
+        problems.push(
+          `check-dist: ${rel} has ${summaryH2Count} "<summary><h2" opening(s), expected exactly 0 (work.astro's disclosures carry no heading)`,
+        );
+      }
     }
   }
 

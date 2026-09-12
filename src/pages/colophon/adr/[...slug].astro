@@ -1,6 +1,7 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import Lang from '../../../i18n/Lang.astro';
+import Breadcrumb from '../../../components/Breadcrumb.astro';
 import { ui } from '../../../i18n/ui';
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import { publicEntries } from '../../../lib/content';
@@ -43,24 +44,23 @@ const description = clampDescription(
   title={`ADR-${padAdrId(entry.data.id)}: ${entry.data.title.en} — Dmitrii Mashkov`}
   description={description}
 >
-  <main>
-    <h1>ADR-{padAdrId(entry.data.id)}: <Lang en={entry.data.title.en} ru={entry.data.title.ru} /></h1>
+  <Breadcrumb currentEn={`ADR-${padAdrId(entry.data.id)}`} currentRu={`ADR-${padAdrId(entry.data.id)}`} />
+  <h1>ADR-{padAdrId(entry.data.id)}: <Lang en={entry.data.title.en} ru={entry.data.title.ru} /></h1>
+  <p class="adr-meta">
+    <Lang en={statusLabel.en} ru={statusLabel.ru} /> · {entry.data.date}
+  </p>
+  {supersededEntry && (
     <p class="adr-meta">
-      <Lang en={statusLabel.en} ru={statusLabel.ru} /> · {entry.data.date}
+      <Lang en={ui.adrSupersedesLabel.en} ru={ui.adrSupersedesLabel.ru} />{': '}
+      <a href={`/colophon/adr/${supersededEntry.id}/`}>
+        ADR-{padAdrId(supersededEntry.data.id)}
+      </a>
     </p>
-    {supersededEntry && (
-      <p class="adr-meta">
-        <Lang en={ui.adrSupersedesLabel.en} ru={ui.adrSupersedesLabel.ru} />{': '}
-        <a href={`/colophon/adr/${supersededEntry.id}/`}>
-          ADR-{padAdrId(supersededEntry.data.id)}
-        </a>
-      </p>
-    )}
+  )}
 
-    <div class="mctl-prose">
-      <Content />
-    </div>
+  <div class="mctl-prose">
+    <Content />
+  </div>
 
-    <p><a href="/colophon/"><Lang en={ui.adrBackToColophon.en} ru={ui.adrBackToColophon.ru} /></a></p>
-  </main>
+  <p><a href="/colophon/"><Lang en={ui.adrBackToColophon.en} ru={ui.adrBackToColophon.ru} /></a></p>
 </Base>

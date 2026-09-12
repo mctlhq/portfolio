@@ -23,21 +23,19 @@ const products = inGroup('product');
   title={ui.workPageTitle.en}
   description="Platform services and products built through the DevLoop, each with its stack, its repository and the snapshot metrics behind it."
 >
-  <main>
-    <h1><Lang en={ui.navWork.en} ru={ui.navWork.ru} /></h1>
+  <h1><Lang en={ui.navWork.en} ru={ui.navWork.ru} /></h1>
 
-    <section>
-      <h2><Lang en={ui.workGroupPlatform.en} ru={ui.workGroupPlatform.ru} /></h2>
-      {platform.map((entry) => (
-        <ProjectCard en={entry} ru={ru.get(entry.data.slug)!} />
-      ))}
-    </section>
+  <section>
+    <h2><Lang en={ui.workGroupPlatform.en} ru={ui.workGroupPlatform.ru} /></h2>
+    {platform.map((entry) => (
+      <ProjectCard en={entry} ru={ru.get(entry.data.slug)!} />
+    ))}
+  </section>
 
-    <section>
-      <h2><Lang en={ui.workGroupProducts.en} ru={ui.workGroupProducts.ru} /></h2>
-      {products.map((entry) => (
-        <ProjectCard en={entry} ru={ru.get(entry.data.slug)!} />
-      ))}
-    </section>
-  </main>
+  <section>
+    <h2><Lang en={ui.workGroupProducts.en} ru={ui.workGroupProducts.ru} /></h2>
+    {products.map((entry) => (
+      <ProjectCard en={entry} ru={ru.get(entry.data.slug)!} />
+    ))}
+  </section>
 </Base>

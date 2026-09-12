@@ -36,6 +36,9 @@ export const ui = {
   navApproach: { en: 'Approach', ru: 'Подход' },
   navColophon: { en: 'Colophon', ru: 'Колофон' },
 
+  skipToContent: { en: 'Skip to content', ru: 'Перейти к содержимому' },
+  breadcrumbLabel: { en: 'Breadcrumb', ru: 'Навигационная цепочка' },
+
   langToggleLabel: { en: 'Language', ru: 'Язык' },
   langEn: { en: 'EN', ru: 'EN' },
   langRu: { en: 'RU', ru: 'RU' },
@@ -80,6 +83,7 @@ export const ui = {
 
   ctaWork: { en: 'See the work', ru: 'Смотреть работы' },
   ctaColophon: { en: 'How this site is built', ru: 'Как сделан этот сайт' },
+  ctasLabel: { en: 'Page shortcuts', ru: 'Быстрые ссылки' },
 
   detailsRunSummary: { en: 'What I run', ru: 'Что я эксплуатирую' },
   detailsWorkSummary: { en: 'How I work', ru: 'Как я работаю' },

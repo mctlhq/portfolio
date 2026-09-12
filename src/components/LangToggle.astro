@@ -1,11 +1,9 @@
 ---
 import Lang from '../i18n/Lang.astro';
 import { ui } from '../i18n/ui';
-
-const groupLabel = `${ui.langToggleLabel.en} / ${ui.langToggleLabel.ru}`;
 ---
 
-<div class="toggle-group l en" aria-label={groupLabel}>
+<div class="toggle-group l en" role="group" aria-labelledby="lang-toggle-label">
   <button type="button" data-set-lang="en" aria-pressed="true">
     <Lang en={ui.langEn.en} ru={ui.langEn.ru} />
   </button>
@@ -13,7 +11,7 @@ const groupLabel = `${ui.langToggleLabel.en} / ${ui.langToggleLabel.ru}`;
     <Lang en={ui.langRu.en} ru={ui.langRu.ru} />
   </button>
 </div>
-<div class="toggle-group l ru" aria-label={groupLabel}>
+<div class="toggle-group l ru" role="group" aria-labelledby="lang-toggle-label">
   <button type="button" data-set-lang="en" aria-pressed="false">
     <Lang en={ui.langEn.en} ru={ui.langEn.ru} />
   </button>
@@ -21,6 +19,7 @@ const groupLabel = `${ui.langToggleLabel.en} / ${ui.langToggleLabel.ru}`;
     <Lang en={ui.langRu.en} ru={ui.langRu.ru} />
   </button>
 </div>
+<span id="lang-toggle-label" class="visually-hidden"><Lang en={ui.langToggleLabel.en} ru={ui.langToggleLabel.ru} /></span>
 <noscript>
   <p><Lang en={ui.langNoScript.en} ru={ui.langNoScript.ru} /></p>
 </noscript>

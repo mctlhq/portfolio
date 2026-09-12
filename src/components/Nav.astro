@@ -4,16 +4,21 @@ import LangToggle from './LangToggle.astro';
 import ThemeToggle from './ThemeToggle.astro';
 import { ui } from '../i18n/ui';
 
-const navLabel = `${ui.navLabel.en} / ${ui.navLabel.ru}`;
+const here = Astro.url.pathname.endsWith('/') ? Astro.url.pathname : `${Astro.url.pathname}/`;
+const current = (href: string) =>
+  here === href ? 'page' : href !== '/' && here.startsWith(href) ? 'true' : undefined;
 ---
 
 <header class="site-header">
-  <nav class="site-nav" aria-label={navLabel}>
-    <a href="/"><Lang en={ui.navHome.en} ru={ui.navHome.ru} /></a>
-    <a href="/work/"><Lang en={ui.navWork.en} ru={ui.navWork.ru} /></a>
-    <a href="/approach/"><Lang en={ui.navApproach.en} ru={ui.navApproach.ru} /></a>
-    <a href="/colophon/"><Lang en={ui.navColophon.en} ru={ui.navColophon.ru} /></a>
+  <span id="nav-label" class="visually-hidden"><Lang en={ui.navLabel.en} ru={ui.navLabel.ru} /></span>
+  <nav class="site-nav" aria-labelledby="nav-label">
+    <a href="/" aria-current={current('/')}><Lang en={ui.navHome.en} ru={ui.navHome.ru} /></a>
+    <a href="/work/" aria-current={current('/work/')}><Lang en={ui.navWork.en} ru={ui.navWork.ru} /></a>
+    <a href="/approach/" aria-current={current('/approach/')}><Lang en={ui.navApproach.en} ru={ui.navApproach.ru} /></a>
+    <a href="/colophon/" aria-current={current('/colophon/')}><Lang en={ui.navColophon.en} ru={ui.navColophon.ru} /></a>
   </nav>
-  <LangToggle />
-  <ThemeToggle />
+  <div class="toggle-bar">
+    <LangToggle />
+    <ThemeToggle />
+  </div>
 </header>

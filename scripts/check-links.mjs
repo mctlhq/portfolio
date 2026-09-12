@@ -69,8 +69,8 @@ export function collectHrefs(html) {
  * trailing slash):
  *
  *   - `{ kind: 'fragment' }` -- a bare `#...` href, which resolves to the
- *     current document; not verified further (no `href="#..."` exists on
- *     the site today, per the proposal's open questions).
+ *     current document; not verified further. The skip link's `href="#main"`
+ *     (issue #49, Q5) is this classification's one occurrence on the site.
  *   - `{ kind: 'skipped', reason: 'mailto' | 'other-scheme' | 'off-origin' }`
  *     -- `mailto:`, any other non-`http(s)` scheme, or an absolute
  *     `http(s)` URL whose origin differs from `origin`.
