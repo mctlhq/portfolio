@@ -4,18 +4,18 @@ import { ui } from '../i18n/ui';
 import pkg from '../../package.json';
 
 // package.json's version -- bumped by release-please on every release -- is
-// the release source behind the data-release hook.
+// the release source behind the data-release hook and the tag URL.
+// release-please-config.json sets include-v-in-tag:false and
+// include-component-in-tag:false, so the tag path is the bare semver.
+const releaseTagUrl = `https://github.com/mctlhq/portfolio/releases/tag/${pkg.version}`;
 ---
 
 <footer class="site-footer">
-  <a href="https://github.com/mctlhq">
+  <a href="https://github.com/mctlhq/portfolio">
     <Lang en={ui.footerGithubLabel.en} ru={ui.footerGithubLabel.ru} />
   </a>
   <a href="/colophon/">
     <Lang en={ui.footerColophonLabel.en} ru={ui.footerColophonLabel.ru} />
   </a>
-  <span>
-    <Lang en={ui.footerReleaseLabel.en} ru={ui.footerReleaseLabel.ru} />:
-    <span data-release>{pkg.version}</span>
-  </span>
+  <span><Lang en={ui.footerReleaseLabel.en} ru={ui.footerReleaseLabel.ru} />{' '}<a href={releaseTagUrl} data-release>{pkg.version}</a></span>
 </footer>
