@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.18](https://github.com/mctlhq/portfolio/compare/0.1.17...0.1.18) (2026-09-12)
+
+
+### Features
+
+* **agents:** issue-68-q8-backfill-the-five-missing-journal-ent ([4098039](https://github.com/mctlhq/portfolio/commit/40980392e63c31e549f794b8cd230ff973b0edc7))
+* **agents:** issue-68-q8-backfill-the-five-missing-journal-ent ([971aebe](https://github.com/mctlhq/portfolio/commit/971aebe0692621944a4d7facc255a403413e7266))
+
 ## [0.1.17](https://github.com/mctlhq/portfolio/compare/0.1.16...0.1.17) (2026-09-12)
 
 
