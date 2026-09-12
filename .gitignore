@@ -11,7 +11,11 @@ dist/
 # Astro never inlines it, which the CSP forbids.
 /public/styles/
 
-# Build-only Onest TTF buffers scripts/render-og.mjs needs (converted from
-# the pinned @fontsource/onest WOFF1 entries by scripts/vendor-assets.mjs).
-# Never served -- resvg-wasm reads them directly off disk at build time.
-/scripts/fonts/
+# scripts/fonts/ (the build-only Onest TTF buffers scripts/render-og.mjs
+# needs) is intentionally NOT ignored: those two files are committed, the
+# same way public/assets/fonts/*.woff2 is, so the offline build path
+# documented at the top of scripts/vendor-assets.mjs actually holds. They
+# are only ever regenerated -- byte-identically, since they are derived from
+# the same SHA-256-pinned tarball -- when the network step of `npm run
+# vendor` succeeds; scripts/vendor-assets.mjs's verifyExistingTree() treats
+# a missing or empty file here as an invalid tree.

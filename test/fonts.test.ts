@@ -6,7 +6,7 @@
 // test/home.test.ts.
 
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
@@ -30,16 +30,43 @@ function stripComments(css: string): string {
   return css.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
-/** Collects every numeric `font-weight: <n>;` value declared anywhere in
- * `css` (a selector-agnostic scan -- matching the check-no-metrics/
- * check-contrast style in this repo of reading raw declarations rather
- * than building a full CSS parser). */
-function collectFontWeights(css: string): Set<number> {
-  const weights = new Set<number>();
-  const re = /font-weight:\s*(\d+)\s*;/g;
+/** Collects every `--mctl-typography-font-weight-*: <n>;` custom property
+ * declared in `css`, keyed by the property name including its leading
+ * `--`. `font-weight` is never set to a literal digit anywhere in this
+ * codebase -- every declaration reads one of these tokens via `var(...)` --
+ * so resolving them is required for `collectFontWeights` below to see
+ * anything at all. */
+function collectWeightTokens(css: string): Map<string, number> {
+  const tokens = new Map<string, number>();
+  const re = /(--mctl-typography-font-weight-[\w-]+):\s*(\d+)\s*;/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(css))) {
-    weights.add(Number(m[1]));
+    tokens.set(m[1], Number(m[2]));
+  }
+  return tokens;
+}
+
+/** Collects every numeric `font-weight` value declared anywhere in `css`,
+ * resolving `font-weight: var(--mctl-typography-font-weight-*);` against
+ * `tokens` (a literal `font-weight: <n>;` is also accepted, in case one is
+ * ever added directly). Without token resolution this scan matches nothing
+ * in this repo -- font-weight is always set through a token -- and the
+ * "reachable weight" test below would pass vacuously regardless of which
+ * families/weights fonts.css actually declares. */
+function collectFontWeights(css: string, tokens: Map<string, number>): Set<number> {
+  const weights = new Set<number>();
+  const re = /font-weight:\s*([^;]+);/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(css))) {
+    const raw = m[1].trim();
+    if (/^\d+$/.test(raw)) {
+      weights.add(Number(raw));
+      continue;
+    }
+    const varMatch = raw.match(/^var\((--[\w-]+)\)$/);
+    if (varMatch && tokens.has(varMatch[1])) {
+      weights.add(tokens.get(varMatch[1])!);
+    }
   }
   return weights;
 }
@@ -76,14 +103,44 @@ test('every numeric font-weight reachable from site.css and the vendored mctl/gl
   // declared by *some* face in fonts.css -- the mechanical proxy this
   // repository can check without per-selector font-family resolution
   // (test/home.test.ts already proves .hero-name's family chain resolves
-  // to Onest specifically).
+  // to Onest specifically). font-weight is always set via a
+  // --mctl-typography-font-weight-* token (mctl.css defines the tokens;
+  // site.css/prose.css consume them), never a literal digit, so the tokens
+  // must be resolved first -- without this, the scan below matches nothing
+  // and the assertion passes regardless of what fonts.css declares.
+  const tokens = collectWeightTokens(vendoredCssFiles[0]);
   const faceWeights = new Set(collectFaceRules(fontsCss).map((r) => r.weight));
   const reachableWeights = new Set<number>();
   for (const css of [stripComments(siteCss), ...vendoredCssFiles]) {
-    for (const w of collectFontWeights(css)) reachableWeights.add(w);
+    for (const w of collectFontWeights(css, tokens)) reachableWeights.add(w);
   }
+  assert.ok(reachableWeights.size > 0, 'expected at least one resolved font-weight token to be reachable');
   const missing = [...reachableWeights].filter((w) => !faceWeights.has(w));
   assert.deepEqual(missing, [], `font-weight(s) with no matching @font-face in fonts.css: ${missing.join(', ')}`);
+});
+
+test('public/assets/fonts/ contains exactly the 28 vendored woff2 files, with the pruned weights (Onest 300, JetBrains Mono 600 and 700) absent from disk', () => {
+  // The two tests above only look at fonts.css's own content, so a stale or
+  // partially-reverted FAMILIES table that still emits the old 40-face CSS
+  // (or that leaves an orphaned file the pruned CSS no longer references)
+  // would not be caught. This checks the actual committed files.
+  const fontsDir = path.join(ROOT, 'public/assets/fonts');
+  const woff2Files = readdirSync(fontsDir).filter((f) => f.endsWith('.woff2'));
+  assert.equal(
+    woff2Files.length,
+    28,
+    `expected exactly 28 vendored woff2 files, found ${woff2Files.length}: ${woff2Files.join(', ')}`,
+  );
+  const prunedPatterns = [
+    /^onest-[a-z-]+-300-normal\./,
+    /^jetbrains-mono-[a-z-]+-600-normal\./,
+    /^jetbrains-mono-[a-z-]+-700-normal\./,
+  ];
+  for (const file of woff2Files) {
+    for (const pattern of prunedPatterns) {
+      assert.ok(!pattern.test(file), `pruned weight file still present on disk: ${file}`);
+    }
+  }
 });
 
 test('Base.astro renders exactly four rel="preload" font links, each with as="font", type="font/woff2" and crossorigin', () => {

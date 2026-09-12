@@ -14,14 +14,23 @@
  * the named reviewer step that confirms them (this cannot be measured in a
  * headless clone). Declared here, not in public/assets/mctl/mctl.css: that
  * file is SHA-256-pinned by scripts/vendor-assets.mjs and any edit to it
- * fails the next vendor run. */
+ * fails the next vendor run. Arial/Helvetica Neue are macOS and Windows
+ * only, and Liberation Sans/DejaVu Sans are not guaranteed on every Linux
+ * install either -- on Android and most Linux, none of the four resolves,
+ * so `local()` falls through the whole list and the override silently does
+ * nothing there. Roboto (Android's system sans, also shipped on ChromeOS
+ * and many Linux desktops) and Noto Sans (the broadest cross-platform sans
+ * covering the rest of Linux) are added so the override actually applies
+ * outside macOS/Windows too. */
 @font-face {
   font-family: 'Onest Fallback';
   src:
     local('Arial'),
     local('Helvetica Neue'),
     local('Liberation Sans'),
-    local('DejaVu Sans');
+    local('DejaVu Sans'),
+    local('Roboto'),
+    local('Noto Sans');
   size-adjust: 96%;
   ascent-override: 96%;
   descent-override: 24%;

@@ -563,7 +563,15 @@ function publicPathForHref(href) {
  * `src/data/assets.json` -- every href it names resolves to a non-empty
  * file, plus the licence and MCTL_VERSION first-line checks -- rather than
  * reconstructing filenames from FAMILIES, since the manifest (not the
- * family table) is what Base.astro and nginx actually consume. */
+ * family table) is what Base.astro and nginx actually consume. Per-font-file
+ * coverage (every woff2 fonts.css references, not just the four preloaded
+ * ones) is restored by reading fonts.css itself -- styles[3] by construction
+ * (see main()) -- rather than reconstructing filenames from FAMILIES, which
+ * is the same manifest-driven posture the rest of this function already
+ * takes. This also covers scripts/render-og.mjs's two build-only Onest
+ * TTFs: without them, `npm run build`'s render-og.mjs step fails even
+ * though this offline path reports success, so an existing tree is not
+ * "complete" without them either. */
 async function verifyExistingTree() {
   let manifest;
   try {
@@ -586,8 +594,32 @@ async function verifyExistingTree() {
   const firstLine = (await readFile(publicPathForHref(manifest.styles[0]), 'utf8')).split('\n')[0] ?? '';
   if (!firstLine.includes(MCTL_VERSION)) return false;
 
+  // styles[3] is the generated fonts.css by construction (see main()).
+  // Every `url(...)` it declares must also resolve on disk -- this is what
+  // covers the 24 font files (JetBrains Mono, Instrument Serif, and the
+  // non-preloaded Onest weights) that the manifest itself never names.
+  let fontsCss;
+  try {
+    fontsCss = await readFile(publicPathForHref(manifest.styles[3]), 'utf8');
+  } catch {
+    return false;
+  }
+  const fontUrlRe = /url\('([^']+)'\)/g;
+  let fontUrlMatch;
+  let fontUrlCount = 0;
+  while ((fontUrlMatch = fontUrlRe.exec(fontsCss))) {
+    fontUrlCount++;
+    if (!(await nonEmptyFile(publicPathForHref(fontUrlMatch[1])))) return false;
+  }
+  if (fontUrlCount === 0) return false;
+
   for (const fam of FAMILIES) {
     if (!(await nonEmptyFile(path.join(LICENSES_DIR, `${fam.slug}.txt`)))) return false;
+  }
+
+  for (const weight of OG_RENDER_WEIGHTS) {
+    const ttfPath = path.join(SCRIPT_FONTS_DIR, `onest-latin-${weight}-normal.ttf`);
+    if (!(await nonEmptyFile(ttfPath))) return false;
   }
 
   return true;
