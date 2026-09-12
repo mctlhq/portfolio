@@ -237,6 +237,6 @@ async function main() {
   console.log('check-links: OK -- every internal href resolved to a file under dist/');
 }
 
-if (import.meta.main) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   await main();
 }
