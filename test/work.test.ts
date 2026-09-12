@@ -32,24 +32,29 @@ const CHIP_LITERALS = [
 
 /**
  * Removes `<!-- ... -->`, `/* ... *\/` and `// ...` comments so a chip named
- * only inside a comment cannot fail the anchored literal check below.
+ * only inside a comment cannot fail the anchored literal check below. The
+ * line-comment pass excludes a `//` immediately preceded by `:` so a
+ * protocol like `https://` inside a string literal is not mistaken for the
+ * start of a comment and does not swallow the rest of the line.
  */
 function stripComments(source: string): string {
   return source
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/.*$/gm, '');
+    .replace(/(?<!:)\/\/.*$/gm, '');
 }
 
 /**
  * True when `literal` appears in `source` anchored as a quoted string
- * literal (`'`, `"`, backtick) or as element text (preceded by `>`), and
- * closed the same way (or followed by `<`) -- i.e. hard-coded, not merely
- * mentioned in prose or a comment.
+ * literal (`'`, `"`, backtick) or as element text anywhere between a `>`
+ * and the next `<` -- i.e. hard-coded, not merely mentioned in prose or a
+ * comment.
  */
 function hasAnchoredLiteral(source: string, literal: string): boolean {
   const escaped = literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const pattern = new RegExp(`(?:'|"|\`|>)\\s*${escaped}\\s*(?:'|"|\`|<)`);
+  const pattern = new RegExp(
+    `['"\`]\\s*${escaped}\\s*['"\`]|>[^<]*\\b${escaped}\\b[^<]*<`,
+  );
   return pattern.test(stripComments(source));
 }
 
@@ -76,14 +81,56 @@ test('hasAnchoredLiteral control: a literal mentioned only in a comment does not
   const lineComment = "// TypeScript is used here\nconst x = 1;";
   const blockComment = "/* TypeScript is used here */\nconst x = 1;";
   const htmlComment = "<!-- TypeScript is used here -->\n<div>x</div>";
-  assert.ok(!hasAnchoredLiteral(lineComment, 'TypeScript'));
-  assert.ok(!hasAnchoredLiteral(blockComment, 'TypeScript'));
-  assert.ok(!hasAnchoredLiteral(htmlComment, 'TypeScript'));
+  assert.ok(!hasAnchoredLiteral(lineComment, 'TypeScript'), 'a literal inside a line comment must not be reported');
+  assert.ok(!hasAnchoredLiteral(blockComment, 'TypeScript'), 'a literal inside a block comment must not be reported');
+  assert.ok(!hasAnchoredLiteral(htmlComment, 'TypeScript'), 'a literal inside an HTML comment must not be reported');
 });
 
 test('hasAnchoredLiteral control: a hard-coded literal is caught', () => {
   const source = 'const stack = ["TypeScript"];';
-  assert.ok(hasAnchoredLiteral(source, 'TypeScript'));
+  assert.ok(hasAnchoredLiteral(source, 'TypeScript'), 'a quoted string literal must be reported');
+});
+
+test('stripComments control: a `//` inside a string (e.g. a URL) is not treated as a line comment', () => {
+  const source = 'const repo = "https://example.com"; const stack = ["TypeScript"];';
+  assert.ok(
+    hasAnchoredLiteral(source, 'TypeScript'),
+    'a literal after an unrelated // inside a string must still be reported',
+  );
+});
+
+test('hasAnchoredLiteral mutation: a literal as element text among other words is caught', () => {
+  const source = '<span class="chip">Built with TypeScript today</span>';
+  assert.ok(
+    hasAnchoredLiteral(source, 'TypeScript'),
+    'a literal surrounded by other words as element text must be reported',
+  );
+});
+
+test('hasAnchoredLiteral mutation: a literal inside an interpolated template expression is caught', () => {
+  const source = "const x = `stack: ${'PostgreSQL'}`;";
+  assert.ok(
+    hasAnchoredLiteral(source, 'PostgreSQL'),
+    'a literal inside a quoted template interpolation must be reported',
+  );
+});
+
+test('hasAnchoredLiteral mutation: a literal only inside a line comment is not reported', () => {
+  const source = '// TypeScript is used here\nconst x = 1;';
+  assert.ok(
+    !hasAnchoredLiteral(source, 'TypeScript'),
+    'a comment-only occurrence must not be reported',
+  );
+});
+
+test('hasAnchoredLiteral mutation: a source containing none of the seven chip literals reports nothing', () => {
+  const source = '<p>This project uses Python and Rust.</p>';
+  for (const literal of CHIP_LITERALS) {
+    assert.ok(
+      !hasAnchoredLiteral(source, literal),
+      `"${literal}" must not be reported in a source that does not contain it`,
+    );
+  }
 });
 
 test('neither file references --font-editorial', () => {
