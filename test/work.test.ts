@@ -32,13 +32,16 @@ const CHIP_LITERALS = [
 
 /**
  * Removes `<!-- ... -->`, `/* ... *\/` and `// ...` comments so a chip named
- * only inside a comment cannot fail the anchored literal check below.
+ * only inside a comment cannot fail the anchored literal check below. The
+ * line-comment pass excludes a `//` immediately preceded by `:` so a
+ * protocol like `https://` inside a string literal is not mistaken for the
+ * start of a comment and does not swallow the rest of the line.
  */
 function stripComments(source: string): string {
   return source
     .replace(/<!--[\s\S]*?-->/g, '')
     .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/.*$/gm, '');
+    .replace(/(?<!:)\/\/.*$/gm, '');
 }
 
 /**
@@ -83,6 +86,11 @@ test('hasAnchoredLiteral control: a literal mentioned only in a comment does not
 
 test('hasAnchoredLiteral control: a hard-coded literal is caught', () => {
   const source = 'const stack = ["TypeScript"];';
+  assert.ok(hasAnchoredLiteral(source, 'TypeScript'));
+});
+
+test('stripComments control: a `//` inside a string (e.g. a URL) is not treated as a line comment', () => {
+  const source = 'const repo = "https://example.com"; const stack = ["TypeScript"];';
   assert.ok(hasAnchoredLiteral(source, 'TypeScript'));
 });
 
@@ -380,17 +388,18 @@ test('T3: ProjectCard.astro gates project-links on hasLinks and project-metrics 
   assert.match(card, /\{en\.data\.repo\s*&&\s*\(\s*<p class="project-metrics">/);
 });
 
-test('T3: ProjectCard.astro renders the private-repo chip when en.data.repo is absent', () => {
-  assert.match(card, /\{!en\.data\.repo\s*&&\s*\(/);
+test('T3: ProjectCard.astro renders the private-repo chip from an explicit privacy field, not from !repo', () => {
+  assert.match(card, /\{en\.data\.private\s*&&\s*\(/);
   assert.match(card, /ui\.workPrivateRepo\.en/);
   assert.match(card, /ui\.workPrivateRepo\.ru/);
 });
 
-test('T3: pfeifenpatenschaft-backend has neither repo: nor links: in either language file', () => {
+test('T3: pfeifenpatenschaft-backend has neither repo: nor links:, and is marked private: true, in either language file', () => {
   for (const lang of ['en', 'ru'] as const) {
     const source = readFileSync(path.join(PROJECTS_DIR, `pfeifenpatenschaft-backend.${lang}.md`), 'utf8');
     assert.doesNotMatch(source, /^repo:/m);
     assert.doesNotMatch(source, /^links:/m);
+    assert.match(source, /^private:\s*true/m);
   }
 });
 
