@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.19](https://github.com/mctlhq/portfolio/compare/0.1.18...0.1.19) (2026-09-12)
+
+
+### Features
+
+* **agents:** issue-71-q9-the-six-p3-findings-from-69-four-are ([7d90538](https://github.com/mctlhq/portfolio/commit/7d90538a9ecff466d8ac6ae35f9b1d6fa670d247))
+
+
+### Bug Fixes
+
+* **agents:** issue-71-q9-the-six-p3-findings-from-69-four-are ([01e29a5](https://github.com/mctlhq/portfolio/commit/01e29a5b4017aabe027e63419e185e2fa84cb0b0))
+
 ## [0.1.18](https://github.com/mctlhq/portfolio/compare/0.1.17...0.1.18) (2026-09-12)
 
 
