@@ -350,10 +350,6 @@ async function main() {
   console.log(`check-contrast: OK -- ${report.length} pairs checked, all at or above their minimum`);
 }
 
-if (import.meta.main === undefined) {
-  console.error('check-contrast: this Node build does not expose import.meta.main (Node >= 24.2 required); refusing to run rather than skipping the check');
-  process.exit(1);
-}
-if (import.meta.main) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   await main();
 }

@@ -262,6 +262,18 @@ function checkFooter(html, rel, pkgVersion) {
   return problems;
 }
 
+/**
+ * Asserts exactly one <main> landmark per built page.
+ */
+function checkMainLandmark(html, rel) {
+  const problems = [];
+  const count = (html.match(/<main[\s>]/gi) || []).length;
+  if (count !== 1) {
+    problems.push(`check-dist: ${rel} has ${count} <main> landmarks, expected exactly 1`);
+  }
+  return problems;
+}
+
 const JOURNAL_DIR = path.join(ROOT, 'src', 'content', 'journal');
 const ADR_DIR = path.join(ROOT, 'src', 'content', 'adr');
 const VISIBILITY_RE = /^visibility:\s*(public|private)\s*$/m;
@@ -396,6 +408,7 @@ async function checkColophonPages(allFiles) {
     if (pkgVersion !== null) {
       problems.push(...checkFooter(html, rel, pkgVersion));
     }
+    problems.push(...checkMainLandmark(html, rel));
 
     for (const match of html.matchAll(SUBRESOURCE_RE)) {
       const [full, tag, url] = match;
