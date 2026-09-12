@@ -26,7 +26,6 @@ const projectsSchema = z.strictObject({
   group: z.enum(['platform', 'product']),
   order: z.number().int().nonnegative(),
   repo: githubUrl.optional(),
-  private: z.boolean().optional(),
   stack: z.array(z.string().min(1)).min(1),
   summary: z.string().min(1).refine((s) => !s.includes('\n'), 'summary is one line'),
   links: z.array(z.strictObject({ label: z.string().min(1), url: httpsUrl })).optional(),
@@ -37,9 +36,9 @@ type ProjectData = z.infer<typeof projectsSchema>;
 /**
  * Checks that every project `slug` has exactly one `en` and one `ru` entry,
  * and that the two agree on every field that is not itself the
- * language-specific content: `group`, `order`, `repo`, `private`, `stack`
- * and each link's `url`. `name`, `summary`, `links[].label` and the body are
- * allowed to differ because they carry the language-specific text.
+ * language-specific content: `group`, `order`, `repo`, `stack` and each
+ * link's `url`. `name`, `summary`, `links[].label` and the body are allowed
+ * to differ because they carry the language-specific text.
  */
 function checkProjectParity(entries: readonly { id: string; data: ProjectData }[]): void {
   const problems: string[] = [];
@@ -63,12 +62,11 @@ function checkProjectParity(entries: readonly { id: string; data: ProjectData }[
       en[0].data.group === ru[0].data.group &&
       en[0].data.order === ru[0].data.order &&
       en[0].data.repo === ru[0].data.repo &&
-      en[0].data.private === ru[0].data.private &&
       JSON.stringify(en[0].data.stack) === JSON.stringify(ru[0].data.stack) &&
       JSON.stringify(linkUrls(en[0].data)) === JSON.stringify(linkUrls(ru[0].data));
     if (!agrees) {
       problems.push(
-        `project "${slug}": ${en[0].id}.md and ${ru[0].id}.md disagree on group, order, repo, private, stack, or links[].url`,
+        `project "${slug}": ${en[0].id}.md and ${ru[0].id}.md disagree on group, order, repo, stack, or links[].url`,
       );
     }
   }

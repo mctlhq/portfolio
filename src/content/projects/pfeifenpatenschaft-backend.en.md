@@ -4,7 +4,6 @@ lang: en
 name: "pfeifenpatenschaft-backend"
 group: product
 order: 13
-private: true
 stack: ["TypeScript", "Express", "PostgreSQL"]
 summary: "Organ-pipe sponsorship backend."
 ---
