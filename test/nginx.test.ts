@@ -59,16 +59,17 @@ test('the CSP total across both files is exactly 1', () => {
   assert.equal(total, 1);
 });
 
-test('nginx.conf includes security-headers.conf exactly once at server level and in each of the six location blocks', () => {
+test('nginx.conf includes security-headers.conf exactly once at server level and in each of the seven location blocks', () => {
   const includeRe = /include\s+\/etc\/nginx\/security-headers\.conf;/g;
   const includeCount = (nginxConf.match(includeRe) ?? []).length;
-  assert.equal(includeCount, 7, 'expected 7 includes: server level plus 6 location blocks');
+  assert.equal(includeCount, 8, 'expected 8 includes: server level plus 7 location blocks');
 
   const blocks = [
     /server\s*\{[\s\S]*?\n\}/,
     /location\s*=\s*\/healthz\s*\{[\s\S]*?\n {4}\}/,
     /location\s*=\s*\/readyz\s*\{[\s\S]*?\n {4}\}/,
     /location\s*\/_astro\/\s*\{[\s\S]*?\n {4}\}/,
+    /location\s*\/assets\/fonts\/LICENSES\/\s*\{[\s\S]*?\n {4}\}/,
     /location\s*\/assets\/\s*\{[\s\S]*?\n {4}\}/,
     /location\s*\/styles\/\s*\{[\s\S]*?\n {4}\}/,
     /location\s*\/\s*\{[\s\S]*?\n {4}\}/,
@@ -76,7 +77,7 @@ test('nginx.conf includes security-headers.conf exactly once at server level and
   // Each location block (extracted independently below) must itself carry
   // exactly one include; the server block match above is only used for the
   // total count, since its slice also contains every location block.
-  for (const label of ['= /healthz', '= /readyz', '/_astro/', '/assets/', '/styles/', '/']) {
+  for (const label of ['= /healthz', '= /readyz', '/_astro/', '/assets/fonts/LICENSES/', '/assets/', '/styles/', '/']) {
     const blockRe = new RegExp(
       `location ${label.replace(/[/]/g, '\\/')} \\{([\\s\\S]*?)\\n {4}\\}`,
     );
@@ -95,6 +96,29 @@ test('/_astro/, /assets/ and /styles/ locations each keep their own Cache-Contro
     assert.match(blockMatch![1], /add_header Cache-Control "public, immutable" always;/);
     assert.match(blockMatch![1], /try_files \$uri =404;/);
   }
+});
+
+// F1: /assets/fonts/LICENSES/ must sit outside the year-long immutable
+// block -- a licence text has to stay reachable at a stable, human-typable
+// path, and nothing on the site links to it, so it is excluded rather than
+// hashed.
+test('location /assets/fonts/LICENSES/ sits before location /assets/ (nginx longest-prefix match), sets no year-long immutable lifetime, and includes security-headers.conf exactly once', () => {
+  const licensesIdx = nginxConf.indexOf('location /assets/fonts/LICENSES/');
+  const assetsIdx = nginxConf.indexOf('location /assets/ {');
+  assert.ok(licensesIdx !== -1, 'could not find location /assets/fonts/LICENSES/ block');
+  assert.ok(assetsIdx !== -1, 'could not find location /assets/ block');
+  assert.ok(licensesIdx < assetsIdx, 'location /assets/fonts/LICENSES/ must be declared before location /assets/');
+
+  const blockRe = /location \/assets\/fonts\/LICENSES\/ \{([\s\S]*?)\n {4}\}/;
+  const match = nginxConf.match(blockRe);
+  assert.ok(match, 'could not find location /assets/fonts/LICENSES/ block');
+  const block = match![1];
+  assert.doesNotMatch(block, /immutable/);
+  assert.doesNotMatch(block, /max-age=31536000/);
+  assert.doesNotMatch(block, /expires 1y;/);
+  const includeMatches = block.match(/include\s+\/etc\/nginx\/security-headers\.conf;/g) ?? [];
+  assert.equal(includeMatches.length, 1);
+  assert.match(block, /try_files \$uri =404;/);
 });
 
 test('location / keeps error_page 404 and try_files, and carries neither expires nor add_header Cache-Control', () => {

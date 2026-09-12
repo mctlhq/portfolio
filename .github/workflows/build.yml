@@ -25,7 +25,12 @@ jobs:
       - run: npm run build
 
       - name: Vendored tree matches the commit
-        run: git diff --exit-code -- public/assets public/styles src/data/assets.json
+        # F2: public/styles is dropped from this pathspec -- .gitignore
+        # lists /public/styles/ as generated output, so it is never
+        # tracked and this git diff would always name a pathspec matching
+        # nothing tracked. src/data/assets.json's fifth styles[] entry is
+        # what pins the generated site.<hash>.css's content hash instead.
+        run: git diff --exit-code -- public/assets src/data/assets.json
 
       - run: node scripts/check-links.mjs
 

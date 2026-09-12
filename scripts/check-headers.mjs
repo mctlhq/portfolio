@@ -51,6 +51,12 @@ const ASTRO_FALLBACK_PATH = '/_astro/probe-check-headers.css';
 // header set exercised even if that markup ever changed shape.
 const STYLES_FALLBACK_PATH = '/styles/probe-check-headers.css';
 
+// F1b: onest.txt is one of the three unhashed licence texts
+// scripts/vendor-assets.mjs always vendors -- a stable, discoverable path
+// (unlike a hashed /assets/ href) to probe /assets/fonts/LICENSES/'s own
+// location block at runtime.
+const LICENSES_PROBE_PATH = '/assets/fonts/LICENSES/onest.txt';
+
 /**
  * B3a: GETs `/` and returns `{ path, expectStatus, homePage }` for the
  * `/_astro/` (or fallback) probe target, where `homePage` is
@@ -151,6 +157,7 @@ async function probeAndCheck(problems, path, expectStatus) {
     problems.push(`${url}: status is ${res.status}, expected ${expectStatus}`);
   }
   checkHeaders(url, res.headers, problems);
+  return res;
 }
 
 async function run() {
@@ -171,14 +178,31 @@ async function run() {
     { path: '/healthz', expectStatus: 200 },
     astroAsset,
     stylesAsset,
+    { path: LICENSES_PROBE_PATH, expectStatus: 200 },
     { path: '/this-path-does-not-exist-check-headers', expectStatus: 404 },
   ];
 
   // B4a: every probe's result is reported, in one flat loop, before any
   // exit -- a single failing probe (or the fetch to `/` itself failing)
   // never suppresses the rest.
+  const results = new Map();
   for (const { path: p, expectStatus } of targets) {
-    await probeAndCheck(problems, p, expectStatus);
+    const res = await probeAndCheck(problems, p, expectStatus);
+    results.set(p, res);
+  }
+
+  // F1b: onest.txt must carry the eight security headers (already asserted
+  // by checkHeaders() above, as for every other target) and must NOT carry
+  // /assets/'s year-long immutable lifetime -- the whole point of giving
+  // /assets/fonts/LICENSES/ its own, shorter-lived location block.
+  const licensesRes = results.get(LICENSES_PROBE_PATH);
+  if (licensesRes) {
+    const licensesCacheControl = licensesRes.headers.get('cache-control') ?? '';
+    if (licensesCacheControl.includes('immutable') || licensesCacheControl.includes('max-age=31536000')) {
+      problems.push(
+        `${baseUrl}${LICENSES_PROBE_PATH}: Cache-Control is "${licensesCacheControl}", expected it to carry neither "immutable" nor "max-age=31536000"`,
+      );
+    }
   }
 
   if (homePage) {

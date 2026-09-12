@@ -39,6 +39,21 @@ for (const label of ['/assets/', '/styles/']) {
   });
 }
 
+// F1: /assets/fonts/LICENSES/ -- the three unhashed licence texts -- must
+// not inherit /assets/'s year-long immutable lifetime, so a corrected
+// licence text can actually reach a reader. Excluded by a longer-prefix
+// location block rather than hashed: nothing on the site links to it, so a
+// hashed URL would be undiscoverable, and hashing it would drag
+// public/assets/fonts/LICENSES/ into pruneManaged(), which its own comment
+// deliberately excludes.
+test("nginx.conf's location /assets/fonts/LICENSES/ exists, includes security-headers.conf exactly once, and carries neither immutable nor max-age=31536000", () => {
+  const block = locationBlock('/assets/fonts/LICENSES/');
+  const includeMatches = block.match(/include\s+\/etc\/nginx\/security-headers\.conf;/g) ?? [];
+  assert.equal(includeMatches.length, 1);
+  assert.doesNotMatch(block, /immutable/);
+  assert.doesNotMatch(block, /max-age=31536000/);
+});
+
 test('nginx.conf location / carries neither expires nor add_header Cache-Control', () => {
   const block = locationBlock('/');
   assert.doesNotMatch(block, /expires/);
