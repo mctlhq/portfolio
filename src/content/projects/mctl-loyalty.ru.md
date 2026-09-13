@@ -9,7 +9,7 @@ stack: ["TypeScript", "Express", "PostgreSQL", "Telegram Mini App"]
 summary: "Программа лояльности как Telegram Mini App с защитой от мошенничества через QR."
 links:
   - label: "Сервис"
-    url: https://labs-mctl-loyalty.mctl.ai
+    url: https://rewards.mctl.ai
 ---
 
 - ротация кодов

@@ -192,3 +192,109 @@ test('A2 proof: an astro.config.mjs with no `site` key is reported once-prefixed
     await rm(tmp, { recursive: true, force: true });
   }
 });
+
+// -- Q15 (issue #98): checkHomePage()'s new home-page JSON-LD branch --------
+// A minimal dist/-shaped fixture with a controllable dist/index.html, in the
+// same spawn-the-real-script-against-a-temporary-tree style as A3b above.
+
+const VALID_HOME_GRAPH = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Person',
+      name: 'Dmitrii Mashkov',
+      url: 'https://dmitriimashkov.com/',
+      jobTitle: 'Senior platform engineer',
+      email: 'mailto:hello@dmitriimashkov.com',
+      sameAs: [
+        'https://www.linkedin.com/in/dmitriimashkov',
+        'https://github.com/mctlhq',
+        'https://t.me/dmitriimashkov',
+      ],
+    },
+    { '@type': 'WebSite', name: 'Dmitrii Mashkov', url: 'https://dmitriimashkov.com/', inLanguage: 'en' },
+  ],
+};
+
+function ldJsonScript(graph: unknown): string {
+  return `<script type="application/ld+json">${JSON.stringify(graph)}</script>`;
+}
+
+/** Builds a minimal dist/-shaped fixture with one dist/index.html carrying
+ * the hero markup checkHomePage() otherwise requires (so this test isolates
+ * the JSON-LD branch's own problems from the hero/title checks) plus
+ * whatever `headExtra` supplies inside <head> -- typically zero, one or two
+ * application/ld+json blocks. */
+async function makeHomeJsonLdFixture(headExtra: string): Promise<string> {
+  const tmp = await mkdtemp(path.join(tmpdir(), 'check-dist-jsonld-test-'));
+  await mkdir(path.join(tmp, 'scripts'), { recursive: true });
+  await cp(path.join(ROOT, 'scripts/check-dist.mjs'), path.join(tmp, 'scripts/check-dist.mjs'));
+  await cp(path.join(ROOT, 'src/lib'), path.join(tmp, 'src/lib'), { recursive: true });
+  await writeFile(
+    path.join(tmp, 'astro.config.mjs'),
+    "export default { site: 'https://example.invalid' };\n",
+    'utf8',
+  );
+  await mkdir(path.join(tmp, 'src/content/journal'), { recursive: true });
+  await mkdir(path.join(tmp, 'src/content/adr'), { recursive: true });
+  await mkdir(path.join(tmp, 'dist'), { recursive: true });
+  await writeFile(
+    path.join(tmp, 'dist/index.html'),
+    '<!doctype html><html><head><title>Dmitrii Mashkov</title>' +
+      headExtra +
+      '</head><body>' +
+      '<h1 class="hero-name"><span class="l en">Dmitrii Mashkov</span><span class="l ru" lang="ru">Дмитрий Машков</span></h1>' +
+      '</body></html>',
+    'utf8',
+  );
+  return tmp;
+}
+
+test('checkHomePage: a well-formed Person/WebSite graph reports no JSON-LD-specific problem', async () => {
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(VALID_HOME_GRAPH));
+  try {
+    const result = runCheckDist(tmp);
+    assert.doesNotMatch(result.stderr, /application\/ld\+json block\(s\)/);
+    assert.doesNotMatch(result.stderr, /Person node keys are/);
+    assert.doesNotMatch(result.stderr, /Person\.\w+ is/);
+    assert.doesNotMatch(result.stderr, /WebSite node keys are/);
+    assert.doesNotMatch(result.stderr, /WebSite\.\w+ is/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: a Person.sameAs missing one entry is reported, naming Person.sameAs', async () => {
+  const graph = JSON.parse(JSON.stringify(VALID_HOME_GRAPH));
+  graph['@graph'][0].sameAs = graph['@graph'][0].sameAs.slice(0, 2);
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(graph));
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /Person\.sameAs is/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: a Person node missing jobTitle is reported, naming jobTitle in the expected key list', async () => {
+  const graph = JSON.parse(JSON.stringify(VALID_HOME_GRAPH));
+  delete graph['@graph'][0].jobTitle;
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(graph));
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /Person node keys are/);
+    assert.match(result.stderr, /jobTitle/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: two application/ld+json blocks are reported, naming the count', async () => {
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(VALID_HOME_GRAPH) + ldJsonScript(VALID_HOME_GRAPH));
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /has 2 application\/ld\+json block\(s\), expected exactly 1/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});

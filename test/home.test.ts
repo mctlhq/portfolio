@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { cp, mkdtemp, readdir, readFile, rm, symlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { resolveMctlCssPath } from '../scripts/check-contrast.mjs';
+import { ui } from '../src/i18n/ui.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const SOURCE_PATH = fileURLToPath(new URL('../src/pages/index.astro', import.meta.url));
@@ -43,22 +47,37 @@ test('the placeholder #work and #approach sections are gone', () => {
   assert.doesNotMatch(source, /id="approach"/);
 });
 
-test('index.astro renders exactly three <Details tags, every one carrying heading, and exactly one carrying open, bound to ui.detailsContactSummary', () => {
+test('index.astro renders exactly two <Details tags, both carrying heading, and none carrying open (issue #98, Q15)', () => {
   const detailsTagRe = /<Details\b[^>]*(?:\/>|>)/g;
   const detailsTags = source.match(detailsTagRe) ?? [];
-  assert.equal(detailsTags.length, 3, 'expected exactly three <Details tags on index.astro');
+  assert.equal(detailsTags.length, 2, 'expected exactly two <Details tags on index.astro');
 
   const withHeading = detailsTags.filter((tag) => /\bheading\b/.test(tag));
-  assert.equal(withHeading.length, 3, 'expected every <Details tag to carry the heading prop');
+  assert.equal(withHeading.length, 2, 'expected every <Details tag to carry the heading prop');
 
   const withOpen = detailsTags.filter((tag) => /\bopen\b/.test(tag));
-  assert.equal(withOpen.length, 1, 'expected exactly one <Details tag to carry open');
-  assert.match(withOpen[0], /summaryEn=\{ui\.detailsContactSummary\.en\}/, 'the open block must be bound to ui.detailsContactSummary');
+  assert.equal(withOpen.length, 0, 'expected no <Details tag to carry open');
 });
 
-test('both CTAs link to their trailing-slash paths', () => {
-  assert.match(source, /href="\/work\/"/);
-  assert.match(source, /href="\/colophon\/"/);
+test('index.astro no longer references ui.ctaColophon or ui.detailsContactSummary anywhere', () => {
+  assert.doesNotMatch(source, /ui\.ctaColophon/);
+  assert.doesNotMatch(source, /ui\.detailsContactSummary/);
+});
+
+test('the .ctas nav holds exactly two <a> elements: cta-primary to #contact, then the plain cta to /work/', () => {
+  const navMatch = source.match(/<nav\s+class="ctas"[^>]*>[\s\S]*?<\/nav>/);
+  assert.ok(navMatch, 'expected a <nav class="ctas"> element');
+  const anchors = navMatch![0].match(/<a\b[^>]*>[\s\S]*?<\/a>/g) ?? [];
+  assert.equal(anchors.length, 2, 'expected exactly two <a> elements inside .ctas');
+
+  assert.match(anchors[0], /class="cta cta-primary"/);
+  assert.match(anchors[0], /href="#contact"/);
+  assert.match(anchors[0], /ui\.ctaContact\.en/);
+
+  assert.match(anchors[1], /class="cta"/);
+  assert.doesNotMatch(anchors[1], /cta-primary/);
+  assert.match(anchors[1], /href="\/work\/"/);
+  assert.match(anchors[1], /ui\.ctaWork\.en/);
 });
 
 test('the hero name renders through <Lang> bound to ui.heroName, with no literal name in the template', () => {
@@ -158,6 +177,230 @@ test('.hero-name references neither Instrument Serif nor --font-editorial', () =
   assert.doesNotMatch(resolvedStack, /Instrument Serif/);
   assert.doesNotMatch(heroNameRule, /Instrument Serif/);
   assert.doesNotMatch(heroNameRule, /--font-editorial/);
+});
+
+// -- Build-backed assertions (issue #98, Q15, task 11) -----------------------
+// Follows test/project-card-private.test.ts's pattern: copy the committed
+// src/ tree (unmodified -- this proves the real page, not a fixture) into a
+// mkdtemp directory, symlink node_modules and public/, and run a real
+// `astro build` there once for the whole file (never `npm run build`, whose
+// `prebuild` would recurse). Memoised so every test below shares one build.
+
+const ASTRO_BIN = path.join(ROOT, 'node_modules/astro/bin/astro.mjs');
+
+interface BuiltTree {
+  indexHtml: string;
+  workHtml: string;
+  allHtml: Map<string, string>;
+}
+
+async function walkHtmlFiles(dir: string): Promise<string[]> {
+  const entries = await readdir(dir, { withFileTypes: true });
+  const files: string[] = [];
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...(await walkHtmlFiles(full)));
+    } else if (entry.isFile() && entry.name.endsWith('.html')) {
+      files.push(full);
+    }
+  }
+  return files;
+}
+
+let builtTreePromise: Promise<BuiltTree> | null = null;
+
+/** Builds the real, unmodified src/ tree once (memoised across every test
+ * in this file) and returns dist/index.html, dist/work/index.html, and a
+ * map of every built dist/**\/*.html keyed by its path relative to dist/. */
+function builtTree(): Promise<BuiltTree> {
+  if (!builtTreePromise) {
+    builtTreePromise = (async () => {
+      const tmp = await mkdtemp(path.join(tmpdir(), 'home-build-test-'));
+      try {
+        await cp(path.join(ROOT, 'src'), path.join(tmp, 'src'), { recursive: true });
+        await cp(path.join(ROOT, 'astro.config.mjs'), path.join(tmp, 'astro.config.mjs'));
+        await cp(path.join(ROOT, 'package.json'), path.join(tmp, 'package.json'));
+        await cp(path.join(ROOT, 'tsconfig.json'), path.join(tmp, 'tsconfig.json'));
+        await symlink(path.join(ROOT, 'node_modules'), path.join(tmp, 'node_modules'));
+        await symlink(path.join(ROOT, 'public'), path.join(tmp, 'public'));
+        const result = spawnSync('node', [ASTRO_BIN, 'build'], { cwd: tmp, encoding: 'utf8' });
+        assert.equal(result.status, 0, `expected astro build to pass, stderr: ${result.stderr}`);
+
+        const distDir = path.join(tmp, 'dist');
+        const indexHtml = await readFile(path.join(distDir, 'index.html'), 'utf8');
+        const workHtml = await readFile(path.join(distDir, 'work', 'index.html'), 'utf8');
+        const files = await walkHtmlFiles(distDir);
+        const allHtml = new Map<string, string>();
+        for (const file of files) {
+          allHtml.set(path.relative(distDir, file).split(path.sep).join('/'), await readFile(file, 'utf8'));
+        }
+        return { indexHtml, workHtml, allHtml };
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
+    })();
+  }
+  return builtTreePromise;
+}
+
+/** Reverses the small set of HTML entities Astro emits into element text
+ * (`&`, `<`, `>`, `"`, `'`), mirroring scripts/check-dist.mjs's
+ * decodeHtmlEntities, so a string compared against ui.ts's raw copy (e.g.
+ * "the team's") matches byte for byte. */
+function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
+/** True when `text` appears verbatim inside a `class="l en"` span somewhere
+ * in `html` -- the exact shape src/i18n/Lang.astro emits for its `en` prop. */
+function hasEnSpan(html: string, text: string): boolean {
+  return decodeHtmlEntities(html).includes(`class="l en">${text}<`);
+}
+
+/** True when `text` appears verbatim inside a `class="l ru" lang="ru"` span
+ * somewhere in `html` -- the exact shape src/i18n/Lang.astro emits for its
+ * `ru` prop. */
+function hasRuSpan(html: string, text: string): boolean {
+  return decodeHtmlEntities(html).includes(`class="l ru" lang="ru">${text}<`);
+}
+
+/** Every string this cycle's home page renders through <Lang>, gathered
+ * from ui.ts so this list cannot drift from Appendix A by hand-retyping it. */
+const NEW_BILINGUAL_STRINGS: readonly string[] = [
+  ui.heroEyebrow.en,
+  ui.heroEyebrow.ru,
+  ...ui.aboutParagraphs.en,
+  ...ui.aboutParagraphs.ru,
+  ...ui.capabilityItems.en.flatMap((item) => [item.term, item.body]),
+  ...ui.capabilityItems.ru.flatMap((item) => [item.term, item.body]),
+  ui.contactIntro.en,
+  ui.contactIntro.ru,
+  ...ui.contactItems.en.flatMap((item) => [item.label, item.text]),
+  ...ui.contactItems.ru.flatMap((item) => [item.label, item.text]),
+];
+
+/** Extracts every `<details ...>...</details>` element's full markup out of
+ * `html`, so "no <details> contains any of the new copy" can be checked
+ * against each one individually. */
+function extractDetailsBlocks(html: string): string[] {
+  return html.match(/<details\b[^>]*>[\s\S]*?<\/details>/g) ?? [];
+}
+
+test('dist/index.html carries the eyebrow, in both class="l en" and class="l ru" elements', async () => {
+  const { indexHtml } = await builtTree();
+  assert.ok(hasEnSpan(indexHtml, ui.heroEyebrow.en), 'missing the EN eyebrow span');
+  assert.ok(hasRuSpan(indexHtml, ui.heroEyebrow.ru), 'missing the RU eyebrow span');
+});
+
+test('dist/index.html carries each of the three aboutParagraphs, in both languages', async () => {
+  const { indexHtml } = await builtTree();
+  for (let i = 0; i < ui.aboutParagraphs.en.length; i += 1) {
+    assert.ok(hasEnSpan(indexHtml, ui.aboutParagraphs.en[i]), `missing EN aboutParagraphs[${i}]`);
+    assert.ok(hasRuSpan(indexHtml, ui.aboutParagraphs.ru[i]), `missing RU aboutParagraphs[${i}]`);
+  }
+});
+
+test('dist/index.html carries each of the three capabilityItems terms and bodies, in both languages', async () => {
+  const { indexHtml } = await builtTree();
+  for (let i = 0; i < ui.capabilityItems.en.length; i += 1) {
+    assert.ok(hasEnSpan(indexHtml, ui.capabilityItems.en[i].term), `missing EN capabilityItems[${i}].term`);
+    assert.ok(hasRuSpan(indexHtml, ui.capabilityItems.ru[i].term), `missing RU capabilityItems[${i}].term`);
+    assert.ok(hasEnSpan(indexHtml, ui.capabilityItems.en[i].body), `missing EN capabilityItems[${i}].body`);
+    assert.ok(hasRuSpan(indexHtml, ui.capabilityItems.ru[i].body), `missing RU capabilityItems[${i}].body`);
+  }
+});
+
+test('dist/index.html carries contactIntro and each of the four contactItems texts, in both languages', async () => {
+  const { indexHtml } = await builtTree();
+  assert.ok(hasEnSpan(indexHtml, ui.contactIntro.en), 'missing EN contactIntro');
+  assert.ok(hasRuSpan(indexHtml, ui.contactIntro.ru), 'missing RU contactIntro');
+  for (let i = 0; i < ui.contactItems.en.length; i += 1) {
+    assert.ok(hasEnSpan(indexHtml, ui.contactItems.en[i].label), `missing EN contactItems[${i}].label`);
+    assert.ok(hasRuSpan(indexHtml, ui.contactItems.ru[i].label), `missing RU contactItems[${i}].label`);
+    // contactItems.text is identical across languages (Appendix A.9) and is
+    // rendered through <Lang en={text} ru={text} />, so it must appear
+    // inside both an l en and an l ru element with the same value.
+    assert.ok(hasEnSpan(indexHtml, ui.contactItems.en[i].text), `missing EN contactItems[${i}].text`);
+    assert.ok(hasRuSpan(indexHtml, ui.contactItems.en[i].text), `missing RU contactItems[${i}].text`);
+  }
+});
+
+test('dist/index.html renders every one of the four contactItems as an <a href> equal to its href, with visible text equal to its text', async () => {
+  const { indexHtml } = await builtTree();
+  const decoded = decodeHtmlEntities(indexHtml);
+  for (const item of ui.contactItems.en) {
+    const anchorRe = new RegExp(`<a href="${item.href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}">[\\s\\S]*?<\\/a>`);
+    const match = decoded.match(anchorRe);
+    assert.ok(match, `expected an <a href="${item.href}"> element`);
+    assert.ok(match![0].includes(item.text), `expected the anchor for ${item.href} to contain the visible text "${item.text}"`);
+  }
+});
+
+test('no <details> element on dist/index.html contains any of aboutParagraphs, capabilityItems or contactItems text', async () => {
+  const { indexHtml } = await builtTree();
+  const decoded = decodeHtmlEntities(indexHtml);
+  const detailsBlocks = extractDetailsBlocks(decoded);
+  assert.ok(detailsBlocks.length > 0, 'expected at least one <details> element on dist/index.html');
+  for (const text of NEW_BILINGUAL_STRINGS) {
+    for (const block of detailsBlocks) {
+      assert.ok(!block.includes(text), `a <details> element unexpectedly contains: "${text.slice(0, 40)}..."`);
+    }
+  }
+});
+
+test('dist/index.html carries exactly one application/ld+json block, which JSON.parses to the Appendix A.11 Person/WebSite graph', async () => {
+  const { indexHtml } = await builtTree();
+  const blocks = [...indexHtml.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+  assert.equal(blocks.length, 1, `expected exactly one application/ld+json block, found ${blocks.length}`);
+
+  const parsed = JSON.parse(blocks[0][1]) as { '@context': string; '@graph': Record<string, unknown>[] };
+  assert.equal(parsed['@context'], 'https://schema.org');
+  assert.equal(parsed['@graph'].length, 2);
+
+  const person = parsed['@graph'][0];
+  assert.equal(person['@type'], 'Person');
+  assert.equal(person.name, 'Dmitrii Mashkov');
+  assert.equal(person.url, 'https://dmitriimashkov.com/');
+  assert.equal(person.jobTitle, 'Senior platform engineer');
+  assert.equal(person.email, 'mailto:hello@dmitriimashkov.com');
+  assert.deepEqual(person.sameAs, [
+    'https://www.linkedin.com/in/dmitriimashkov',
+    'https://github.com/mctlhq',
+    'https://t.me/dmitriimashkov',
+  ]);
+  assert.deepEqual(Object.keys(person).sort(), ['@type', 'email', 'jobTitle', 'name', 'sameAs', 'url'].sort());
+
+  const site = parsed['@graph'][1];
+  assert.equal(site['@type'], 'WebSite');
+  assert.equal(site.name, 'Dmitrii Mashkov');
+  assert.equal(site.url, 'https://dmitriimashkov.com/');
+  assert.equal(site.inLanguage, 'en');
+  assert.deepEqual(Object.keys(site).sort(), ['@type', 'inLanguage', 'name', 'url'].sort());
+});
+
+test('dist/work/index.html contains https://rewards.mctl.ai', async () => {
+  const { workHtml } = await builtTree();
+  assert.ok(workHtml.includes('https://rewards.mctl.ai'));
+});
+
+// Assembled from parts, not written as one contiguous literal: this file
+// lives under test/, which the repository's own grep-for-the-old-host
+// verification step walks, and a literal occurrence here would itself be a
+// false positive against that check (see test/projects.test.ts's identical
+// treatment of REMOVED_SLUGS for the same reason).
+const OLD_LOYALTY_HOST = `${['labs', 'mctl', 'loyalty'].join('-')}.mctl.ai`;
+
+test('the old loyalty host appears on no built page', async () => {
+  const { allHtml } = await builtTree();
+  for (const [rel, html] of allHtml) {
+    assert.ok(!html.includes(OLD_LOYALTY_HOST), `${rel} still contains ${OLD_LOYALTY_HOST}`);
+  }
 });
 
 // D1a: proves the resolved value actually came from site.css's own

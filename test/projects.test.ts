@@ -183,7 +183,7 @@ const EXPECTED_LINKS: readonly ExpectedLink[] = [
   { slug: 'mctl-telegram', url: 'https://tg.mctl.ai', en: 'Service', ru: 'Сервис' },
   { slug: 'seerrsense', url: 'https://seerrsense.mctl.ai', en: 'Service', ru: 'Сервис' },
   { slug: 'mctl-academy', url: 'https://academy.mctl.ai', en: 'Service', ru: 'Сервис' },
-  { slug: 'mctl-loyalty', url: 'https://labs-mctl-loyalty.mctl.ai', en: 'Service', ru: 'Сервис' },
+  { slug: 'mctl-loyalty', url: 'https://rewards.mctl.ai', en: 'Service', ru: 'Сервис' },
 ];
 
 const NO_LINKS_SLUGS = ['mctl-gitops', 'pelican-libertex-social'];

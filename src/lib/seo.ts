@@ -86,3 +86,39 @@ export function breadcrumbJsonLd(site: string, items: { name: string; path: stri
     })),
   };
 }
+
+/**
+ * The `Person`/`WebSite` JSON-LD graph for the home route only (issue #98,
+ * Q15, Appendix A.11): a `Person` node carrying exactly `@type`, `name`,
+ * `url`, `jobTitle`, `email` and an ordered three-entry `sameAs`, and a
+ * `WebSite` node carrying exactly `@type`, `name`, `url` and `inLanguage` --
+ * no `worksFor`, `address`, `alumniOf`, `telephone` or `SearchAction`. Pure,
+ * takes no argument, and returns a fresh object on every call so no caller
+ * can mutate a shared literal. `src/layouts/Base.astro` passes the result
+ * into its existing `jsonLd` prop only when `Astro.url.pathname === '/'`.
+ */
+export function homeJsonLd(): object {
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Person',
+        name: 'Dmitrii Mashkov',
+        url: 'https://dmitriimashkov.com/',
+        jobTitle: 'Senior platform engineer',
+        email: 'mailto:hello@dmitriimashkov.com',
+        sameAs: [
+          'https://www.linkedin.com/in/dmitriimashkov',
+          'https://github.com/mctlhq',
+          'https://t.me/dmitriimashkov',
+        ],
+      },
+      {
+        '@type': 'WebSite',
+        name: 'Dmitrii Mashkov',
+        url: 'https://dmitriimashkov.com/',
+        inLanguage: 'en',
+      },
+    ],
+  };
+}
