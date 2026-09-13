@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.23](https://github.com/mctlhq/portfolio/compare/0.1.22...0.1.23) (2026-09-13)
+
+
+### Bug Fixes
+
+* **journal:** close cycle 83 ([f21caa8](https://github.com/mctlhq/portfolio/commit/f21caa89a5691d0b50a6e448702720250db9414d))
+* **journal:** close cycle 83 ([09a50e8](https://github.com/mctlhq/portfolio/commit/09a50e814ec3d2a04f1b7df9502c9421ae39f6a5))
+
 ## [0.1.22](https://github.com/mctlhq/portfolio/compare/0.1.21...0.1.22) (2026-09-13)
 
 
