@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.21](https://github.com/mctlhq/portfolio/compare/0.1.20...0.1.21) (2026-09-13)
+
+
+### Features
+
+* **agents:** issue-79-q11-every-cycle-s-journal-entry-is-born ([b2e46cc](https://github.com/mctlhq/portfolio/commit/b2e46cc435c7853ca6047088ffc0e5d5c7185356))
+* **agents:** issue-79-q11-every-cycle-s-journal-entry-is-born ([4162f3b](https://github.com/mctlhq/portfolio/commit/4162f3bab329b1c4d507164fab06e8384429972c))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-79-q11-every-cycle-s-journal-entry-is-born ([0325028](https://github.com/mctlhq/portfolio/commit/03250287a77a0fc1b5f248bf95d6d8a47dbe2488))
+* **agents:** address P1/P2 codex findings on issue-79-q11-every-cycle-s-journal-entry-is-born ([4cd10d7](https://github.com/mctlhq/portfolio/commit/4cd10d73e36daea4f5e645e0b3eab478667b1ae2))
+
 ## [0.1.20](https://github.com/mctlhq/portfolio/compare/0.1.19...0.1.20) (2026-09-12)
 
 
