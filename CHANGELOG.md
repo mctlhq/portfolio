@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.1.28](https://github.com/mctlhq/portfolio/compare/0.1.27...0.1.28) (2026-09-13)
+
+
+### Features
+
+* **agents:** issue-98-q15-conversion-first-home-role-history-c ([ea70817](https://github.com/mctlhq/portfolio/commit/ea7081701d1a904290b91c34121f756821cc3831))
+* **agents:** issue-98-q15-conversion-first-home-role-history-c ([5c8f0a6](https://github.com/mctlhq/portfolio/commit/5c8f0a6b6a4b618bf34f6918d52c7dbbfb2f1509))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-98-q15-conversion-first-home-role-history-c ([2eef121](https://github.com/mctlhq/portfolio/commit/2eef1218308b8a63fbe2961857055f1f54f7652f))
+* **agents:** address P1/P2 codex findings on issue-98-q15-conversion-first-home-role-history-c ([1c63b1f](https://github.com/mctlhq/portfolio/commit/1c63b1f505d4798fadfd42a97d920e252a9e5de3))
+* **agents:** address P1/P2 codex findings on issue-98-q15-conversion-first-home-role-history-c ([5b094e9](https://github.com/mctlhq/portfolio/commit/5b094e97803634565cd9e65a88ec2a11478712d4))
+* **agents:** address P1/P2 codex findings on issue-98-q15-conversion-first-home-role-history-c ([3027c89](https://github.com/mctlhq/portfolio/commit/3027c89407cfb4bd943c00684118215e37b02dd2))
+
 ## [0.1.27](https://github.com/mctlhq/portfolio/compare/0.1.26...0.1.27) (2026-09-13)
 
 
