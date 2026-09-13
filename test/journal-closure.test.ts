@@ -68,6 +68,9 @@ interface FakeGithubOptions {
 function makeFakeGithub(opts: FakeGithubOptions) {
   const calls: string[] = [];
   const writes: string[] = [];
+  const capturedArgs: { createOrUpdateBranchFile: Record<string, unknown>[] } = {
+    createOrUpdateBranchFile: [],
+  };
 
   function maybeThrow(name: string) {
     calls.push(name);
@@ -79,6 +82,7 @@ function makeFakeGithub(opts: FakeGithubOptions) {
   return {
     calls,
     writes,
+    capturedArgs,
     async getReleaseByTag(tag: string) {
       maybeThrow('getReleaseByTag');
       return opts.release ?? null;
@@ -115,9 +119,10 @@ function makeFakeGithub(opts: FakeGithubOptions) {
       maybeThrow('findOpenPull');
       return opts.openPull ?? null;
     },
-    async createOrUpdateBranchFile(args: unknown) {
+    async createOrUpdateBranchFile(args: Record<string, unknown>) {
       maybeThrow('createOrUpdateBranchFile');
       writes.push('createOrUpdateBranchFile');
+      capturedArgs.createOrUpdateBranchFile.push(args);
     },
     async createPull(args: unknown) {
       maybeThrow('createPull');
@@ -155,6 +160,10 @@ test('run() closes the entry against the correct release when the merge commit i
     assert.equal(result.evidence?.merged_at, '2026-09-13T00:30:00Z');
     assert.ok(github.writes.includes('createOrUpdateBranchFile'));
     assert.ok(github.writes.includes('createPull'));
+    // Regression guard for 4cd10d7: run() must pass the resolved main HEAD
+    // commit sha (from resolveTagCommit('main')) as baseSha, not the file's
+    // blob sha (e.g. 'main-sha').
+    assert.equal(github.capturedArgs.createOrUpdateBranchFile[0]?.baseSha, 'commit-for-main');
   } finally {
     await rm(repoRoot, { recursive: true, force: true });
   }
