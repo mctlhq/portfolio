@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.26](https://github.com/mctlhq/portfolio/compare/0.1.25...0.1.26) (2026-09-13)
+
+
+### Features
+
+* **agents:** issue-89-q14-ten-projects-on-work-service-links-t ([6b8dad6](https://github.com/mctlhq/portfolio/commit/6b8dad6aa9ce4044ae9c5d6871022e306cc9fdd5))
+* **work:** ten curated projects, service links, seerrsense fix ([7ccd3ba](https://github.com/mctlhq/portfolio/commit/7ccd3ba9b8948f3e2bd996164ec1ce74b2cd1420))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-89-q14-ten-projects-on-work-service-links-t ([13828de](https://github.com/mctlhq/portfolio/commit/13828de9d5ce4e4dd3548a9a6899f3d560b5d6d2))
+
 ## [0.1.25](https://github.com/mctlhq/portfolio/compare/0.1.24...0.1.25) (2026-09-13)
 
 
