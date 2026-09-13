@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.29](https://github.com/mctlhq/portfolio/compare/0.1.28...0.1.29) (2026-09-13)
+
+
+### Bug Fixes
+
+* **journal:** close cycle 98 ([71b29f1](https://github.com/mctlhq/portfolio/commit/71b29f14f7fc4e4db9e9e340db4f428591cefdcb))
+* **journal:** close cycle 98 ([695d65e](https://github.com/mctlhq/portfolio/commit/695d65e56672476549fc547684db39f4e282d15c))
+
 ## [0.1.28](https://github.com/mctlhq/portfolio/compare/0.1.27...0.1.28) (2026-09-13)
 
 
