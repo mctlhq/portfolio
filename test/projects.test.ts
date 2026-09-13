@@ -95,7 +95,7 @@ test('every project that declares a repo: matches https://github.com/(mctlhq|mas
     for (const lang of ['en', 'ru'] as const) {
       const source = readFileSync(`${PROJECTS_DIR}${slug}.${lang}.md`, 'utf8');
       const repo = frontmatterField(source, 'repo');
-      if (repo === null) continue;
+      assert.ok(repo, `${slug}.${lang}.md: missing repo: line`);
       const match = REPO_RE.exec(repo);
       assert.ok(match, `${slug}.${lang}.md: repo "${repo}" does not match the expected pattern`);
       assert.equal(match?.[2], slug, `${slug}.${lang}.md: repo path "${match?.[2]}" does not match slug`);
