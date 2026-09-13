@@ -235,7 +235,12 @@ function ldJsonScript(graph: unknown): string {
  * passed those other branches, so it proved nothing about them) and leaving
  * every mutation case unable to prove its assertion was reporting only the
  * one thing it changed. */
-async function makeHomeJsonLdFixture(headExtra: string): Promise<string> {
+async function makeHomeJsonLdFixture(
+  headExtra: string,
+  bodyOverrides: { cta?: string; contactSection?: string } = {},
+): Promise<string> {
+  const cta = bodyOverrides.cta ?? '<a class="cta cta-primary" href="#contact">Contact</a>';
+  const contactSection = bodyOverrides.contactSection ?? '<section id="contact" tabindex="-1"></section>';
   const tmp = await mkdtemp(path.join(tmpdir(), 'check-dist-jsonld-test-'));
   await mkdir(path.join(tmp, 'scripts'), { recursive: true });
   await cp(path.join(ROOT, 'scripts/check-dist.mjs'), path.join(tmp, 'scripts/check-dist.mjs'));
@@ -254,10 +259,10 @@ async function makeHomeJsonLdFixture(headExtra: string): Promise<string> {
       headExtra +
       '</head><body>' +
       '<h1 class="hero-name"><span class="l en">Dmitrii Mashkov</span><span class="l ru" lang="ru">Дмитрий Машков</span></h1>' +
-      '<nav class="ctas"><a class="cta cta-primary" href="#contact">Contact</a></nav>' +
+      `<nav class="ctas">${cta}</nav>` +
       '<details><summary><h2>Run summary</h2></summary></details>' +
       '<details><summary><h2>Work summary</h2></summary></details>' +
-      '<section id="contact" tabindex="-1"></section>' +
+      contactSection +
       '</body></html>',
     'utf8',
   );
@@ -276,6 +281,59 @@ function assertNoOtherHomePageProblems(stderr: string): void {
   assert.doesNotMatch(stderr, /no element carrying id="contact"/);
   assert.doesNotMatch(stderr, /no <section id="contact" tabindex="-1">/);
 }
+
+// The three `#contact` assertions in assertNoOtherHomePageProblems() above
+// are doesNotMatch-only: a fixture that never carries the markup they check
+// for and a fixture that carries it correctly both make those lines pass, so
+// on their own they cannot tell "present as expected" from "the check was
+// deleted from checkHomePage() (or from this fixture) entirely". The three
+// tests below close that gap the same way the Person.sameAs and jobTitle
+// tests above do for the JSON-LD branches: break exactly one piece of markup
+// via bodyOverrides, assert.match the corresponding problem string, and
+// assert.doesNotMatch the other two so each mutation is proven isolated to
+// the one check it targets.
+
+test('checkHomePage: primary CTA missing href="#contact" is reported, other two #contact checks stay silent', async () => {
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(VALID_HOME_GRAPH), {
+    cta: '<a class="cta cta-primary" href="#elsewhere">Contact</a>',
+  });
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /no <a class="cta cta-primary" href="#contact"> primary CTA/);
+    assert.doesNotMatch(result.stderr, /no element carrying id="contact"/);
+    assert.doesNotMatch(result.stderr, /no <section id="contact" tabindex="-1">/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: no element anywhere carries id="contact" is reported, alongside the section check it subsumes', async () => {
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(VALID_HOME_GRAPH), {
+    contactSection: '<section tabindex="-1"></section>',
+  });
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /no element carrying id="contact"/);
+    assert.match(result.stderr, /no <section id="contact" tabindex="-1">/);
+    assert.doesNotMatch(result.stderr, /no <a class="cta cta-primary" href="#contact"> primary CTA/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: id="contact" on a non-section element satisfies the id check but not the section-specific one', async () => {
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(VALID_HOME_GRAPH), {
+    contactSection: '<div id="contact"></div>',
+  });
+  try {
+    const result = runCheckDist(tmp);
+    assert.doesNotMatch(result.stderr, /no element carrying id="contact"/);
+    assert.match(result.stderr, /no <section id="contact" tabindex="-1">/);
+    assert.doesNotMatch(result.stderr, /no <a class="cta cta-primary" href="#contact"> primary CTA/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
 
 test('checkHomePage: a well-formed Person/WebSite graph reports no JSON-LD-specific problem', async () => {
   const tmp = await makeHomeJsonLdFixture(ldJsonScript(VALID_HOME_GRAPH));
