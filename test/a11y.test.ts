@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
+import { minBlockSizes } from './support/css-rules.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const siteCss = readFileSync(path.join(ROOT, 'src/styles/site.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
@@ -40,26 +41,14 @@ const TARGET_SELECTORS = [
  * any such declaration is below `floor` px. Returns problem strings instead
  * of asserting, so both the real stylesheet and a synthetic one can be
  * checked with the same function (mirrors entryPointProblems() in
- * test/entry-point.test.ts).
+ * test/entry-point.test.ts). Thin wrapper over the shared
+ * test/support/css-rules.ts parser -- no rule-block splitting logic lives
+ * here.
  */
 function minBlockSizeProblems(css: string, selector: string, floor: number): string[] {
   const problems: string[] = [];
-  const ruleRe = /([^{}]+)\{([^}]*)\}/g;
-  let found = false;
-  const sizes: number[] = [];
-  let m;
-  while ((m = ruleRe.exec(css))) {
-    const selectors = m[1]
-      .split(',')
-      .map((s) => s.trim().replace(/\s+/g, ' '));
-    if (!selectors.includes(selector)) continue;
-    const sizeMatch = m[2].match(/min-block-size:\s*(\d+)px/);
-    if (sizeMatch) {
-      found = true;
-      sizes.push(Number(sizeMatch[1]));
-    }
-  }
-  if (!found) {
+  const sizes = minBlockSizes(css, selector);
+  if (sizes.length === 0) {
     problems.push(`no min-block-size rule found for selector "${selector}"`);
   }
   const tooSmall = sizes.filter((size) => size < floor);

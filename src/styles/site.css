@@ -96,12 +96,20 @@ pre,
 }
 
 /* Navigation. */
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mctl-space-4);
+  padding-block: var(--mctl-space-2);
+  border-bottom: 1px solid var(--surface-line);
+}
 .site-nav {
   display: flex;
   flex-wrap: wrap;
   gap: var(--mctl-space-4);
-  padding-block: var(--mctl-space-4);
-  border-bottom: 1px solid var(--surface-line);
+  padding-block: 0;
 }
 .site-nav a {
   color: var(--surface-fg);
@@ -172,33 +180,54 @@ pre,
   color: var(--surface-fg-muted);
 }
 
-/* Toggle groups. */
+/* Toggle groups. A bordered box with per-segment corner radii, not
+ * overflow: hidden -- outline-offset draws the :focus-visible ring outside
+ * the button box, so overflow: hidden on this container would clip the ring
+ * on the first and last segment. */
 .toggle-group {
   display: inline-flex;
-  gap: var(--mctl-space-2);
+  gap: 0;
+  border: 1px solid var(--surface-line);
+  border-radius: var(--mctl-radius-md);
 }
 .toggle-bar {
   display: flex;
   flex-wrap: wrap;
   gap: var(--mctl-space-4);
-  padding-block: var(--mctl-space-4);
+  padding-block: 0;
+  margin-inline-start: auto;
+  justify-content: flex-end;
 }
 .toggle-bar noscript {
   flex-basis: 100%;
+  text-align: end;
 }
 .toggle-group button {
   font: inherit;
-  color: var(--surface-fg);
-  background: var(--surface-elevated);
-  border: 1px solid var(--surface-line);
-  border-radius: var(--mctl-radius-md);
-  padding: var(--mctl-space-1) var(--mctl-space-3);
+  font-size: var(--mctl-typography-font-size-sm);
+  line-height: 1;
+  color: var(--surface-fg-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding-inline: var(--mctl-space-3);
+  padding-block: 0;
   cursor: pointer;
+}
+.toggle-group button:first-child {
+  border-start-start-radius: var(--mctl-radius-md);
+  border-end-start-radius: var(--mctl-radius-md);
+}
+.toggle-group button:last-child {
+  border-start-end-radius: var(--mctl-radius-md);
+  border-end-end-radius: var(--mctl-radius-md);
+}
+.toggle-group button + button {
+  border-inline-start: 1px solid var(--surface-line);
 }
 .toggle-group button[aria-pressed='true'] {
   background: var(--accent);
   color: var(--accent-fg);
-  border-color: var(--accent);
 }
 
 /* Footer. */
@@ -576,11 +605,19 @@ main a:hover {
 /* Tap targets: every interactive element on the page is at least 44px tall
  * at any viewport width, per the 360px acceptance criterion. */
 .site-nav a,
-.toggle-group button,
 .site-footer a {
   display: inline-flex;
   align-items: center;
   min-block-size: 44px;
+}
+/* The language and theme segments are the one deliberate exception: 32px is
+ * above the 24px floor test/a11y.test.ts enforces and above the WCAG 2.2 AA
+ * 2.5.8 minimum, below the 2.5.5 AAA 44px used on every navigation link,
+ * footer link, CTA, disclosure summary and standalone link on the site. */
+.toggle-group button {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 32px;
 }
 
 /* Standalone links (issue #88, Q13): a link that stands on its own -- a
