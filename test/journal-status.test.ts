@@ -3,12 +3,17 @@
 // journalEntryProblems, checkJournalCollection), plus source-level
 // assertions over the committed journal content: every file carries a
 // status, every complete entry carries its four evidence fields, at most one
-// entry is in_progress, the fourteen backfill rows and two approval stamps
-// match verbatim, no deployed_at is invented, and the two cross-repository
-// entries keep their existing evidence.
+// entry is in_progress (not tied to any particular checkpoint), every
+// in_progress entry carries no release, released_at or deployed_at, the
+// fourteen backfill rows and two approval stamps match verbatim, no
+// deployed_at is invented, and the two cross-repository entries keep their
+// existing evidence. Fixture directories under a temp dir prove the
+// at-most-one-in_progress assertion actually has something to fail on.
 
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import {
@@ -252,8 +257,8 @@ test('checkJournalCollection throws, naming both ids, for two in_progress entrie
 
 const journalFiles = readdirSync(JOURNAL_DIR).filter((name) => name.endsWith('.md'));
 
-function frontmatterOf(name: string): Record<string, string> {
-  const source = readFileSync(`${JOURNAL_DIR}${name}`, 'utf8');
+function frontmatterOf(name: string, dir: string = JOURNAL_DIR): Record<string, string> {
+  const source = readFileSync(`${dir}${name}`, 'utf8');
   const match = /^---\n([\s\S]*?)\n---/.exec(source);
   assert.ok(match, `${name}: no frontmatter block`);
   const data: Record<string, string> = {};
@@ -265,6 +270,21 @@ function frontmatterOf(name: string): Record<string, string> {
     data[kv[1]] = quoted ? quoted[1] : value;
   }
   return data;
+}
+
+function inProgressNames(dir: string = JOURNAL_DIR): string[] {
+  return readdirSync(dir)
+    .filter((name) => name.endsWith('.md'))
+    .filter((name) => frontmatterOf(name, dir).status === 'in_progress');
+}
+
+function assertAtMostOneInProgress(dir: string = JOURNAL_DIR): void {
+  const names = inProgressNames(dir);
+  assert.ok(names.length <= 1, `at most one journal entry may be in_progress, found ${names.length}: ${names.join(', ')}`);
+}
+
+function minimalFrontmatter(status: string): string {
+  return `---\nservice: portfolio\nissue: https://github.com/mctlhq/portfolio/issues/1\nproposal_slug: fixture\nvisibility: public\nstatus: ${status}\ntitle:\n  en: "fixture"\n  ru: "fixture"\ndecided:\n  en: "fixture"\n  ru: "fixture"\nissue_opened_at: '2026-01-01T00:00:00Z'\ninterventions: []\n---\n`;
 }
 
 test('every journal file carries a status', () => {
@@ -285,9 +305,44 @@ test('every complete entry carries pr, release, merged_at and released_at', () =
   }
 });
 
-test('at most one journal entry is in_progress -- at this implementation-PR checkpoint, exactly one', () => {
-  const inProgress = journalFiles.filter((name) => frontmatterOf(name).status === 'in_progress');
-  assert.equal(inProgress.length, 1, `expected exactly one in_progress entry at this checkpoint, got: ${inProgress.join(', ')}`);
+test('at most one journal entry is in_progress', () => {
+  assertAtMostOneInProgress();
+});
+
+test('assertAtMostOneInProgress throws, naming both files, for a fixture directory with two in_progress entries', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'journal-fixture-'));
+  try {
+    writeFileSync(join(dir, 'a.md'), minimalFrontmatter('in_progress'));
+    writeFileSync(join(dir, 'b.md'), minimalFrontmatter('in_progress'));
+    assert.throws(() => assertAtMostOneInProgress(`${dir}/`), (err: unknown) => {
+      const message = (err as Error).message;
+      return message.includes('a.md') && message.includes('b.md');
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('assertAtMostOneInProgress does not throw for a fixture directory with one in_progress entry', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'journal-fixture-'));
+  try {
+    writeFileSync(join(dir, 'a.md'), minimalFrontmatter('in_progress'));
+    writeFileSync(join(dir, 'b.md'), minimalFrontmatter('complete'));
+    assert.doesNotThrow(() => assertAtMostOneInProgress(`${dir}/`));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('assertAtMostOneInProgress does not throw for a fixture directory with zero in_progress entries', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'journal-fixture-'));
+  try {
+    writeFileSync(join(dir, 'a.md'), minimalFrontmatter('complete'));
+    writeFileSync(join(dir, 'b.md'), minimalFrontmatter('abandoned'));
+    assert.doesNotThrow(() => assertAtMostOneInProgress(`${dir}/`));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('no portfolio journal entry carries a deployed_at (none was collected for the backfill)', () => {
@@ -345,12 +400,12 @@ test('the two missing approval stamps are backfilled verbatim', () => {
   );
 });
 
-test("this cycle's own entry is in_progress with no invented evidence", () => {
-  const data = frontmatterOf('2026-09-13-journal-lifecycle-and-release-closure.md');
-  assert.equal(data.status, 'in_progress');
-  assert.equal(data.pr, undefined);
-  assert.equal(data.release, undefined);
-  assert.equal(data.merged_at, undefined);
-  assert.equal(data.released_at, undefined);
-  assert.equal(data.deployed_at, undefined);
+test('every in_progress entry carries no release, released_at or deployed_at', () => {
+  for (const name of journalFiles) {
+    const data = frontmatterOf(name);
+    if (data.status !== 'in_progress') continue;
+    for (const field of ['release', 'released_at', 'deployed_at']) {
+      assert.ok(!data[field], `${name}: in_progress entry unexpectedly carries ${field}`);
+    }
+  }
 });
