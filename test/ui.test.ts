@@ -59,6 +59,13 @@ test('colophonTotalCycles, colophonTotalInterventions and leadTimeMissing are un
   assert.equal(ui.leadTimeMissing.ru, 'не измерено: у этого цикла ещё нет конечной отметки времени');
 });
 
+test('notFoundWork and notFoundContact carry their exact EN and RU values character for character', () => {
+  assert.equal(ui.notFoundWork.en, 'See the work');
+  assert.equal(ui.notFoundWork.ru, 'Посмотреть работы');
+  assert.equal(ui.notFoundContact.en, 'Get in touch');
+  assert.equal(ui.notFoundContact.ru, 'Написать');
+});
+
 test('heroName is a real bilingual pair, and homeTitle stays the single Latin <title> string', () => {
   assert.equal(ui.heroName.en, 'Dmitrii Mashkov');
   assert.equal(ui.heroName.ru, 'Дмитрий Машков');

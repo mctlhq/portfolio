@@ -164,3 +164,26 @@ test('scriptSrcTokens returns null when there is no script-src directive', () =>
 test('scriptSrcTokens splits the directive on whitespace', () => {
   assert.deepEqual(scriptSrcTokens(`script-src 'self' ${TOKEN}`), ["'self'", TOKEN]);
 });
+
+// -- T5: application/ld+json is data, not script (issue #88, Q13) -----------
+
+test('extractInlineScripts ignores a <script type="application/ld+json"> body', () => {
+  const html = `<script type="application/ld+json">{"@type":"BreadcrumbList"}</script>`;
+  assert.deepEqual(extractInlineScripts(html), []);
+});
+
+test('extractInlineScripts still captures the executable inline script when a ld+json block is also present', () => {
+  const html =
+    `<script type="application/ld+json">{"@type":"BreadcrumbList"}</script>` +
+    `<script>${BODY}</script>`;
+  assert.deepEqual(extractInlineScripts(html), [BODY]);
+});
+
+test('staleHashProblems returns [] for a fixture carrying both an executable inline script and a ld+json block', () => {
+  const html =
+    `<!doctype html><html><head>` +
+    `<script>${BODY}</script>` +
+    `<script type="application/ld+json">{"@type":"BreadcrumbList"}</script>` +
+    `</head><body></body></html>`;
+  assert.deepEqual(staleHashProblems(csp(TOKEN), html, 'label'), []);
+});

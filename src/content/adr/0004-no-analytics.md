@@ -3,6 +3,7 @@ id: 4
 title:
   en: "No analytics, no cookies, no third-party beacons"
   ru: "Без аналитики, без cookie, без сторонних маяков"
+seoTitle: "ADR-0004: No analytics, no cookies — Dmitrii Mashkov"
 status: accepted
 date: '2026-09-11'
 visibility: public

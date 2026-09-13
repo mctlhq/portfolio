@@ -499,6 +499,22 @@ main a:hover {
   min-block-size: 44px;
 }
 
+/* Standalone links (issue #88, Q13): a link that stands on its own -- a
+ * repository or docs link on /work/, a breadcrumb step, the issue and PR
+ * links in a journal entry's meta list, a link inside one of the colophon
+ * tables -- is a tap target in its own right and measured 17-20px. Prose
+ * links inside a paragraph (main a) are deliberately not here: turning an
+ * inline sentence link into a 24px flex box would break the line box it
+ * sits in. No min-width, no fixed height, no animation, no transition. */
+.project-links a,
+.breadcrumb a,
+.journal-meta a,
+.table-scroll a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 24px;
+}
+
 /* Colophon page: section spacing, the cycle/ADR tables, the keyboard-
  * reachable horizontal scroll region and the intervention records.
  * Narrow-first; the scroll region is what keeps the eight-column cycle

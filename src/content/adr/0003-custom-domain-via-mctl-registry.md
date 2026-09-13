@@ -3,6 +3,7 @@ id: 3
 title:
   en: "Custom domain through the mctl registry, proxied by Cloudflare, certificate by DNS-01"
   ru: "Кастомный домен через реестр mctl, проксирование Cloudflare, сертификат через DNS-01"
+seoTitle: "ADR-0003: Custom domain and DNS-01 cert — Dmitrii Mashkov"
 status: accepted
 date: '2026-09-11'
 visibility: public

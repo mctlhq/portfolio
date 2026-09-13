@@ -3,6 +3,7 @@ id: 1
 title:
   en: "Bootstrap boundary: humans wire, the DevLoop builds"
   ru: "Граница начальной настройки: человек делает обвязку, DevLoop — всё остальное"
+seoTitle: "ADR-0001: Bootstrap boundary — Dmitrii Mashkov"
 status: accepted
 date: '2026-09-11'
 visibility: public

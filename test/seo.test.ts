@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { clampDescription } from '../src/lib/seo.ts';
+import { breadcrumbJsonLd, clampDescription } from '../src/lib/seo.ts';
 
 test('clampDescription returns short text unchanged', () => {
   const text = 'A short description.';
@@ -39,4 +39,28 @@ test('clampDescription falls back to a hard cut when there is no word boundary',
   const result = clampDescription(text, 20);
   assert.equal(result.length, 20);
   assert.equal(result, `${'a'.repeat(19)}…`);
+});
+
+test('breadcrumbJsonLd returns a BreadcrumbList with three positioned ListItems and absolute-URL items', () => {
+  const result = breadcrumbJsonLd('https://dmitriimashkov.com', [
+    { name: 'Home', path: '/' },
+    { name: 'Colophon', path: '/colophon/' },
+    { name: 'Entry', path: '/colophon/journal/foo/' },
+  ]) as {
+    '@context': string;
+    '@type': string;
+    itemListElement: { '@type': string; position: number; name: string; item: string }[];
+  };
+  assert.equal(result['@context'], 'https://schema.org');
+  assert.equal(result['@type'], 'BreadcrumbList');
+  assert.equal(result.itemListElement.length, 3);
+  assert.deepEqual(
+    result.itemListElement.map((item) => item.position),
+    [1, 2, 3],
+  );
+  assert.deepEqual(
+    result.itemListElement.map((item) => item.name),
+    ['Home', 'Colophon', 'Entry'],
+  );
+  assert.equal(result.itemListElement[2].item, 'https://dmitriimashkov.com/colophon/journal/foo/');
 });

@@ -5,10 +5,12 @@ proposal_slug: issue-5-p3-content-collections-for-projects-jour
 pr: https://github.com/mctlhq/portfolio/pull/21
 release: 0.1.2
 visibility: public
+indexing: noindex
 status: complete
 title:
   en: "Content collections for projects, journal and ADRs"
   ru: "Коллекции контента для проектов, журнала и ADR"
+seoTitle: "Content collections for projects and ADRs — Dmitrii Mashkov"
 decided:
   en: "Projects, the journal and the ADRs became typed content collections validated at build time, so a malformed entry fails the build instead of reaching a page, and every later cycle has a schema to write its own record into."
   ru: "Проекты, журнал и ADR стали типизированными коллекциями контента с проверкой во время сборки: некорректная запись ломает сборку, а не попадает на страницу, и у каждого следующего цикла есть схема, в которую он записывает свой след."

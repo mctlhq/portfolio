@@ -3,6 +3,7 @@ id: 2
 title:
   en: "Static Astro output, no client-side bundles"
   ru: "Статическая сборка Astro без клиентских бандлов"
+seoTitle: "ADR-0002: Static Astro, no client bundles — Dmitrii Mashkov"
 status: accepted
 date: '2026-09-11'
 visibility: public
