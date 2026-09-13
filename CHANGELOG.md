@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.22](https://github.com/mctlhq/portfolio/compare/0.1.21...0.1.22) (2026-09-13)
+
+
+### Features
+
+* **agents:** issue-83-q12-the-journal-checkpoint-tests-pin-one ([e8dd3aa](https://github.com/mctlhq/portfolio/commit/e8dd3aa10a496f2f5308a4eb150f860a488a9f7a))
+
+
+### Bug Fixes
+
+* **journal:** assert invariants instead of one cycle's checkpoint ([ac3399e](https://github.com/mctlhq/portfolio/commit/ac3399ef183658f2e4a8371d385b22a19dcf2905))
+
 ## [0.1.21](https://github.com/mctlhq/portfolio/compare/0.1.20...0.1.21) (2026-09-13)
 
 
