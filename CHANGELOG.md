@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.30](https://github.com/mctlhq/portfolio/compare/0.1.29...0.1.30) (2026-09-13)
+
+
+### Features
+
+* **agents:** issue-103-q16-compact-segmented-language-and-theme ([4cefdd8](https://github.com/mctlhq/portfolio/commit/4cefdd87d82b7b263cfaee2c399bcbdf59b4746c))
+* **agents:** issue-103-q16-compact-segmented-language-and-theme ([e0a6435](https://github.com/mctlhq/portfolio/commit/e0a6435329b7edeaa1d77911c6ae263efc017a84))
+
 ## [0.1.29](https://github.com/mctlhq/portfolio/compare/0.1.28...0.1.29) (2026-09-13)
 
 
