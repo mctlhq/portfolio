@@ -247,17 +247,126 @@ async function checkHomePage() {
   }
 
   const openDetailsCount = countDetailsOpen(html);
-  if (openDetailsCount !== 1) {
+  if (openDetailsCount !== 0) {
     problems.push(
-      `check-dist: ${path.relative(ROOT, indexPath)} has ${openDetailsCount} <details open> element(s), expected exactly 1 (the Contact block)`,
+      `check-dist: ${path.relative(ROOT, indexPath)} has ${openDetailsCount} <details open> element(s), expected exactly 0 (issue #98, Q15: the contact disclosure was replaced by a visible #contact section)`,
     );
   }
 
   const summaryH2Count = countOccurrences(html, '<summary><h2');
-  if (summaryH2Count !== 3) {
+  if (summaryH2Count !== 2) {
     problems.push(
-      `check-dist: ${path.relative(ROOT, indexPath)} has ${summaryH2Count} "<summary><h2" opening(s), expected exactly 3`,
+      `check-dist: ${path.relative(ROOT, indexPath)} has ${summaryH2Count} "<summary><h2" opening(s), expected exactly 2 (issue #98, Q15: only detailsRunSummary and detailsWorkSummary remain)`,
     );
+  }
+
+  // scripts/check-links.mjs classifies a bare `#fragment` href as resolving
+  // to the current document without checking that a matching id exists
+  // there (see its classifyHref() doc comment) -- the same gap
+  // checkNavigationState() above already closes for the skip link
+  // (href="#main" against <main id="main">). The primary CTA's
+  // href="#contact" gets the same treatment here: prove the id it targets
+  // is actually present on the page, rather than leaving it the one link on
+  // the site no gate resolves.
+  if (!/<a\b[^>]*\bclass="cta cta-primary"[^>]*\bhref="#contact"[^>]*>/.test(html)) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, indexPath)} has no <a class="cta cta-primary" href="#contact"> primary CTA`,
+    );
+  }
+  if (!/\bid="contact"/.test(html)) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, indexPath)} has no element carrying id="contact"; the primary CTA's href="#contact" does not resolve to anything on the page`,
+    );
+  }
+  if (!/<section\s+id="contact"\s+tabindex="-1">/.test(html)) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, indexPath)} has no <section id="contact" tabindex="-1">; the primary CTA's href="#contact" target must be focusable, same pattern as <main id="main" tabindex="-1">`,
+    );
+  }
+
+  problems.push(...checkHomeJsonLd(html, path.relative(ROOT, indexPath)));
+
+  return problems;
+}
+
+const HOME_PERSON_KEYS = ['@type', 'name', 'url', 'jobTitle', 'email', 'sameAs'];
+const HOME_WEBSITE_KEYS = ['@type', 'name', 'url', 'inLanguage'];
+const HOME_SAME_AS = [
+  'https://www.linkedin.com/in/dmitriimashkov',
+  'https://github.com/mctlhq',
+  'https://t.me/dmitriimashkov',
+];
+
+/**
+ * Checks the `Person`/`WebSite` JSON-LD graph on dist/index.html (issue #98,
+ * Q15, Appendix A.11): exactly one `application/ld+json` block, it parses,
+ * its `@graph` carries a `Person` node with exactly the five named fields
+ * (plus `@type`) and the three ordered `sameAs` entries, and a `WebSite`
+ * node with exactly its three named fields (plus `@type`). Mirrors
+ * checkJsonLd()'s shape for the journal/ADR BreadcrumbList, but home-page
+ * specific: this is the one route whose graph never carries a
+ * BreadcrumbList, so it needs its own field list rather than reusing
+ * checkJsonLd().
+ */
+function checkHomeJsonLd(html, rel) {
+  const problems = [];
+  const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+  if (blocks.length !== 1) {
+    problems.push(`check-dist: ${rel} has ${blocks.length} application/ld+json block(s), expected exactly 1`);
+    return problems;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(blocks[0][1]);
+  } catch (err) {
+    problems.push(`check-dist: ${rel} application/ld+json block does not parse: ${err.message}`);
+    return problems;
+  }
+  const graph = Array.isArray(parsed['@graph']) ? parsed['@graph'] : [];
+  if (graph.length !== 2) {
+    problems.push(`check-dist: ${rel} application/ld+json @graph has ${graph.length} node(s), expected exactly 2`);
+    return problems;
+  }
+  const [person, site] = graph;
+
+  if (person['@type'] !== 'Person') {
+    problems.push(`check-dist: ${rel} application/ld+json @graph[0].@type is "${person['@type']}", expected "Person"`);
+  }
+  const personKeys = Object.keys(person).sort();
+  if (JSON.stringify(personKeys) !== JSON.stringify([...HOME_PERSON_KEYS].sort())) {
+    problems.push(`check-dist: ${rel} Person node keys are ${personKeys.join(',')}, expected exactly ${HOME_PERSON_KEYS.join(',')}`);
+  }
+  if (person.name !== 'Dmitrii Mashkov') {
+    problems.push(`check-dist: ${rel} Person.name is "${person.name}", expected "Dmitrii Mashkov"`);
+  }
+  if (person.url !== 'https://dmitriimashkov.com/') {
+    problems.push(`check-dist: ${rel} Person.url is "${person.url}", expected "https://dmitriimashkov.com/"`);
+  }
+  if (person.jobTitle !== 'Senior platform engineer') {
+    problems.push(`check-dist: ${rel} Person.jobTitle is "${person.jobTitle}", expected "Senior platform engineer"`);
+  }
+  if (person.email !== 'mailto:hello@dmitriimashkov.com') {
+    problems.push(`check-dist: ${rel} Person.email is "${person.email}", expected "mailto:hello@dmitriimashkov.com"`);
+  }
+  if (JSON.stringify(person.sameAs) !== JSON.stringify(HOME_SAME_AS)) {
+    problems.push(`check-dist: ${rel} Person.sameAs is ${JSON.stringify(person.sameAs)}, expected ${JSON.stringify(HOME_SAME_AS)}`);
+  }
+
+  if (site['@type'] !== 'WebSite') {
+    problems.push(`check-dist: ${rel} application/ld+json @graph[1].@type is "${site['@type']}", expected "WebSite"`);
+  }
+  const siteKeys = Object.keys(site).sort();
+  if (JSON.stringify(siteKeys) !== JSON.stringify([...HOME_WEBSITE_KEYS].sort())) {
+    problems.push(`check-dist: ${rel} WebSite node keys are ${siteKeys.join(',')}, expected exactly ${HOME_WEBSITE_KEYS.join(',')}`);
+  }
+  if (site.name !== 'Dmitrii Mashkov') {
+    problems.push(`check-dist: ${rel} WebSite.name is "${site.name}", expected "Dmitrii Mashkov"`);
+  }
+  if (site.url !== 'https://dmitriimashkov.com/') {
+    problems.push(`check-dist: ${rel} WebSite.url is "${site.url}", expected "https://dmitriimashkov.com/"`);
+  }
+  if (site.inLanguage !== 'en') {
+    problems.push(`check-dist: ${rel} WebSite.inLanguage is "${site.inLanguage}", expected "en"`);
   }
 
   return problems;

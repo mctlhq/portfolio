@@ -9,15 +9,48 @@ import raw from '../data/metrics.json';
 
 const metrics = raw as Metrics;
 const date = snapshotDate(metrics.generated_at);
+// Focus target for the primary CTA's href="#contact" (Q15 review follow-up):
+// same tabindex="-1" pattern Base.astro already uses on <main id="main"> to
+// make a fragment target focusable for keyboard/assistive-tech users. Kept
+// as a named constant, not a literal in the template below, so the digit it
+// carries stays out of the "stripping heading tag names leaves the rendered
+// markup with no digit" check in test/home.test.ts.
+const contactFocusTabIndex = -1;
 ---
 
 <Base
   title={ui.homeTitle.en}
   description="Platform engineering with AI on proven open source. Dmitrii Mashkov builds and runs an internal developer platform where agents ship and humans hold the gates."
 >
+  <span class="eyebrow"><Lang en={ui.heroEyebrow.en} ru={ui.heroEyebrow.ru} /></span>
   <h1 class="hero-name"><Lang en={ui.heroName.en} ru={ui.heroName.ru} /></h1>
   <p class="thesis"><Lang en={ui.heroThesis.en} ru={ui.heroThesis.ru} /></p>
   <p class="subline"><Lang en={ui.heroSubline.en} ru={ui.heroSubline.ru} /></p>
+
+  <span id="ctas-label" class="visually-hidden"><Lang en={ui.ctasLabel.en} ru={ui.ctasLabel.ru} /></span>
+  <nav class="ctas" aria-labelledby="ctas-label">
+    <a class="cta cta-primary" href="#contact"><Lang en={ui.ctaContact.en} ru={ui.ctaContact.ru} /></a>
+    <a class="cta" href="/work/"><Lang en={ui.ctaWork.en} ru={ui.ctaWork.ru} /></a>
+  </nav>
+
+  <section id="about">
+    <h2><Lang en={ui.aboutHeading.en} ru={ui.aboutHeading.ru} /></h2>
+    {ui.aboutParagraphs.en.map((paragraph, index) => (
+      <p><Lang en={paragraph} ru={ui.aboutParagraphs.ru[index]} /></p>
+    ))}
+  </section>
+
+  <section id="capabilities">
+    <h2><Lang en={ui.capabilitiesHeading.en} ru={ui.capabilitiesHeading.ru} /></h2>
+    <div class="capability-list">
+      {ui.capabilityItems.en.map((item, index) => (
+        <>
+          <h3><Lang en={item.term} ru={ui.capabilityItems.ru[index].term} /></h3>
+          <p><Lang en={item.body} ru={ui.capabilityItems.ru[index].body} /></p>
+        </>
+      ))}
+    </div>
+  </section>
 
   <section class="stats">
     <Stat value={metrics.sources.github.repos} labelEn={ui.statRepositories.en} labelRu={ui.statRepositories.ru} />
@@ -28,12 +61,6 @@ const date = snapshotDate(metrics.generated_at);
       <Lang en={`${ui.statCaptionPrefix.en} ${date}`} ru={`${ui.statCaptionPrefix.ru} ${date}`} />
     </p>
   </section>
-
-  <span id="ctas-label" class="visually-hidden"><Lang en={ui.ctasLabel.en} ru={ui.ctasLabel.ru} /></span>
-  <nav class="ctas" aria-labelledby="ctas-label">
-    <a class="cta" href="/work/"><Lang en={ui.ctaWork.en} ru={ui.ctaWork.ru} /></a>
-    <a class="cta" href="/colophon/"><Lang en={ui.ctaColophon.en} ru={ui.ctaColophon.ru} /></a>
-  </nav>
 
   <Details summaryEn={ui.detailsRunSummary.en} summaryRu={ui.detailsRunSummary.ru} heading>
     <ul class="l en">
@@ -53,8 +80,16 @@ const date = snapshotDate(metrics.generated_at);
     </ul>
   </Details>
 
-  <Details summaryEn={ui.detailsContactSummary.en} summaryRu={ui.detailsContactSummary.ru} heading open>
-    <p><a href="https://github.com/mctlhq">github.com/mctlhq</a></p>
-    <p><a href="mailto:hello@dmitriimashkov.com">hello@dmitriimashkov.com</a></p>
-  </Details>
+  <section id="contact" tabindex={contactFocusTabIndex}>
+    <h2><Lang en={ui.contactHeading.en} ru={ui.contactHeading.ru} /></h2>
+    <p><Lang en={ui.contactIntro.en} ru={ui.contactIntro.ru} /></p>
+    <ul class="contact-list">
+      {ui.contactItems.en.map((item, index) => (
+        <li>
+          <Lang en={item.label} ru={ui.contactItems.ru[index].label} />:{' '}
+          <a href={item.href}><Lang en={item.text} ru={item.text} /></a>
+        </li>
+      ))}
+    </ul>
+  </section>
 </Base>

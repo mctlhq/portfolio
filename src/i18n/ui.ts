@@ -66,6 +66,14 @@ export const ui = {
   heroName: { en: 'Dmitrii Mashkov', ru: 'Дмитрий Машков' },
   homeTitle: { en: 'Dmitrii Mashkov', ru: 'Dmitrii Mashkov' },
 
+  // heroEyebrow (Q15, issue #98): the eyebrow line rendered directly above
+  // the hero <h1>, stating role and seniority so a screener can decide in
+  // five seconds whether to keep reading. See requirements.md Appendix A.1.
+  heroEyebrow: {
+    en: 'Senior platform engineer · AI-native delivery',
+    ru: 'Старший платформенный инженер · доставка с AI-агентами',
+  },
+
   heroThesis: {
     en: 'Platform engineering with AI on proven open source. Software built the agentic way.',
     ru: 'Платформенная инженерия с AI на проверенных open-source решениях. Разработка агентским способом.',
@@ -82,11 +90,95 @@ export const ui = {
   statCaptionPrefix: { en: 'Snapshot', ru: 'Снимок' },
 
   ctaWork: { en: 'See the work', ru: 'Смотреть работы' },
+  // ctaColophon (issue #98, Q15): no longer rendered on the home page --
+  // the .ctas nav's second slot now points at #contact via ctaContact --
+  // but kept in the dictionary per requirements.md Appendix A open question
+  // 3, since nothing else forbids an unused key (see notFoundContact,
+  // used on one page only).
   ctaColophon: { en: 'How this site is built', ru: 'Как сделан этот сайт' },
+  // ctaContact (Q15, A.2): the new primary CTA, pointing at #contact.
+  ctaContact: { en: 'Get in touch', ru: 'Написать' },
   ctasLabel: { en: 'Page shortcuts', ru: 'Быстрые ссылки' },
+
+  // aboutHeading / aboutParagraphs (Q15, A.3/A.4): the "Who I am" identity
+  // section, replacing the previous no-role/no-history home page.
+  aboutHeading: { en: 'Who I am', ru: 'Кто я' },
+  aboutParagraphs: {
+    en: [
+      "Nine years of production engineering. Since 2021, backend and platform work for a global retail-trading fintech: high-availability services on AWS EKS and ECS, Kafka event streaming for market data and order flow, and transaction processing that cannot double-count a balance update. Since 2024 I also review architecture and code for several core financial microservices as the team's Java and Spring component mentor.",
+      'Before that, four years of Python at a large retail chain — forecasting services and spatial data pipelines over PostGIS — the last of them leading a team of four engineers end to end, from prioritisation with the business to production rollout.',
+      'Since early 2026 I build and operate mctl.ai in the open: a multi-tenant Kubernetes platform where AI agents carry the delivery work and humans hold the gates. This site is one of the services running on it, and every cycle that changed it is recorded on the colophon.',
+    ],
+    ru: [
+      'Девять лет продакшн-инженерии. С 2021 года — бэкенд и платформа для глобального финтеха розничного трейдинга: высокодоступные сервисы на AWS EKS и ECS, потоковая обработка рыночных данных и потока ордеров через Kafka, обработка транзакций, в которой изменение баланса невозможно применить дважды. С 2024 года дополнительно ревьюю архитектуру и код нескольких ключевых финансовых микросервисов как component mentor команды по Java и Spring.',
+      'До этого — четыре года Python в крупной розничной сети: сервисы прогнозирования и конвейеры пространственных данных на PostGIS. Последний из них — с командой из четырёх инженеров, от приоритизации с бизнесом до выката в продакшн.',
+      'С начала 2026 года строю и эксплуатирую mctl.ai в открытую: мультитенантную платформу на Kubernetes, где доставку ведут AI-агенты, а люди стоят на контрольных точках. Этот сайт — один из сервисов на ней, и каждый изменивший его цикл записан в колофоне.',
+    ],
+  },
+
+  // capabilitiesHeading / capabilityItems (Q15, A.5/A.6): the "What I do"
+  // capability section, three { term, body } entries per language.
+  capabilitiesHeading: { en: 'What I do', ru: 'Что я умею' },
+  capabilityItems: {
+    en: [
+      {
+        term: 'Platform and GitOps delivery',
+        body: 'Multi-tenant Kubernetes from bare cloud up: OpenTofu, ArgoCD app-of-apps, Argo Workflows and Argo Rollouts, one Helm delivery contract that every service uses, Vault with External Secrets, CloudNativePG, Traefik and cert-manager, Backstage golden paths. Tenant isolation, RBAC, quotas and network policies. Every change is committed, reviewable and reversible.',
+      },
+      {
+        term: 'Agentic delivery systems',
+        body: 'Role-specific agents that turn an issue into a proposal, an approved proposal into a pull request, and a clean review into a merge — with explicit human gates before implementation and before merge. Remote MCP servers in production: OAuth 2.1 with PKCE, tenant-scoped RBAC, durable workflow execution and tamper-evident audit logs.',
+      },
+      {
+        term: 'Backend under load',
+        body: 'Python and Java on Spring Boot, FastAPI, Kafka, PostgreSQL and Redis. Event-driven microservices for real-time market data and order flow, idempotent transaction processing with correlation-key deduplication, and fraud-prevention workflows under regulatory constraints.',
+      },
+    ],
+    ru: [
+      {
+        term: 'Платформа и GitOps-доставка',
+        body: 'Мультитенантный Kubernetes с нуля: OpenTofu, ArgoCD в схеме app-of-apps, Argo Workflows и Argo Rollouts, единый Helm-контракт доставки для всех сервисов, Vault с External Secrets, CloudNativePG, Traefik и cert-manager, golden paths в Backstage. Изоляция тенантов, RBAC, квоты и сетевые политики. Любое изменение закоммичено, обозримо и обратимо.',
+      },
+      {
+        term: 'Агентские системы доставки',
+        body: 'Ролевые агенты, которые превращают issue в предложение, одобренное предложение — в pull request, а чистое ревью — в мерж, с явными человеческими контрольными точками перед реализацией и перед мержем. Удалённые MCP-серверы в проде: OAuth 2.1 с PKCE, RBAC в границах тенанта, устойчивое выполнение воркфлоу и журнал аудита с защитой от подмены.',
+      },
+      {
+        term: 'Бэкенд под нагрузкой',
+        body: 'Python и Java на Spring Boot, FastAPI, Kafka, PostgreSQL и Redis. Событийные микросервисы для рыночных данных и потока ордеров в реальном времени, идемпотентная обработка транзакций с дедупликацией по корреляционному ключу, антифрод-сценарии в условиях регуляторных требований.',
+      },
+    ],
+  },
+
+  // contactHeading / contactIntro / contactItems (Q15, A.7/A.8/A.9): the
+  // visible contact section, replacing the hidden detailsContactSummary
+  // disclosure. href and text are identical across languages by design
+  // (see design.md); only label is rendered as a <Lang> pair.
+  contactHeading: { en: 'Get in touch', ru: 'Связаться' },
+  contactIntro: {
+    en: 'Fully remote, Central European hours. Open to relocation in the EU. Email is the fastest way through.',
+    ru: 'Полностью удалённо, по центральноевропейскому времени. Открыт к релокации в ЕС. Быстрее всего — почта.',
+  },
+  contactItems: {
+    en: [
+      { label: 'Email', href: 'mailto:hello@dmitriimashkov.com', text: 'hello@dmitriimashkov.com' },
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/in/dmitriimashkov', text: 'linkedin.com/in/dmitriimashkov' },
+      { label: 'GitHub', href: 'https://github.com/mctlhq', text: 'github.com/mctlhq' },
+      { label: 'Telegram', href: 'https://t.me/dmitriimashkov', text: '@dmitriimashkov' },
+    ],
+    ru: [
+      { label: 'Почта', href: 'mailto:hello@dmitriimashkov.com', text: 'hello@dmitriimashkov.com' },
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/in/dmitriimashkov', text: 'linkedin.com/in/dmitriimashkov' },
+      { label: 'GitHub', href: 'https://github.com/mctlhq', text: 'github.com/mctlhq' },
+      { label: 'Telegram', href: 'https://t.me/dmitriimashkov', text: '@dmitriimashkov' },
+    ],
+  },
 
   detailsRunSummary: { en: 'What I run', ru: 'Что я эксплуатирую' },
   detailsWorkSummary: { en: 'How I work', ru: 'Как я работаю' },
+  // detailsContactSummary (issue #98, Q15): no longer rendered -- the
+  // contact disclosure was replaced by the visible #contact section -- but
+  // kept in the dictionary per the same open question 3 as ctaColophon.
   detailsContactSummary: { en: 'Contact', ru: 'Контакты' },
 
   detailsRunItems: {

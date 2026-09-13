@@ -30,6 +30,7 @@ const TARGET_SELECTORS = [
   '.breadcrumb a',
   '.journal-meta a',
   '.table-scroll a',
+  '.contact-list a',
 ];
 
 /**

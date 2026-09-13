@@ -210,6 +210,43 @@ test('run() counts a single-quoted and an unquoted href in checked, and reports 
   }
 });
 
+// -- Q15 (issue #98): the three new off-origin hrefs are reported, not -----
+// -- silently passed over (open question 2) --------------------------------
+
+test('classifyHref reports the three Q15 off-origin hrefs with reason off-origin', () => {
+  assert.deepEqual(classifyHref('https://rewards.mctl.ai', ORIGIN), { kind: 'skipped', reason: 'off-origin' });
+  assert.deepEqual(classifyHref('https://www.linkedin.com/in/dmitriimashkov', ORIGIN), {
+    kind: 'skipped',
+    reason: 'off-origin',
+  });
+  assert.deepEqual(classifyHref('https://t.me/dmitriimashkov', ORIGIN), { kind: 'skipped', reason: 'off-origin' });
+});
+
+test('run() counts and lists rewards.mctl.ai, linkedin and t.me alongside mailto in skipped, and none of the four in checked or problems', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'check-links-q15-fixture-'));
+  try {
+    await writeFile(
+      path.join(dir, 'index.html'),
+      `<!doctype html><html><head></head><body>
+        <a href="https://rewards.mctl.ai">Service</a>
+        <a href="https://www.linkedin.com/in/dmitriimashkov">LinkedIn</a>
+        <a href="https://t.me/dmitriimashkov">Telegram</a>
+        <a href="mailto:hello@dmitriimashkov.com">Email</a>
+      </body></html>`,
+      'utf8',
+    );
+    const { checked, problems, skipped } = await run({ distDir: dir, origin: ORIGIN });
+    assert.equal(checked, 0, 'none of the four hrefs are internal');
+    assert.deepEqual(problems, []);
+    assert.equal(skipped.get('https://rewards.mctl.ai'), 1);
+    assert.equal(skipped.get('https://www.linkedin.com/in/dmitriimashkov'), 1);
+    assert.equal(skipped.get('https://t.me/dmitriimashkov'), 1);
+    assert.equal(skipped.get('mailto:hello@dmitriimashkov.com'), 1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 // -- T8: canonical resolved by origin comparison, not byte equality --------
 
 test('a <link rel="canonical"> pointing at a different page than its own resolves via origin comparison', async () => {

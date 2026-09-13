@@ -216,6 +216,13 @@ pre,
 }
 
 /* Hero (home page). */
+.eyebrow {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-sm);
+  color: var(--surface-fg-muted);
+  margin-block-end: var(--mctl-space-2);
+}
 .hero-name {
   font-family: var(--font-display);
   font-weight: var(--mctl-typography-font-weight-bold);
@@ -290,6 +297,18 @@ pre,
   border-color: var(--accent);
 }
 
+/* Primary CTA (issue #98, Q15): a filled variant of .cta so the primary
+ * action (#contact) is visually distinguishable from the secondary one
+ * (/work/) without a second colour pair -- accent-fg on accent is already
+ * proven in scripts/check-contrast.mjs's PAIRS list. The :hover/:visited
+ * pins live in the "Pins" section below, after .cta:visited:not(:hover),
+ * so the equal-specificity tie between the two resolves in their favour. */
+.cta-primary {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+
 /* Collapsible blocks. */
 .block {
   border-top: 1px solid var(--surface-line);
@@ -315,6 +334,61 @@ pre,
 }
 .block p {
   margin-block-end: var(--mctl-space-2);
+}
+
+/* Identity, capability and contact sections (home page, issue #98, Q15):
+ * the same top-border-plus-block-padding rhythm .block already uses, so the
+ * new always-visible sections read as siblings of the two remaining
+ * disclosures rather than a different kind of content. */
+#about,
+#capabilities,
+#contact {
+  border-top: 1px solid var(--surface-line);
+  padding-block: var(--mctl-space-5);
+}
+#about h2,
+#capabilities h2,
+#contact h2 {
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-lg);
+  line-height: var(--mctl-typography-line-height-tight);
+  margin-block-end: var(--mctl-space-3);
+}
+#about p,
+#contact p {
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-body);
+  line-height: var(--mctl-typography-line-height-body);
+  margin-block-end: var(--mctl-space-3);
+}
+.capability-list h3 {
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-lede);
+  line-height: var(--mctl-typography-line-height-tight);
+  margin-block: var(--mctl-space-4) var(--mctl-space-1);
+}
+.capability-list h3:first-child {
+  margin-block-start: 0;
+}
+.capability-list p {
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-body);
+  line-height: var(--mctl-typography-line-height-body);
+  color: var(--surface-fg-muted);
+  margin: 0;
+}
+.contact-list {
+  list-style: none;
+  margin: var(--mctl-space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mctl-space-2);
+}
+.contact-list a {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
 }
 
 /* Text for assistive technology only: present in the accessibility tree
@@ -400,6 +474,16 @@ main a:hover {
  * result does not depend on source order. */
 .cta:visited:not(:hover) {
   color: var(--surface-fg);
+}
+/* .cta-primary keeps accent-fg on its filled accent background in every
+ * state, unlike the outline .cta above: hover is distinguished by an
+ * underline (a non-colour affordance), not a colour change. */
+.cta-primary:hover {
+  color: var(--accent-fg);
+  text-decoration: underline;
+}
+.cta-primary:visited:not(:hover) {
+  color: var(--accent-fg);
 }
 .project-links a:hover,
 .project-links a:visited:not(:hover) {

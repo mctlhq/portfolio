@@ -192,3 +192,198 @@ test('A2 proof: an astro.config.mjs with no `site` key is reported once-prefixed
     await rm(tmp, { recursive: true, force: true });
   }
 });
+
+// -- Q15 (issue #98): checkHomePage()'s new home-page JSON-LD branch --------
+// A minimal dist/-shaped fixture with a controllable dist/index.html, in the
+// same spawn-the-real-script-against-a-temporary-tree style as A3b above.
+
+const VALID_HOME_GRAPH = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Person',
+      name: 'Dmitrii Mashkov',
+      url: 'https://dmitriimashkov.com/',
+      jobTitle: 'Senior platform engineer',
+      email: 'mailto:hello@dmitriimashkov.com',
+      sameAs: [
+        'https://www.linkedin.com/in/dmitriimashkov',
+        'https://github.com/mctlhq',
+        'https://t.me/dmitriimashkov',
+      ],
+    },
+    { '@type': 'WebSite', name: 'Dmitrii Mashkov', url: 'https://dmitriimashkov.com/', inLanguage: 'en' },
+  ],
+};
+
+function ldJsonScript(graph: unknown): string {
+  return `<script type="application/ld+json">${JSON.stringify(graph)}</script>`;
+}
+
+/** Builds a minimal dist/-shaped fixture with one dist/index.html carrying
+ * the hero markup, the two `<summary><h2` disclosures, the primary CTA and
+ * its `#contact` target that checkHomePage() otherwise requires -- so this
+ * fixture satisfies every one of that function's other branches and this
+ * test isolates the JSON-LD branch's own problems from all of them -- plus
+ * whatever `headExtra` supplies inside <head> -- typically zero, one or two
+ * application/ld+json blocks.
+ *
+ * Without this, all four JSON-LD fixtures below shared one incomplete body
+ * that tripped the "<summary><h2" count, the primary-CTA and both #contact
+ * checks identically regardless of what the JSON-LD graph looked like,
+ * making the "well-formed graph" case a false control (it never actually
+ * passed those other branches, so it proved nothing about them) and leaving
+ * every mutation case unable to prove its assertion was reporting only the
+ * one thing it changed. */
+async function makeHomeJsonLdFixture(
+  headExtra: string,
+  bodyOverrides: { cta?: string; contactSection?: string } = {},
+): Promise<string> {
+  const cta = bodyOverrides.cta ?? '<a class="cta cta-primary" href="#contact">Contact</a>';
+  const contactSection = bodyOverrides.contactSection ?? '<section id="contact" tabindex="-1"></section>';
+  const tmp = await mkdtemp(path.join(tmpdir(), 'check-dist-jsonld-test-'));
+  await mkdir(path.join(tmp, 'scripts'), { recursive: true });
+  await cp(path.join(ROOT, 'scripts/check-dist.mjs'), path.join(tmp, 'scripts/check-dist.mjs'));
+  await cp(path.join(ROOT, 'src/lib'), path.join(tmp, 'src/lib'), { recursive: true });
+  await writeFile(
+    path.join(tmp, 'astro.config.mjs'),
+    "export default { site: 'https://example.invalid' };\n",
+    'utf8',
+  );
+  await mkdir(path.join(tmp, 'src/content/journal'), { recursive: true });
+  await mkdir(path.join(tmp, 'src/content/adr'), { recursive: true });
+  await mkdir(path.join(tmp, 'dist'), { recursive: true });
+  await writeFile(
+    path.join(tmp, 'dist/index.html'),
+    '<!doctype html><html><head><title>Dmitrii Mashkov</title>' +
+      headExtra +
+      '</head><body>' +
+      '<h1 class="hero-name"><span class="l en">Dmitrii Mashkov</span><span class="l ru" lang="ru">Дмитрий Машков</span></h1>' +
+      `<nav class="ctas">${cta}</nav>` +
+      '<details><summary><h2>Run summary</h2></summary></details>' +
+      '<details><summary><h2>Work summary</h2></summary></details>' +
+      contactSection +
+      '</body></html>',
+    'utf8',
+  );
+  return tmp;
+}
+
+/** Asserts that none of checkHomePage()'s non-JSON-LD branches -- the
+ * "<summary><h2" count, the primary CTA and both #contact-target checks --
+ * fired. Every one of the four tests below calls this so that whichever
+ * JSON-LD-specific assertion follows is proven to be the only thing that
+ * fixture actually tripped, rather than one line lost in noise the fixture
+ * always produced regardless of the graph under test. */
+function assertNoOtherHomePageProblems(stderr: string): void {
+  assert.doesNotMatch(stderr, /"<summary><h2" opening\(s\)/);
+  assert.doesNotMatch(stderr, /no <a class="cta cta-primary" href="#contact"> primary CTA/);
+  assert.doesNotMatch(stderr, /no element carrying id="contact"/);
+  assert.doesNotMatch(stderr, /no <section id="contact" tabindex="-1">/);
+}
+
+// The three `#contact` assertions in assertNoOtherHomePageProblems() above
+// are doesNotMatch-only: a fixture that never carries the markup they check
+// for and a fixture that carries it correctly both make those lines pass, so
+// on their own they cannot tell "present as expected" from "the check was
+// deleted from checkHomePage() (or from this fixture) entirely". The three
+// tests below close that gap the same way the Person.sameAs and jobTitle
+// tests above do for the JSON-LD branches: break exactly one piece of markup
+// via bodyOverrides, assert.match the corresponding problem string, and
+// assert.doesNotMatch the other two so each mutation is proven isolated to
+// the one check it targets.
+
+test('checkHomePage: primary CTA missing href="#contact" is reported, other two #contact checks stay silent', async () => {
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(VALID_HOME_GRAPH), {
+    cta: '<a class="cta cta-primary" href="#elsewhere">Contact</a>',
+  });
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /no <a class="cta cta-primary" href="#contact"> primary CTA/);
+    assert.doesNotMatch(result.stderr, /no element carrying id="contact"/);
+    assert.doesNotMatch(result.stderr, /no <section id="contact" tabindex="-1">/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: no element anywhere carries id="contact" is reported, alongside the section check it subsumes', async () => {
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(VALID_HOME_GRAPH), {
+    contactSection: '<section tabindex="-1"></section>',
+  });
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /no element carrying id="contact"/);
+    assert.match(result.stderr, /no <section id="contact" tabindex="-1">/);
+    assert.doesNotMatch(result.stderr, /no <a class="cta cta-primary" href="#contact"> primary CTA/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: id="contact" on a non-section element satisfies the id check but not the section-specific one', async () => {
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(VALID_HOME_GRAPH), {
+    contactSection: '<div id="contact"></div>',
+  });
+  try {
+    const result = runCheckDist(tmp);
+    assert.doesNotMatch(result.stderr, /no element carrying id="contact"/);
+    assert.match(result.stderr, /no <section id="contact" tabindex="-1">/);
+    assert.doesNotMatch(result.stderr, /no <a class="cta cta-primary" href="#contact"> primary CTA/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: a well-formed Person/WebSite graph reports no JSON-LD-specific problem', async () => {
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(VALID_HOME_GRAPH));
+  try {
+    const result = runCheckDist(tmp);
+    assert.doesNotMatch(result.stderr, /application\/ld\+json block\(s\)/);
+    assert.doesNotMatch(result.stderr, /Person node keys are/);
+    assert.doesNotMatch(result.stderr, /Person\.\w+ is/);
+    assert.doesNotMatch(result.stderr, /WebSite node keys are/);
+    assert.doesNotMatch(result.stderr, /WebSite\.\w+ is/);
+    assertNoOtherHomePageProblems(result.stderr);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: a Person.sameAs missing one entry is reported, naming Person.sameAs', async () => {
+  const graph = JSON.parse(JSON.stringify(VALID_HOME_GRAPH));
+  graph['@graph'][0].sameAs = graph['@graph'][0].sameAs.slice(0, 2);
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(graph));
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /Person\.sameAs is/);
+    assertNoOtherHomePageProblems(result.stderr);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: a Person node missing jobTitle is reported, naming jobTitle in the expected key list', async () => {
+  const graph = JSON.parse(JSON.stringify(VALID_HOME_GRAPH));
+  delete graph['@graph'][0].jobTitle;
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(graph));
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /Person node keys are/);
+    assert.match(result.stderr, /jobTitle/);
+    assertNoOtherHomePageProblems(result.stderr);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: two application/ld+json blocks are reported, naming the count', async () => {
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(VALID_HOME_GRAPH) + ldJsonScript(VALID_HOME_GRAPH));
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /has 2 application\/ld\+json block\(s\), expected exactly 1/);
+    assertNoOtherHomePageProblems(result.stderr);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
