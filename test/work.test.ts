@@ -4,6 +4,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { chipIsKnown, chipRu } from '../src/i18n/ui.ts';
+import { EXPECTED_SLUGS } from './support/expected-projects.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const WORK_PATH = fileURLToPath(new URL('../src/pages/work.astro', import.meta.url));
@@ -458,25 +459,16 @@ test('T3: ProjectCard.astro renders the private-repo chip from an explicit priva
   assert.match(card, /ui\.workPrivateRepo\.ru/);
 });
 
-test('T3: pfeifenpatenschaft-backend has neither repo: nor links:, and is marked private: true, in either language file', () => {
-  for (const lang of ['en', 'ru'] as const) {
-    const source = readFileSync(path.join(PROJECTS_DIR, `pfeifenpatenschaft-backend.${lang}.md`), 'utf8');
-    assert.doesNotMatch(source, /^repo:/m);
-    assert.doesNotMatch(source, /^links:/m);
-    assert.match(source, /^private:\s*true/m);
-  }
-});
-
 // -- T4: distinct accessible names ----------------------------------------
 
-test('T4: the fourteen project names are distinct per language', () => {
+test('T4: the ten project names are distinct per language', () => {
   const files = readdirSync(PROJECTS_DIR).filter((name) => name.endsWith('.md'));
   for (const lang of ['en', 'ru'] as const) {
     const names = files
       .filter((name) => name.endsWith(`.${lang}.md`))
       .map((name) => frontmatterField(readFileSync(path.join(PROJECTS_DIR, name), 'utf8'), 'name'));
-    assert.equal(names.length, 14, `expected 14 ${lang} project files`);
-    assert.equal(new Set(names).size, 14, `${lang} project names must be distinct`);
+    assert.equal(names.length, EXPECTED_SLUGS.length, `expected ${EXPECTED_SLUGS.length} ${lang} project files`);
+    assert.equal(new Set(names).size, EXPECTED_SLUGS.length, `${lang} project names must be distinct`);
   }
 });
 
