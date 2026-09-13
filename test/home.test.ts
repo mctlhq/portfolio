@@ -80,6 +80,18 @@ test('the .ctas nav holds exactly two <a> elements: cta-primary to #contact, the
   assert.match(anchors[1], /ui\.ctaWork\.en/);
 });
 
+test('the #contact section the primary CTA points at is focusable, same pattern as <main id="main" tabindex="-1">', () => {
+  // The primary CTA's href="#contact" only meets the "focus moves to the
+  // target on activation" half of the fragment-navigation contract if the
+  // target itself is focusable -- the same reason Base.astro's skip link
+  // target carries tabindex="-1" (see test/nav.test.ts). This pins both the
+  // frontmatter constant that carries the literal (kept out of the template
+  // so the "no digit in the rendered template" check above does not flag
+  // it) and its use on <section id="contact">.
+  assert.match(source, /const\s+contactFocusTabIndex\s*=\s*-1\s*;/);
+  assert.match(source, /<section\s+id="contact"\s+tabindex=\{contactFocusTabIndex\}>/);
+});
+
 test('the hero name renders through <Lang> bound to ui.heroName, with no literal name in the template', () => {
   const frontmatterEnd = source.indexOf('\n---', source.indexOf('---') + 3);
   const template = source.slice(frontmatterEnd + 4);

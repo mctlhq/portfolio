@@ -278,6 +278,11 @@ async function checkHomePage() {
       `check-dist: ${path.relative(ROOT, indexPath)} has no element carrying id="contact"; the primary CTA's href="#contact" does not resolve to anything on the page`,
     );
   }
+  if (!/<section\s+id="contact"\s+tabindex="-1">/.test(html)) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, indexPath)} has no <section id="contact" tabindex="-1">; the primary CTA's href="#contact" target must be focusable, same pattern as <main id="main" tabindex="-1">`,
+    );
+  }
 
   problems.push(...checkHomeJsonLd(html, path.relative(ROOT, indexPath)));
 
