@@ -19,36 +19,77 @@ test('site.css keeps a :focus-visible outline rule', () => {
   assert.match(siteCss, /:focus-visible\s*\{[^}]*outline:/);
 });
 
-const TARGET_SELECTORS = ['.site-nav a', '.toggle-group button', '.site-footer a', '.cta', '.block > summary', '.skip-link:focus'];
+const TARGET_SELECTORS = [
+  '.site-nav a',
+  '.toggle-group button',
+  '.site-footer a',
+  '.cta',
+  '.block > summary',
+  '.skip-link:focus',
+  '.project-links a',
+  '.breadcrumb a',
+  '.journal-meta a',
+  '.table-scroll a',
+];
+
+/**
+ * Finds every rule block in `css` whose selector list includes the exact
+ * `selector` (selectors are grouped with commas across lines in site.css),
+ * and reports a problem when no such block sets `min-block-size`, or when
+ * any such declaration is below `floor` px. Returns problem strings instead
+ * of asserting, so both the real stylesheet and a synthetic one can be
+ * checked with the same function (mirrors entryPointProblems() in
+ * test/entry-point.test.ts).
+ */
+function minBlockSizeProblems(css: string, selector: string, floor: number): string[] {
+  const problems: string[] = [];
+  const ruleRe = /([^{}]+)\{([^}]*)\}/g;
+  let found = false;
+  const sizes: number[] = [];
+  let m;
+  while ((m = ruleRe.exec(css))) {
+    const selectors = m[1]
+      .split(',')
+      .map((s) => s.trim().replace(/\s+/g, ' '));
+    if (!selectors.includes(selector)) continue;
+    const sizeMatch = m[2].match(/min-block-size:\s*(\d+)px/);
+    if (sizeMatch) {
+      found = true;
+      sizes.push(Number(sizeMatch[1]));
+    }
+  }
+  if (!found) {
+    problems.push(`no min-block-size rule found for selector "${selector}"`);
+  }
+  const tooSmall = sizes.filter((size) => size < floor);
+  if (tooSmall.length > 0) {
+    problems.push(
+      `min-block-size for "${selector}" is ${sizes.join(', ')}px, expected at least ${floor}px`,
+    );
+  }
+  return problems;
+}
 
 for (const selector of TARGET_SELECTORS) {
   test(`site.css declares a min-block-size of at least ${MIN_TARGET_PX}px on ${selector}`, () => {
-    // Find every rule block whose selector list includes this exact
-    // selector (selectors are grouped with commas across lines in
-    // site.css), then check at least one of those blocks sets
-    // min-block-size >= MIN_TARGET_PX.
-    const ruleRe = /([^{}]+)\{([^}]*)\}/g;
-    let found = false;
-    let sizes = [];
-    let m;
-    while ((m = ruleRe.exec(siteCss))) {
-      const selectors = m[1]
-        .split(',')
-        .map((s) => s.trim().replace(/\s+/g, ' '));
-      if (!selectors.includes(selector)) continue;
-      const sizeMatch = m[2].match(/min-block-size:\s*(\d+)px/);
-      if (sizeMatch) {
-        found = true;
-        sizes.push(Number(sizeMatch[1]));
-      }
-    }
-    assert.ok(found, `no min-block-size rule found for selector "${selector}"`);
-    assert.ok(
-      sizes.every((size) => size >= MIN_TARGET_PX),
-      `min-block-size for "${selector}" is ${sizes.join(', ')}px, expected at least ${MIN_TARGET_PX}px`,
-    );
+    assert.deepEqual(minBlockSizeProblems(siteCss, selector, MIN_TARGET_PX), []);
   });
 }
+
+test('minBlockSizeProblems reports a problem for a declaration below the floor', () => {
+  const synthetic = '.foo {\n  display: inline-flex;\n  min-block-size: 20px;\n}\n';
+  const problems = minBlockSizeProblems(synthetic, '.foo', MIN_TARGET_PX);
+  assert.ok(problems.length > 0);
+  assert.match(problems.join('\n'), /20/);
+  assert.match(problems.join('\n'), /\.foo/);
+});
+
+test('minBlockSizeProblems reports a problem when the selector has no min-block-size rule at all', () => {
+  const synthetic = '.foo {\n  display: inline-flex;\n  color: red;\n}\n';
+  const problems = minBlockSizeProblems(synthetic, '.foo', MIN_TARGET_PX);
+  assert.ok(problems.length > 0);
+  assert.match(problems.join('\n'), /no min-block-size rule found/);
+});
 
 test('site.css declares no animation or transition anywhere', () => {
   assert.doesNotMatch(siteCss, /\banimation(-[a-z]+)?\s*:/);

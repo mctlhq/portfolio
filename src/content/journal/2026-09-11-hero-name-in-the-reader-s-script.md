@@ -5,6 +5,7 @@ proposal_slug: issue-27-p4a-render-the-hero-name-in-the-reader-s
 pr: https://github.com/mctlhq/portfolio/pull/40
 release: 0.1.9
 visibility: public
+indexing: noindex
 status: complete
 title:
   en: "Render the hero name in the reader's script"

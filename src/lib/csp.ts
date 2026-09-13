@@ -10,11 +10,17 @@
 import { createHash } from 'node:crypto';
 
 /**
- * Matches every inline `<script>` element -- one without a `src=` attribute
- * -- capturing its text content. Moved verbatim out of the generator's
- * former local copy; do not retype it.
+ * Matches every inline, executable `<script>` element -- one without a
+ * `src=` attribute and not `type="application/ld+json"` -- capturing its
+ * text content. The `ld+json` exclusion (issue #88, Q13) exists because a
+ * `<script type="application/ld+json">` is a data block a browser never
+ * executes: no `script-src` source applies to it, and without this
+ * exclusion csp-hash.mjs would see it as a second distinct inline body and
+ * fail. Moved verbatim out of the generator's former local copy; do not
+ * retype it.
  */
-export const INLINE_SCRIPT_RE = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g;
+export const INLINE_SCRIPT_RE =
+  /<script(?![^>]*\bsrc=)(?![^>]*\btype="application\/ld\+json")[^>]*>([\s\S]*?)<\/script>/g;
 
 /** Extracts the text content of every inline `<script>` element in `html`. */
 export function extractInlineScripts(html: string): string[] {

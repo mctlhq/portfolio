@@ -5,10 +5,12 @@ proposal_slug: issue-11-p8b-metrics-provenance-and-the-no-analyt
 pr: https://github.com/mctlhq/portfolio/pull/36
 release: 0.1.7
 visibility: public
+indexing: index
 status: complete
 title:
   en: "Metrics provenance and the no-analytics decision"
   ru: "Происхождение метрик и решение об отказе от аналитики"
+seoTitle: "Metrics provenance and no analytics — Dmitrii Mashkov"
 decided:
   en: "Every number comes from one generated snapshot carrying a per-source method and collected_at; a committed grep gate fails the build on a number typed into a template; ADR-0004 records that the site runs no analytics."
   ru: "Каждое число берётся из одного сгенерированного снимка с методом и collected_at по каждому источнику; закоммиченная grep-проверка роняет сборку на числе, набранном в шаблоне; ADR-0004 фиксирует, что сайт не использует аналитику."

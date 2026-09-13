@@ -9,11 +9,18 @@ interface Props {
   title: string;
   description: string;
   noindex?: boolean;
+  robots?: string;
+  jsonLd?: unknown;
 }
 
-const { title, description, noindex = false } = Astro.props;
+const { title, description, noindex = false, robots, jsonLd } = Astro.props;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 const ogImageUrl = new URL('/og.png', Astro.site);
+// The image itself (public/og.svg) renders "Dmitrii Mashkov", "Platform
+// engineering with AI on proven open source" and "dmitriimashkov.com" in
+// Latin regardless of the reader's toggle, so this alt text is English on
+// every page.
+const OG_IMAGE_ALT = 'Dmitrii Mashkov — platform engineering with AI on proven open source, dmitriimashkov.com';
 ---
 
 <html lang="en" data-lang="en" data-theme="dark">
@@ -41,7 +48,10 @@ const ogImageUrl = new URL('/og.png', Astro.site);
     {noindex ? (
       <meta name="robots" content="noindex" />
     ) : (
-      <link rel="canonical" href={canonicalUrl.href} />
+      <>
+        <link rel="canonical" href={canonicalUrl.href} />
+        {robots && <meta name="robots" content={robots} />}
+      </>
     )}
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Dmitrii Mashkov" />
@@ -49,11 +59,19 @@ const ogImageUrl = new URL('/og.png', Astro.site);
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalUrl.href} />
     <meta property="og:image" content={ogImageUrl.href} />
+    <meta property="og:image:alt" content={OG_IMAGE_ALT} />
     <meta property="og:locale" content="en_US" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl.href} />
+    <meta name="twitter:image:alt" content={OG_IMAGE_ALT} />
+    {jsonLd && (
+      <script
+        type="application/ld+json"
+        set:html={JSON.stringify(jsonLd).replace(/</g, '\\u003c')}
+      />
+    )}
   </head>
   <body>
     <a class="skip-link" href="#main"><Lang en={ui.skipToContent.en} ru={ui.skipToContent.ru} /></a>

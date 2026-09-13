@@ -5,10 +5,12 @@ proposal_slug: issue-3-p1-astro-static-skeleton-nginx-image-and
 pr: https://github.com/mctlhq/portfolio/pull/12
 release: 0.1.0
 visibility: public
+indexing: noindex
 status: complete
 title:
   en: "Astro static skeleton, nginx image and health endpoints"
   ru: "Статический каркас Astro, образ nginx и проверки состояния"
+seoTitle: "Astro static skeleton and nginx image — Dmitrii Mashkov"
 decided:
   en: "The site builds to static HTML served by nginx from digest-pinned base images, with /healthz and /readyz returning 200, which fixes the deployment shape for every later cycle."
   ru: "Сайт собирается в статический HTML и отдаётся nginx из базовых образов, закреплённых по digest, а /healthz и /readyz отвечают 200 — это задаёт форму развёртывания для всех последующих циклов."

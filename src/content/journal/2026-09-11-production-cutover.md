@@ -5,10 +5,12 @@ proposal_slug: issue-42-p9-production-evidence-cutover-journal-a
 pr: https://github.com/mctlhq/portfolio/pull/43
 release: 0.1.10
 visibility: public
+indexing: index
 status: complete
 title:
   en: "Production cutover: apex domain, rollback drill and edge hardening"
   ru: "Переключение в прод: апекс-домен, учебный откат и укрепление на границе"
+seoTitle: "Production cutover and rollback drill — Dmitrii Mashkov"
 decided:
   en: "dmitriimashkov.com serves the site through the mctl custom-domain registry with Cloudflare proxying and a Let's Encrypt certificate issued by DNS-01, and the rollback path was exercised before the domain went live rather than after."
   ru: "dmitriimashkov.com отдаёт сайт через реестр кастомных доменов mctl с проксированием Cloudflare и сертификатом Let's Encrypt, выпущенным через DNS-01, а путь отката был проверен до того, как домен стал публичным, а не после."

@@ -3,6 +3,7 @@ id: 5
 title:
   en: "Self-contained runtime assets: tokens and fonts vendored at build time"
   ru: "Самодостаточные ресурсы времени выполнения: токены и шрифты встраиваются в сборку"
+seoTitle: "ADR-0005: Self-contained runtime assets — Dmitrii Mashkov"
 status: accepted
 date: '2026-09-11'
 visibility: public

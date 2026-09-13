@@ -116,6 +116,8 @@ export const ui = {
     ru: 'Страница, которую вы ищете, не существует.',
   },
   notFoundHome: { en: 'Back to home', ru: 'На главную' },
+  notFoundWork: { en: 'See the work', ru: 'Посмотреть работы' },
+  notFoundContact: { en: 'Get in touch', ru: 'Написать' },
 
   workGroupPlatform: { en: 'Platform', ru: 'Платформа' },
   workGroupProducts: { en: 'Products', ru: 'Продукты' },

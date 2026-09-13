@@ -6,7 +6,7 @@ import { ui } from '../../../i18n/ui';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { publicEntries } from '../../../lib/content';
 import { formatInterval, formatLeadTime, formatStamp, githubRef, isoStamp, leadTimeHours } from '../../../lib/journal';
-import { clampDescription } from '../../../lib/seo';
+import { breadcrumbJsonLd, clampDescription, journalPageTitle } from '../../../lib/seo';
 
 export async function getStaticPaths() {
   const entries = publicEntries(await getCollection('journal'));
@@ -56,9 +56,17 @@ const statusLabel = {
   in_progress: ui.statusInProgress,
   abandoned: ui.statusAbandoned,
 } as const;
+
+const robots = data.indexing === 'noindex' ? 'noindex,follow' : undefined;
+const crumbs = [
+  { name: ui.navHome.en, path: '/' },
+  { name: ui.navColophon.en, path: '/colophon/' },
+  { name: data.title.en, path: Astro.url.pathname },
+];
+const jsonLd = breadcrumbJsonLd(Astro.site!.href, crumbs);
 ---
 
-<Base title={`${data.title.en} — Dmitrii Mashkov`} description={description}>
+<Base title={journalPageTitle(data)} description={description} robots={robots} jsonLd={jsonLd}>
   <Breadcrumb currentEn={data.title.en} currentRu={data.title.ru} />
   <h1><Lang en={data.title.en} ru={data.title.ru} /></h1>
 

@@ -133,6 +133,8 @@ const journalSchema = z
     release: semver.optional(),
     visibility: z.enum(['public', 'private']),
     title: bilingual,
+    seoTitle: z.string().min(1).optional(),
+    indexing: z.enum(['index', 'noindex']).default('index'),
     decided: bilingual,
     issue_opened_at: stamp,
     proposal_approved_at: stamp.optional(),
@@ -235,6 +237,7 @@ const adr = defineCollection({
   schema: z.strictObject({
     id: z.number().int().positive(),
     title: bilingual,
+    seoTitle: z.string().min(1).optional(),
     status: z.enum(['proposed', 'accepted', 'superseded', 'deprecated']),
     date: z.string().regex(yyyyMmDd),
     supersedes: z.number().int().positive().optional(),

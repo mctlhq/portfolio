@@ -5,10 +5,12 @@ proposal_slug: issue-4-p2-base-layout-with-vendored-design-toke
 pr: https://github.com/mctlhq/portfolio/pull/16
 release: 0.1.1
 visibility: public
+indexing: index
 status: complete
 title:
   en: "Base layout with vendored design tokens and fonts"
   ru: "Базовый макет с встроенными в сборку токенами дизайна и шрифтами"
+seoTitle: "Base layout with vendored tokens and fonts — Dmitrii Mashkov"
 decided:
   en: "Design tokens and fonts are vendored at build time and the bilingual switch is CSS-driven, so the page makes zero third-party requests and stays usable without JavaScript."
   ru: "Токены дизайна и шрифты встраиваются во время сборки, а переключение языка выполняется средствами CSS, поэтому страница не делает сторонних запросов и остаётся рабочей без JavaScript."

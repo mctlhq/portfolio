@@ -6,7 +6,7 @@ import { ui } from '../../../i18n/ui';
 import { getCollection, render, type CollectionEntry } from 'astro:content';
 import { publicEntries } from '../../../lib/content';
 import { padAdrId } from '../../../lib/adr';
-import { clampDescription } from '../../../lib/seo';
+import { adrPageTitle, breadcrumbJsonLd, clampDescription } from '../../../lib/seo';
 
 export async function getStaticPaths() {
   const entries = publicEntries(await getCollection('adr'));
@@ -38,13 +38,21 @@ const statusLabel = adrStatusLabel[entry.data.status];
 const description = clampDescription(
   `Architecture decision record ADR-${padAdrId(entry.data.id)} for the portfolio site: ${entry.data.title.en}. Status: ${statusLabel.en}, ${entry.data.date}.`,
 );
+const currentEn = `ADR-${padAdrId(entry.data.id)}`;
+const crumbs = [
+  { name: ui.navHome.en, path: '/' },
+  { name: ui.navColophon.en, path: '/colophon/' },
+  { name: currentEn, path: Astro.url.pathname },
+];
+const jsonLd = breadcrumbJsonLd(Astro.site!.href, crumbs);
 ---
 
 <Base
-  title={`ADR-${padAdrId(entry.data.id)}: ${entry.data.title.en} — Dmitrii Mashkov`}
+  title={adrPageTitle(entry.data)}
   description={description}
+  jsonLd={jsonLd}
 >
-  <Breadcrumb currentEn={`ADR-${padAdrId(entry.data.id)}`} currentRu={`ADR-${padAdrId(entry.data.id)}`} />
+  <Breadcrumb currentEn={currentEn} currentRu={currentEn} />
   <h1>ADR-{padAdrId(entry.data.id)}: <Lang en={entry.data.title.en} ru={entry.data.title.ru} /></h1>
   <p class="adr-meta">
     <Lang en={statusLabel.en} ru={statusLabel.ru} /> · {entry.data.date}

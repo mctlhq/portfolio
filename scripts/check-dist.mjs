@@ -38,6 +38,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { hashMismatch } from '../src/lib/content-hash.ts';
+import { indexingFromFrontmatter, noindexJournalIds } from '../src/lib/indexing.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const DIST_DIR = path.join(ROOT, 'dist');
@@ -263,6 +264,38 @@ async function checkHomePage() {
 }
 
 /**
+ * Checks dist/404.html (issue #88, Q13, acceptance criterion E): below the
+ * existing home link, two new links -- /work/ ("See the work" / "Посмотреть
+ * работы") and mailto:hello@dmitriimashkov.com ("Get in touch" / "Написать")
+ * -- and the page stays noindex.
+ */
+function check404Page(html, rel) {
+  const problems = [];
+  if (!/<a href="\/work\/">/.test(html)) {
+    problems.push(`check-dist: ${rel} is missing a link to /work/`);
+  }
+  if (!html.includes('See the work')) {
+    problems.push(`check-dist: ${rel} is missing the EN string "See the work"`);
+  }
+  if (!html.includes('Посмотреть работы')) {
+    problems.push(`check-dist: ${rel} is missing the RU string "Посмотреть работы"`);
+  }
+  if (!/<a href="mailto:hello@dmitriimashkov\.com">/.test(html)) {
+    problems.push(`check-dist: ${rel} is missing a mailto:hello@dmitriimashkov.com link`);
+  }
+  if (!html.includes('Get in touch')) {
+    problems.push(`check-dist: ${rel} is missing the EN string "Get in touch"`);
+  }
+  if (!html.includes('Написать')) {
+    problems.push(`check-dist: ${rel} is missing the RU string "Написать"`);
+  }
+  if (!/<meta name="robots" content="noindex"\s*\/?>/.test(html)) {
+    problems.push(`check-dist: ${rel} is missing <meta name="robots" content="noindex">`);
+  }
+  return problems;
+}
+
+/**
  * Counts `<details ...open...>` elements in built markup: `open` renders as
  * a bare boolean attribute (no `="..."` value), so this looks for `open` as
  * its own token inside a `<details` opening tag rather than matching the
@@ -414,6 +447,26 @@ function checkMainLandmark(html, rel) {
  * tags on the always-present /og.svg). Returns an array of problem strings.
  */
 const OG_META_RE = /<meta\s+(?:property|name)="(og:image|twitter:image)"\s+content="([^"]*)"/g;
+const OG_IMAGE_ALT = 'Dmitrii Mashkov — platform engineering with AI on proven open source, dmitriimashkov.com';
+const OG_ALT_META_RE = /<meta\s+(?:property|name)="(og:image:alt|twitter:image:alt)"\s+content="([^"]*)"/g;
+
+/**
+ * Checks the og:image:alt / twitter:image:alt pair on one built page (issue
+ * #88, Q13): both meta tags must carry exactly OG_IMAGE_ALT.
+ */
+function checkOgImageAlt(html, rel) {
+  const problems = [];
+  const values = {};
+  for (const m of html.matchAll(OG_ALT_META_RE)) {
+    values[m[1]] = m[2];
+  }
+  for (const key of ['og:image:alt', 'twitter:image:alt']) {
+    if (values[key] !== OG_IMAGE_ALT) {
+      problems.push(`check-dist: ${rel} ${key} is "${values[key] ?? '(missing)'}", expected "${OG_IMAGE_ALT}"`);
+    }
+  }
+  return problems;
+}
 
 async function checkOgImageMeta(html, rel) {
   const problems = [];
@@ -587,6 +640,133 @@ function checkBreadcrumb(html, rel) {
   return problems;
 }
 
+/** Decodes the small set of HTML entities Astro emits into element text
+ * (Astro escapes `&`, `<`, `>`, `"` and `'`), so a name compared against a
+ * JSON-LD string (which carries no HTML escaping) matches byte for byte. */
+function decodeHtmlEntities(value) {
+  return value
+    .replace(/&amp;/g, '&')
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+}
+
+/**
+ * Reads the three visible breadcrumb names (English half) out of a built
+ * journal or ADR page's `<nav class="breadcrumb">` -- the same source
+ * checkBreadcrumb() already parses -- for checkJsonLd() to compare against
+ * the JSON-LD names, so the two cannot drift silently. Returns `null` when
+ * the breadcrumb itself is malformed (checkBreadcrumb() already reports
+ * that).
+ */
+function breadcrumbEnNames(html) {
+  const navMatch = html.match(/<nav\s+class="breadcrumb"[^>]*>[\s\S]*?<\/nav>/);
+  if (!navMatch) return null;
+  const items = [...navMatch[0].matchAll(/<li>([\s\S]*?)<\/li>/g)].map((m) => m[1]);
+  if (items.length !== 3) return null;
+  const names = items.map((item) => {
+    const enSpan = item.match(/<span class="l en">([^<]*)<\/span>/);
+    return enSpan ? decodeHtmlEntities(enSpan[1]) : null;
+  });
+  if (names.some((name) => name === null)) return null;
+  return names;
+}
+
+/**
+ * Checks the `BreadcrumbList` JSON-LD block on one built journal or ADR page
+ * (issue #88, Q13, acceptance criterion D): exactly one
+ * `application/ld+json` block, it parses, its `@type` is `BreadcrumbList`,
+ * it has three `itemListElement` entries at positions 1, 2, 3, and their
+ * three `name` values equal the three names read out of that same page's
+ * rendered `<nav class="breadcrumb">` English spans -- the anti-drift proof,
+ * measured on built bytes, not on the template.
+ */
+function checkJsonLd(html, rel) {
+  const problems = [];
+  const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+  if (blocks.length !== 1) {
+    problems.push(`check-dist: ${rel} has ${blocks.length} application/ld+json block(s), expected exactly 1`);
+    return problems;
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(blocks[0][1]);
+  } catch (err) {
+    problems.push(`check-dist: ${rel} application/ld+json block does not parse: ${err.message}`);
+    return problems;
+  }
+  if (parsed['@type'] !== 'BreadcrumbList') {
+    problems.push(`check-dist: ${rel} application/ld+json @type is "${parsed['@type']}", expected "BreadcrumbList"`);
+  }
+  const items = Array.isArray(parsed.itemListElement) ? parsed.itemListElement : [];
+  if (items.length !== 3) {
+    problems.push(`check-dist: ${rel} application/ld+json itemListElement has ${items.length} entries, expected exactly 3`);
+    return problems;
+  }
+  for (const [index, item] of items.entries()) {
+    if (item.position !== index + 1) {
+      problems.push(`check-dist: ${rel} application/ld+json itemListElement[${index}].position is ${item.position}, expected ${index + 1}`);
+    }
+  }
+  const expectedNames = breadcrumbEnNames(html);
+  if (expectedNames === null) {
+    problems.push(`check-dist: ${rel} could not read the visible breadcrumb's English names to compare against JSON-LD`);
+  } else {
+    const actualNames = items.map((item) => item.name);
+    for (let i = 0; i < 3; i += 1) {
+      if (actualNames[i] !== expectedNames[i]) {
+        problems.push(
+          `check-dist: ${rel} application/ld+json itemListElement[${i}].name is "${actualNames[i]}", expected "${expectedNames[i]}" (the visible breadcrumb's English name)`,
+        );
+      }
+    }
+  }
+  return problems;
+}
+
+const TITLE_MAX_LENGTH = 75;
+
+/** Reports a problem when a built page's <title> exceeds TITLE_MAX_LENGTH
+ * code points -- the gap between "the template renders this" (test/title.
+ * test.ts) and "the browser receives this" (issue #88, Q13). */
+function checkTitleLength(html, rel) {
+  const problems = [];
+  const titleMatch = html.match(/<title>([^<]*)<\/title>/);
+  const titleText = titleMatch ? titleMatch[1] : '';
+  const length = [...titleText].length;
+  if (length > TITLE_MAX_LENGTH) {
+    problems.push(`check-dist: ${rel} <title> is ${length} characters, over the ${TITLE_MAX_LENGTH}-character limit: "${titleText}"`);
+  }
+  return problems;
+}
+
+/**
+ * Checks a built journal page's robots meta and canonical against its
+ * entry's `indexing` value (issue #88, Q13, acceptance criterion C): a
+ * `noindex` entry must carry exactly
+ * `<meta name="robots" content="noindex,follow">` and a
+ * `<link rel="canonical">`; an `index` entry must carry no robots meta at
+ * all.
+ */
+function checkJournalIndexing(html, rel, indexing) {
+  const problems = [];
+  const hasNoindexFollow = /<meta name="robots" content="noindex,follow"\s*\/?>/.test(html);
+  const hasAnyRobots = /<meta name="robots"/.test(html);
+  const hasCanonical = /<link rel="canonical"/.test(html);
+  if (indexing === 'noindex') {
+    if (!hasNoindexFollow) {
+      problems.push(`check-dist: ${rel} is a noindex journal entry but is missing <meta name="robots" content="noindex,follow">`);
+    }
+    if (!hasCanonical) {
+      problems.push(`check-dist: ${rel} is a noindex journal entry but is missing <link rel="canonical">`);
+    }
+  } else if (hasAnyRobots) {
+    problems.push(`check-dist: ${rel} is an index journal entry but carries a robots meta tag`);
+  }
+  return problems;
+}
+
 /**
  * Checks dist/colophon/** (issue #9, P7) against the criteria that only the
  * built output can prove: the cycle table and its totals are derived from
@@ -602,6 +782,15 @@ async function checkColophonPages(allFiles) {
 
   const journal = await idsByVisibility(JOURNAL_DIR);
   const adr = await idsByVisibility(ADR_DIR);
+
+  // id -> 'index' | 'noindex', read straight from frontmatter (issue #88,
+  // Q13) so checkJournalIndexing() below can compare the built page's
+  // robots meta against the entry's own declared value.
+  const journalIndexingById = new Map();
+  for (const id of journal.publicIds) {
+    const text = await readFile(path.join(JOURNAL_DIR, `${id}.md`), 'utf8');
+    journalIndexingById.set(id, indexingFromFrontmatter(text) ?? 'index');
+  }
 
   const indexPath = path.join(DIST_DIR, 'colophon', 'index.html');
   if (!(await fileExists(indexPath))) {
@@ -688,11 +877,17 @@ async function checkColophonPages(allFiles) {
     problems.push(...checkMainLandmark(html, rel));
 
     const distRel = path.relative(DIST_DIR, file);
-    if (
-      distRel.startsWith(`${path.join('colophon', 'journal')}${path.sep}`) ||
-      distRel.startsWith(`${path.join('colophon', 'adr')}${path.sep}`)
-    ) {
+    const journalPrefix = `${path.join('colophon', 'journal')}${path.sep}`;
+    const adrPrefix = `${path.join('colophon', 'adr')}${path.sep}`;
+    if (distRel.startsWith(journalPrefix) || distRel.startsWith(adrPrefix)) {
       problems.push(...checkBreadcrumb(html, rel));
+      problems.push(...checkTitleLength(html, rel));
+      problems.push(...checkJsonLd(html, rel));
+    }
+    if (distRel.startsWith(journalPrefix)) {
+      const id = distRel.slice(journalPrefix.length).split(path.sep)[0];
+      const indexing = journalIndexingById.get(id) ?? 'index';
+      problems.push(...checkJournalIndexing(html, rel, indexing));
     }
 
     for (const match of html.matchAll(SUBRESOURCE_RE)) {
@@ -803,12 +998,14 @@ async function checkSitemap() {
 
   const journal = await idsByVisibility(JOURNAL_DIR);
   const adr = await idsByVisibility(ADR_DIR);
+  const noindexIds = new Set(noindexJournalIds(JOURNAL_DIR));
+  const indexedJournalIds = journal.publicIds.filter((id) => !noindexIds.has(id));
   const expectedPaths = [
     '/',
     '/work/',
     '/approach/',
     '/colophon/',
-    ...journal.publicIds.map((id) => `/colophon/journal/${id}/`),
+    ...indexedJournalIds.map((id) => `/colophon/journal/${id}/`),
     ...adr.publicIds.map((id) => `/colophon/adr/${id}/`),
   ];
   const expected = new Set(expectedPaths.map((p) => `${origin}${p}`));
@@ -867,7 +1064,12 @@ async function run() {
 
     problems.push(...checkNavigationState(html, rel));
     problems.push(...(await checkOgImageMeta(html, rel)));
+    problems.push(...checkOgImageAlt(html, rel));
     problems.push(...(await checkHashedSubresources(html, rel)));
+
+    if (rel === '404.html') {
+      problems.push(...check404Page(html, rel));
+    }
 
     if (rel === path.join('work', 'index.html')) {
       const summaryH2Count = countOccurrences(html, '<summary><h2');
