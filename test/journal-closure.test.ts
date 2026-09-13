@@ -18,6 +18,7 @@ import {
   branchName,
   closureDiffProblems,
   closureTitle,
+  createGitHubClient,
   earliestContainingRelease,
   entryIssueNumber,
   parseFrontmatter,
@@ -455,4 +456,204 @@ test('earliestContainingRelease returns null when nothing contains it and picks 
 test('branchName and closureTitle are deterministic from the issue number', () => {
   assert.equal(branchName(79), 'fix/journal-close-79');
   assert.equal(closureTitle(79), 'fix(journal): close cycle 79');
+});
+
+// -- createGitHubClient (real transport, fake fetchImpl) coverage ------------
+//
+// The tests above inject a hand-rolled fake client that bypasses api() and
+// createGitHubClient entirely, so they never exercise the real HTTP-layer
+// logic (URL construction, 404-vs-error handling, 422 tolerance). These
+// tests build a fake fetchImpl instead and drive the real client through it.
+
+type FakeRoute = (url: string, init: RequestInit) => Response | undefined;
+
+function makeFakeFetch(routes: FakeRoute[]): typeof fetch {
+  return (async (input: string | URL, init: RequestInit = {}) => {
+    const url = String(input);
+    for (const route of routes) {
+      const res = route(url, init);
+      if (res) return res;
+    }
+    throw new Error(`makeFakeFetch: no route matched ${init.method ?? 'GET'} ${url}`);
+  }) as typeof fetch;
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(body === null ? null : JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+test('findPullsIntroducingFile fetches commit history for the path then pulls for the OLDEST commit, and returns those pulls', async () => {
+  const filePath = 'src/content/journal/2026-09-13-example.md';
+  const commits = [
+    { sha: 'newest-commit' },
+    { sha: 'middle-commit' },
+    { sha: 'oldest-commit' }, // last element: introducing commit
+  ];
+  const pulls = [{ number: 100, title: 'Implements #99', merged_at: '2026-09-13T00:30:00Z', merge_commit_sha: 'x' }];
+  const calls: string[] = [];
+
+  const fetchImpl = makeFakeFetch([
+    (url, init) => {
+      if (url.includes('/commits?path=') && (init.method ?? 'GET') === 'GET') {
+        calls.push(url);
+        assert.match(url, /\/repos\/mctlhq\/portfolio\/commits\?path=/);
+        assert.match(url, /per_page=100/);
+        return jsonResponse(commits);
+      }
+      return undefined;
+    },
+    (url, init) => {
+      if (url.endsWith('/commits/oldest-commit/pulls') && (init.method ?? 'GET') === 'GET') {
+        calls.push(url);
+        return jsonResponse(pulls);
+      }
+      return undefined;
+    },
+  ]);
+
+  const github = createGitHubClient({ token: 'fake-token', fetchImpl });
+  const result = await github.findPullsIntroducingFile(filePath);
+
+  assert.deepEqual(result, pulls);
+  assert.equal(calls.length, 2);
+  assert.ok(calls[1].endsWith('/commits/oldest-commit/pulls'), 'must query pulls for the oldest commit, not the newest');
+});
+
+test('createOrUpdateBranchFile passes the given baseSha through untouched to the git/refs POST body', async () => {
+  let capturedRefBody: Record<string, unknown> | undefined;
+
+  const fetchImpl = makeFakeFetch([
+    (url, init) => {
+      if (url.endsWith('/git/refs') && init.method === 'POST') {
+        capturedRefBody = JSON.parse(init.body as string);
+        return jsonResponse({ ref: 'refs/heads/fix/journal-close-99' }, 201);
+      }
+      return undefined;
+    },
+    (url) => {
+      if (url.includes('/contents/') && url.includes('?ref=')) {
+        return new Response(null, { status: 404 }); // GET: absent branch file
+      }
+      return undefined;
+    },
+    (url, init) => {
+      if (url.includes('/contents/') && init.method === 'PUT') {
+        return jsonResponse({ content: { sha: 'new-blob-sha' } }, 201);
+      }
+      return undefined;
+    },
+  ]);
+
+  const github = createGitHubClient({ token: 'fake-token', fetchImpl });
+  await github.createOrUpdateBranchFile({
+    branch: 'fix/journal-close-99',
+    filePath: 'src/content/journal/2026-09-13-example.md',
+    content: 'new content',
+    message: 'fix(journal): close cycle 99',
+    baseSha: 'main-head-commit-sha',
+  });
+
+  assert.equal(capturedRefBody?.sha, 'main-head-commit-sha');
+  assert.equal(capturedRefBody?.ref, 'refs/heads/fix/journal-close-99');
+});
+
+test('createOrUpdateBranchFile swallows a 422 (branch already exists) on git/refs but propagates a 500', async () => {
+  function buildFetch(refStatus: number): typeof fetch {
+    return makeFakeFetch([
+      (url, init) => {
+        if (url.endsWith('/git/refs') && init.method === 'POST') {
+          return new Response(JSON.stringify({ message: 'simulated' }), { status: refStatus });
+        }
+        return undefined;
+      },
+      (url) => {
+        if (url.includes('/contents/') && url.includes('?ref=')) {
+          return new Response(null, { status: 404 });
+        }
+        return undefined;
+      },
+      (url, init) => {
+        if (url.includes('/contents/') && init.method === 'PUT') {
+          return jsonResponse({ content: { sha: 'new-blob-sha' } }, 201);
+        }
+        return undefined;
+      },
+    ]);
+  }
+
+  const already = createGitHubClient({ token: 'fake-token', fetchImpl: buildFetch(422) });
+  await assert.doesNotReject(
+    already.createOrUpdateBranchFile({
+      branch: 'fix/journal-close-99',
+      filePath: 'src/content/journal/2026-09-13-example.md',
+      content: 'new content',
+      message: 'fix(journal): close cycle 99',
+      baseSha: 'main-head-commit-sha',
+    }),
+  );
+
+  const broken = createGitHubClient({ token: 'fake-token', fetchImpl: buildFetch(500) });
+  await assert.rejects(
+    broken.createOrUpdateBranchFile({
+      branch: 'fix/journal-close-99',
+      filePath: 'src/content/journal/2026-09-13-example.md',
+      content: 'new content',
+      message: 'fix(journal): close cycle 99',
+      baseSha: 'main-head-commit-sha',
+    }),
+    /HTTP 500/,
+  );
+});
+
+test('a 404 response to a write call throws, unlike a GET 404 which is treated as absent', async () => {
+  // createPull's POST /pulls returning 404 must throw, not resolve as null.
+  const fetchImplForCreatePull = makeFakeFetch([
+    (url, init) => {
+      if (url.endsWith('/pulls') && init.method === 'POST') {
+        return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404 });
+      }
+      return undefined;
+    },
+  ]);
+  const githubForCreatePull = createGitHubClient({ token: 'fake-token', fetchImpl: fetchImplForCreatePull });
+  await assert.rejects(
+    githubForCreatePull.createPull({ branch: 'fix/journal-close-99', title: 't', body: 'b' }),
+    /HTTP 404/,
+  );
+
+  // The PUT /contents/{path} inside createOrUpdateBranchFile returning 404 must throw too.
+  const fetchImplForPut = makeFakeFetch([
+    (url, init) => {
+      if (url.endsWith('/git/refs') && init.method === 'POST') {
+        return jsonResponse({ ref: 'refs/heads/fix/journal-close-99' }, 201);
+      }
+      return undefined;
+    },
+    (url) => {
+      if (url.includes('/contents/') && url.includes('?ref=')) {
+        return new Response(null, { status: 404 }); // GET absent branch file: fine
+      }
+      return undefined;
+    },
+    (url, init) => {
+      if (url.includes('/contents/') && init.method === 'PUT') {
+        return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404 });
+      }
+      return undefined;
+    },
+  ]);
+  const githubForPut = createGitHubClient({ token: 'fake-token', fetchImpl: fetchImplForPut });
+  await assert.rejects(
+    githubForPut.createOrUpdateBranchFile({
+      branch: 'fix/journal-close-99',
+      filePath: 'src/content/journal/2026-09-13-example.md',
+      content: 'new content',
+      message: 'fix(journal): close cycle 99',
+      baseSha: 'main-head-commit-sha',
+    }),
+    /HTTP 404/,
+  );
 });

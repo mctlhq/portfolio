@@ -232,6 +232,7 @@ class CloseJournalError extends Error {}
  */
 export function createGitHubClient({ token, repo = REPO, fetchImpl = fetch }) {
   async function api(pathname, init = {}) {
+    const method = init.method ?? 'GET';
     const res = await fetchImpl(`${GITHUB_API}${pathname}`, {
       ...init,
       headers: {
@@ -242,9 +243,11 @@ export function createGitHubClient({ token, repo = REPO, fetchImpl = fetch }) {
         ...init.headers,
       },
     });
-    if (res.status === 404) return { status: 404, json: null };
+    if (res.status === 404 && method === 'GET') return { status: 404, json: null };
     if (!res.ok) {
-      throw new CloseJournalError(`GitHub API ${pathname}: HTTP ${res.status}`);
+      const err = new CloseJournalError(`GitHub API ${pathname}: HTTP ${res.status}`);
+      err.status = res.status;
+      throw err;
     }
     const json = res.status === 204 ? null : await res.json();
     return { status: res.status, json };
@@ -272,10 +275,12 @@ export function createGitHubClient({ token, repo = REPO, fetchImpl = fetch }) {
       return json;
     },
     async findPullsIntroducingFile(filePath) {
-      const { json } = await api(
-        `/search/issues?q=${encodeURIComponent(`repo:${repo} is:pr is:merged in:file ${filePath}`)}`,
-      );
-      return json?.items ?? [];
+      const { json } = await api(`/repos/${repo}/commits?path=${encodeURIComponent(filePath)}&per_page=100`);
+      const commits = json ?? [];
+      if (commits.length === 0) return [];
+      const introducingCommit = commits[commits.length - 1];
+      const { json: pulls } = await api(`/repos/${repo}/commits/${introducingCommit.sha}/pulls`);
+      return pulls ?? [];
     },
     async getFileOnMain(filePath) {
       const { json } = await api(`/repos/${repo}/contents/${filePath}?ref=main`);
@@ -295,7 +300,10 @@ export function createGitHubClient({ token, repo = REPO, fetchImpl = fetch }) {
       await api(`/repos/${repo}/git/refs`, {
         method: 'POST',
         body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: baseSha }),
-      }).catch(() => {});
+      }).catch((err) => {
+        if (err instanceof CloseJournalError && err.status === 422) return;
+        throw err;
+      });
       const existing = await this.getBranchFile(branch, filePath);
       await api(`/repos/${repo}/contents/${filePath}`, {
         method: 'PUT',
@@ -468,12 +476,13 @@ export async function run({ tag, github, repoRoot, dryRun = false, log = () => {
     }
   }
 
+  const mainHeadCommit = await github.resolveTagCommit('main');
   await github.createOrUpdateBranchFile({
     branch,
     filePath: journalFilePath,
     content: newSource,
     message: title,
-    baseSha: mainFile?.sha,
+    baseSha: mainHeadCommit,
   });
 
   const existingPull = await github.findOpenPull(branch);
