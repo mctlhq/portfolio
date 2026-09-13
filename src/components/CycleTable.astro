@@ -11,6 +11,12 @@ interface Props {
 const { entries } = Astro.props;
 const EM_DASH = '—';
 const scrollLabel = `${ui.cycleTableCaption.en} / ${ui.cycleTableCaption.ru}`;
+
+const statusLabel = {
+  complete: ui.statusComplete,
+  in_progress: ui.statusInProgress,
+  abandoned: ui.statusAbandoned,
+} as const;
 ---
 
 <p class="table-hint"><Lang en={ui.tableScrollHint.en} ru={ui.tableScrollHint.ru} /></p>
@@ -22,6 +28,7 @@ const scrollLabel = `${ui.cycleTableCaption.en} / ${ui.cycleTableCaption.ru}`;
         <th scope="col"><Lang en={ui.cycleColDate.en} ru={ui.cycleColDate.ru} /></th>
         <th scope="col"><Lang en={ui.cycleColService.en} ru={ui.cycleColService.ru} /></th>
         <th scope="col"><Lang en={ui.cycleColTitle.en} ru={ui.cycleColTitle.ru} /></th>
+        <th scope="col"><Lang en={ui.cycleColStatus.en} ru={ui.cycleColStatus.ru} /></th>
         <th scope="col"><Lang en={ui.cycleColIssue.en} ru={ui.cycleColIssue.ru} /></th>
         <th scope="col"><Lang en={ui.cycleColPr.en} ru={ui.cycleColPr.ru} /></th>
         <th scope="col"><Lang en={ui.cycleColRelease.en} ru={ui.cycleColRelease.ru} /></th>
@@ -41,6 +48,9 @@ const scrollLabel = `${ui.cycleTableCaption.en} / ${ui.cycleTableCaption.ru}`;
                 <Lang en={entry.data.title.en} ru={entry.data.title.ru} />
               </a>
             </td>
+            <td>
+              <Lang en={statusLabel[entry.data.status].en} ru={statusLabel[entry.data.status].ru} />
+            </td>
             <td><a href={entry.data.issue}>{githubRef(entry.data.issue)}</a></td>
             <td>{entry.data.pr ? <a href={entry.data.pr}>{githubRef(entry.data.pr)}</a> : EM_DASH}</td>
             <td>{entry.data.release ?? EM_DASH}</td>
@@ -49,7 +59,11 @@ const scrollLabel = `${ui.cycleTableCaption.en} / ${ui.cycleTableCaption.ru}`;
                 <>
                   <span class="lead-time-missing">{formatLeadTime(null)}</span>
                   <span class="visually-hidden">
-                    <Lang en={ui.leadTimeMissing.en} ru={ui.leadTimeMissing.ru} />
+                    {entry.data.status === 'abandoned' ? (
+                      <Lang en={ui.leadTimeAbandoned.en} ru={ui.leadTimeAbandoned.ru} />
+                    ) : (
+                      <Lang en={ui.leadTimeMissing.en} ru={ui.leadTimeMissing.ru} />
+                    )}
                   </span>
                 </>
               ) : (

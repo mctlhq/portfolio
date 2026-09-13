@@ -76,7 +76,7 @@ test('CycleTable.astro maps over its entries prop and contains no journal title,
 });
 
 test('every public journal file has the required frontmatter keys, single-quoted timestamps, and well-formed interventions', () => {
-  const REQUIRED_KEYS = ['service', 'issue', 'proposal_slug', 'visibility', 'title', 'decided', 'issue_opened_at'];
+  const REQUIRED_KEYS = ['service', 'issue', 'proposal_slug', 'visibility', 'status', 'title', 'decided', 'issue_opened_at'];
   for (const name of journalFiles) {
     const source = readFileSync(`${JOURNAL_DIR}${name}`, 'utf8');
     const visibilityMatch = source.match(/^visibility:\s*(public|private)\s*$/m);
@@ -123,6 +123,18 @@ test('the colophon page and cycle table reference the scroll hint and the missin
   assert.match(cycleTable, /lead-time-missing/);
   assert.match(journalRoute, /ui\.leadTimeMissing/);
   assert.match(journalRoute, /lead-time-missing/);
+});
+
+test('the colophon index computes statusCounts from the same public-only collection, and the table/detail pages reference the status and abandoned lead-time branches', () => {
+  assert.match(indexAstro, /statusCounts\(/);
+  assert.match(indexAstro, /data-complete-count=\{counts\.complete\}/);
+  assert.match(indexAstro, /data-in-progress-count=\{counts\.in_progress\}/);
+  assert.match(indexAstro, /data-abandoned-count=\{counts\.abandoned\}/);
+  assert.match(cycleTable, /ui\.cycleColStatus/);
+  assert.match(cycleTable, /ui\.leadTimeAbandoned/);
+  assert.match(journalRoute, /ui\.journalStatusLabel/);
+  assert.match(journalRoute, /ui\.leadTimeAbandoned/);
+  assert.match(journalRoute, /ui\.journalAbandonedHeading/);
 });
 
 test('none of the new colophon .astro files reference var(--font-editorial) or class="lede"', () => {

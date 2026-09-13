@@ -1,7 +1,14 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 import type { Loader } from 'astro/loaders';
-import { isoWithOffset, yyyyMmDd } from './lib/journal.ts';
+import {
+  checkJournalCollection,
+  isRealTimestamp,
+  journalEntryProblems,
+  yyyyMmDd,
+  type JournalCollectionEntry,
+  type JournalEntryData,
+} from './lib/journal.ts';
 import { checkAdrBodies } from './lib/adr.ts';
 
 const idFromFile = ({ entry }: { entry: string }) => entry.replace(/\.md$/, '');
@@ -10,12 +17,18 @@ const githubUrl = z.string().regex(/^https:\/\/github\.com\/[^\s]+$/);
 const httpsUrl = z.string().regex(/^https:\/\/[^\s]+$/);
 const semver = z.string().regex(/^\d+\.\d+\.\d+$/); // no v prefix, AGENTS.md
 const bilingual = z.strictObject({ en: z.string().min(1), ru: z.string().min(1) });
+// The existing `bilingual` above uses `.min(1)`, which accepts a
+// whitespace-only string ('   '); `abandoned_reason` needs a real reason in
+// both languages, so it gets its own non-blank string check instead.
+const nonBlank = z.string().refine((s) => s.trim().length > 0, 'must contain non-whitespace text');
+const nonBlankBilingual = z.strictObject({ en: nonBlank, ru: nonBlank });
 const stamp = z
   .string()
-  .refine(isoWithOffset, {
+  .refine(isRealTimestamp, {
     message:
-      "must be a quoted ISO 8601 timestamp with a timezone, e.g. '2026-09-10T22:44:09Z' -- " +
-      'quote it so YAML does not parse it into a Date',
+      "must be a quoted ISO 8601 timestamp with a timezone denoting a real instant, e.g. " +
+      "'2026-09-10T22:44:09Z' -- quote it so YAML does not parse it into a Date, and make sure " +
+      "the calendar date and time are real (e.g. not '2026-02-31T00:00:00Z')",
   })
   .transform((s) => new Date(s));
 
@@ -109,16 +122,13 @@ const projects = defineCollection({
   schema: projectsSchema,
 });
 
-const journal = defineCollection({
-  loader: glob({
-    pattern: '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.md',
-    base: './src/content/journal',
-    generateId: idFromFile,
-  }),
-  schema: z.strictObject({
+const journalSchema = z
+  .strictObject({
     service: z.enum(['portfolio', 'mctl-agents', 'mctl-api']),
     issue: githubUrl,
     proposal_slug: z.string().min(1),
+    status: z.enum(['in_progress', 'complete', 'abandoned']),
+    abandoned_reason: nonBlankBilingual.optional(),
     pr: githubUrl.optional(),
     release: semver.optional(),
     visibility: z.enum(['public', 'private']),
@@ -138,7 +148,53 @@ const journal = defineCollection({
         }),
       )
       .default([]),
-  }),
+  })
+  // Cross-field lifecycle rules (status <-> evidence fields, merged_at implies
+  // pr, abandoned_reason implies abandoned, nondecreasing timestamp order) are
+  // written once as a pure function in src/lib/journal.ts, so `node --test`
+  // can exercise them directly; this superRefine only maps journalEntryProblems'
+  // output onto ctx.addIssue, naming the offending field in `path`, so Astro's
+  // own "frontmatter does not match collection schema" diagnostic identifies
+  // the entry, the field and the violation.
+  .superRefine((data, ctx) => {
+    for (const problem of journalEntryProblems(data as JournalEntryData)) {
+      ctx.addIssue({ code: 'custom', path: [problem.field], message: problem.message });
+    }
+  });
+
+// Wraps the base glob loader for `journal` to run one extra pass, after
+// every file has synced, that enforces the one-cycle-at-a-time rule across
+// the whole collection (checkJournalCollection): at most one entry, public
+// or private, may be `status: in_progress`. Mirrors projectsLoader and
+// adrLoader above -- the loader runs on `astro sync`, `astro check`,
+// `astro dev` and `astro build` alike, so the guard cannot be bypassed by
+// any of them. No ordering or issue-age rule is added here: a backlog issue
+// may run after a newer one, and the display sort (byNewestFirst over
+// cycleTimestamp) is untouched.
+function journalLoader(): Loader {
+  const base = glob({
+    pattern: '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.md',
+    base: './src/content/journal',
+    generateId: idFromFile,
+  });
+  return {
+    ...base,
+    name: 'journal-with-lifecycle-check',
+    load: async (ctx) => {
+      await base.load(ctx);
+      checkJournalCollection(
+        ctx.store.entries().map(([id, entry]) => ({
+          id,
+          data: entry.data as unknown as JournalCollectionEntry['data'],
+        })),
+      );
+    },
+  };
+}
+
+const journal = defineCollection({
+  loader: journalLoader(),
+  schema: journalSchema,
 });
 
 // The base glob loader validates each entry's frontmatter against the `adr`

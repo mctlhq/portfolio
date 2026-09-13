@@ -5,6 +5,7 @@ proposal_slug: issue-8-p6-approach-page-with-the-devloop-cycle
 pr: https://github.com/mctlhq/portfolio/pull/32
 release: 0.1.5
 visibility: public
+status: complete
 title:
   en: "Approach page"
   ru: "Страница подхода"

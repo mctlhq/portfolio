@@ -5,6 +5,7 @@ proposal_slug: issue-281-add-portfolio-to-the-devloop-service-enu
 pr: https://github.com/mctlhq/mctl-api/pull/282
 release: 4.41.0
 visibility: public
+status: complete
 title:
   en: "Add portfolio to the DevLoop service enums"
   ru: "Добавление portfolio в перечисления сервисов DevLoop"
