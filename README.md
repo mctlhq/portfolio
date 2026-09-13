@@ -16,3 +16,4 @@ requests opened by the implementer.
 - Hosts: `labs-portfolio.mctl.ai`, `dmitriimashkov.com`
 - Image: `ghcr.io/mctlhq/portfolio:<semver>` (built centrally by mctl-gitops)
 - Releases: release-please, tags without a `v` prefix
+- Journal lifecycle and release closure: [docs/journal.md](docs/journal.md)

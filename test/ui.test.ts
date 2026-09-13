@@ -29,6 +29,36 @@ test('every ui entry has a non-empty en and ru of the same kind', () => {
   }
 });
 
+test('the ten journal-lifecycle ui keys carry their exact EN/RU values character for character', () => {
+  const expected: Record<string, { en: string; ru: string }> = {
+    cycleColStatus: { en: 'Status', ru: 'Статус' },
+    journalStatusLabel: { en: 'Status', ru: 'Статус' },
+    statusComplete: { en: 'complete', ru: 'завершён' },
+    statusInProgress: { en: 'in progress', ru: 'в работе' },
+    statusAbandoned: { en: 'abandoned', ru: 'прерван' },
+    colophonTotalComplete: { en: 'complete', ru: 'завершённых' },
+    colophonTotalInProgress: { en: 'in progress', ru: 'в работе' },
+    colophonTotalAbandoned: { en: 'abandoned', ru: 'прерванных' },
+    leadTimeAbandoned: { en: 'not measured: this cycle was abandoned', ru: 'не измерено: этот цикл был прерван' },
+    journalAbandonedHeading: { en: 'Why this cycle was abandoned', ru: 'Почему этот цикл был прерван' },
+  };
+  for (const [key, value] of Object.entries(expected)) {
+    const entry = (ui as Record<string, { en: string; ru: string }>)[key];
+    assert.ok(entry, `ui.${key} is missing`);
+    assert.equal(entry.en, value.en, `ui.${key}.en`);
+    assert.equal(entry.ru, value.ru, `ui.${key}.ru`);
+  }
+});
+
+test('colophonTotalCycles, colophonTotalInterventions and leadTimeMissing are unchanged', () => {
+  assert.equal(ui.colophonTotalCycles.en, 'public cycles');
+  assert.equal(ui.colophonTotalCycles.ru, 'публичных циклов');
+  assert.equal(ui.colophonTotalInterventions.en, 'manual interventions in total');
+  assert.equal(ui.colophonTotalInterventions.ru, 'ручных вмешательств всего');
+  assert.equal(ui.leadTimeMissing.en, 'not measured: this cycle has no end timestamp yet');
+  assert.equal(ui.leadTimeMissing.ru, 'не измерено: у этого цикла ещё нет конечной отметки времени');
+});
+
 test('heroName is a real bilingual pair, and homeTitle stays the single Latin <title> string', () => {
   assert.equal(ui.heroName.en, 'Dmitrii Mashkov');
   assert.equal(ui.heroName.ru, 'Дмитрий Машков');

@@ -115,14 +115,14 @@ test('site.css keeps column headings free to wrap at a space but never mid-word'
   assert.match(headingBlockMatch![1], /word-break:\s*normal/);
 });
 
-test('site.css hides table.cycles columns 2 and 5 and declares the scroll affordance below 600px', () => {
+test('site.css hides table.cycles columns 2 and 6 and declares the scroll affordance below 600px', () => {
   const narrowMatch = siteCss.match(/@media \(max-width: 599px\) \{([\s\S]*?)\n\}/g);
   assert.ok(narrowMatch, 'expected at least one @media (max-width: 599px) block');
   const narrowBlocks = narrowMatch!.join('\n');
   assert.match(narrowBlocks, /table\.cycles th:nth-child\(2\)/);
   assert.match(narrowBlocks, /table\.cycles td:nth-child\(2\)/);
-  assert.match(narrowBlocks, /table\.cycles th:nth-child\(5\)/);
-  assert.match(narrowBlocks, /table\.cycles td:nth-child\(5\)/);
+  assert.match(narrowBlocks, /table\.cycles th:nth-child\(6\)/);
+  assert.match(narrowBlocks, /table\.cycles td:nth-child\(6\)/);
   assert.match(narrowBlocks, /display:\s*none/);
   assert.match(narrowBlocks, /\.table-scroll::after/);
 });

@@ -2,7 +2,10 @@
 service: portfolio
 issue: https://github.com/mctlhq/portfolio/issues/42
 proposal_slug: issue-42-p9-production-evidence-cutover-journal-a
+pr: https://github.com/mctlhq/portfolio/pull/43
+release: 0.1.10
 visibility: public
+status: complete
 title:
   en: "Production cutover: apex domain, rollback drill and edge hardening"
   ru: "Переключение в прод: апекс-домен, учебный откат и укрепление на границе"
@@ -11,6 +14,8 @@ decided:
   ru: "dmitriimashkov.com отдаёт сайт через реестр кастомных доменов mctl с проксированием Cloudflare и сертификатом Let's Encrypt, выпущенным через DNS-01, а путь отката был проверен до того, как домен стал публичным, а не после."
 issue_opened_at: '2026-09-11T14:17:54Z'
 proposal_approved_at: '2026-09-11T14:39:29Z'
+merged_at: '2026-09-11T17:05:16Z'
+released_at: '2026-09-11T17:07:39Z'
 interventions:
   - what: "rolled the service back to 0.1.3 and restored 0.1.4, running the production contract at each of the three points"
     why: "the rollback path is the one thing a site cannot claim without having used it, and the right time to use it is while the only live host is the rehearsal one"

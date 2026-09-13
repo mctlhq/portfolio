@@ -1,0 +1,59 @@
+# Closes one journal cycle's entry after the release that ships its
+# implementation PR is published. See docs/journal.md for what "closed"
+# means and the manual-dispatch recovery path; scripts/close-journal.mjs
+# carries the matching and update logic, offline-testable in
+# test/journal-closure.test.ts.
+name: journal-closure
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Stable release tag to close against'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: journal-closure-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  close:
+    # Filters out a draft or prerelease `release` event; workflow_dispatch
+    # always runs, since the operator names the tag explicitly for recovery.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.release.draft == false && github.event.release.prerelease == false) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Same pinned GitHub App token pattern as release-please.yml, scoped to
+      # this repository only, with contents and pull-requests write so the
+      # generated closure PR raises pull_request events and gets the normal
+      # build check and Claude review.
+      - name: Generate closure token
+        id: closure-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.AGENTS_APP_ID }}
+          private-key: ${{ secrets.AGENTS_APP_PRIVATE_KEY }}
+          owner: mctlhq
+          repositories: portfolio
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Close eligible journal cycle
+        env:
+          GH_TOKEN: ${{ steps.closure-token.outputs.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: node scripts/close-journal.mjs --tag "$TAG"

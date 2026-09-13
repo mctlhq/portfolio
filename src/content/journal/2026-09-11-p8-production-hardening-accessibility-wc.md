@@ -2,7 +2,10 @@
 service: portfolio
 issue: https://github.com/mctlhq/portfolio/issues/10
 proposal_slug: issue-10-p8-production-hardening-accessibility-wc
+pr: https://github.com/mctlhq/portfolio/pull/38
+release: 0.1.8
 visibility: public
+status: complete
 title:
   en: "Production hardening, accessibility (WCAG 2.2 AA) and SEO"
   ru: "Продакшен-хардненинг, доступность (WCAG 2.2 AA) и SEO"
@@ -11,4 +14,6 @@ decided:
   ru: "Сайт теперь отдаёт sitemap и указатель в robots.txt, description/canonical/Open Graph/Twitter в head каждой страницы, SVG-карточку Open Graph, двуязычную noindex-страницу 404 и два новых изолирующих заголовка (Cross-Origin-Opener-Policy, Cross-Origin-Resource-Policy). Шесть прежних заголовков nginx вместе с двумя новыми теперь заданы ровно один раз — в новом security-headers.conf, подключаемом во все блоки nginx.conf, что закрывает отложенный пункт P1 про повторяющиеся строки CSP. Закоммиченный чек-лист доступности и hardening-notes фиксируют, что доказано скриптом, а что остаётся шагом ревьюера."
 issue_opened_at: '2026-09-10T22:48:17Z'
 proposal_approved_at: '2026-09-11T12:49:46Z'
+merged_at: '2026-09-11T13:24:25Z'
+released_at: '2026-09-11T13:26:35Z'
 ---

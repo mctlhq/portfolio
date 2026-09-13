@@ -5,6 +5,7 @@ proposal_slug: issue-5-p3-content-collections-for-projects-jour
 pr: https://github.com/mctlhq/portfolio/pull/21
 release: 0.1.2
 visibility: public
+status: complete
 title:
   en: "Content collections for projects, journal and ADRs"
   ru: "Коллекции контента для проектов, журнала и ADR"

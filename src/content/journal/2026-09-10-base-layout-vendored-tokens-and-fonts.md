@@ -5,6 +5,7 @@ proposal_slug: issue-4-p2-base-layout-with-vendored-design-toke
 pr: https://github.com/mctlhq/portfolio/pull/16
 release: 0.1.1
 visibility: public
+status: complete
 title:
   en: "Base layout with vendored design tokens and fonts"
   ru: "Базовый макет с встроенными в сборку токенами дизайна и шрифтами"

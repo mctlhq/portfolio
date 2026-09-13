@@ -50,6 +50,12 @@ const steps = timeline.map((row, index) => {
 const interventions = data.interventions ?? [];
 const description = clampDescription(data.decided.en);
 const leadTime = leadTimeHours(data);
+
+const statusLabel = {
+  complete: ui.statusComplete,
+  in_progress: ui.statusInProgress,
+  abandoned: ui.statusAbandoned,
+} as const;
 ---
 
 <Base title={`${data.title.en} — Dmitrii Mashkov`} description={description}>
@@ -57,6 +63,8 @@ const leadTime = leadTimeHours(data);
   <h1><Lang en={data.title.en} ru={data.title.ru} /></h1>
 
   <dl class="journal-meta">
+    <dt><Lang en={ui.journalStatusLabel.en} ru={ui.journalStatusLabel.ru} /></dt>
+    <dd><Lang en={statusLabel[data.status].en} ru={statusLabel[data.status].ru} /></dd>
     <dt><Lang en={ui.journalServiceLabel.en} ru={ui.journalServiceLabel.ru} /></dt>
     <dd>{data.service}</dd>
     <dt><Lang en={ui.journalIssueLabel.en} ru={ui.journalIssueLabel.ru} /></dt>
@@ -71,7 +79,11 @@ const leadTime = leadTimeHours(data);
         <>
           <span class="lead-time-missing">{formatLeadTime(leadTime)}</span>
           <span class="visually-hidden">
-            <Lang en={ui.leadTimeMissing.en} ru={ui.leadTimeMissing.ru} />
+            {data.status === 'abandoned' ? (
+              <Lang en={ui.leadTimeAbandoned.en} ru={ui.leadTimeAbandoned.ru} />
+            ) : (
+              <Lang en={ui.leadTimeMissing.en} ru={ui.leadTimeMissing.ru} />
+            )}
           </span>
         </>
       ) : (
@@ -79,6 +91,14 @@ const leadTime = leadTimeHours(data);
       )}
     </dd>
   </dl>
+
+  {data.status === 'abandoned' && data.abandoned_reason && (
+    <>
+      <h2><Lang en={ui.journalAbandonedHeading.en} ru={ui.journalAbandonedHeading.ru} /></h2>
+      <p class="journal-abandoned l en">{data.abandoned_reason.en}</p>
+      <p class="journal-abandoned l ru" lang="ru">{data.abandoned_reason.ru}</p>
+    </>
+  )}
 
   <h2><Lang en={ui.journalDecidedHeading.en} ru={ui.journalDecidedHeading.ru} /></h2>
   <p class="journal-decided"><Lang en={data.decided.en} ru={data.decided.ru} /></p>

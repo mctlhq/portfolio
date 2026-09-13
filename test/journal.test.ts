@@ -19,8 +19,9 @@ import {
   yyyyMmDd,
 } from '../src/lib/journal.ts';
 
-test('leadTimeHours returns unrounded hours for a fully timestamped entry', () => {
+test('leadTimeHours returns unrounded hours for a fully timestamped complete entry', () => {
   const entry = {
+    status: 'complete' as const,
     issue_opened_at: '2026-09-10T22:44:09Z',
     deployed_at: '2026-09-10T23:28:11Z',
   };
@@ -33,23 +34,24 @@ test('leadTimeHours returns unrounded hours for a fully timestamped entry', () =
 test('leadTimeHours accepts Date and string inputs interchangeably', () => {
   const opened = new Date('2026-09-10T22:44:09Z');
   const deployed = new Date('2026-09-10T23:28:11Z');
-  const fromDates = leadTimeHours({ issue_opened_at: opened, deployed_at: deployed });
+  const fromDates = leadTimeHours({ status: 'complete', issue_opened_at: opened, deployed_at: deployed });
   const fromStrings = leadTimeHours({
+    status: 'complete',
     issue_opened_at: opened.toISOString(),
     deployed_at: deployed.toISOString(),
   });
   assert.equal(fromDates, fromStrings);
 });
 
-test('leadTimeHours returns null when deployed_at is absent, null or empty', () => {
-  const base = { issue_opened_at: '2026-09-10T22:44:09Z' };
+test('leadTimeHours returns null when deployed_at is absent, null or empty on a complete entry', () => {
+  const base = { status: 'complete' as const, issue_opened_at: '2026-09-10T22:44:09Z' };
   assert.equal(leadTimeHours(base), null);
   assert.equal(leadTimeHours({ ...base, deployed_at: null }), null);
   assert.equal(leadTimeHours({ ...base, deployed_at: '' }), null);
 });
 
 test('leadTimeHours falls back to released_at when deployed_at is absent, null or empty', () => {
-  const base = { issue_opened_at: '2026-09-10T22:00:00Z', released_at: '2026-09-10T23:00:00Z' };
+  const base = { status: 'complete' as const, issue_opened_at: '2026-09-10T22:00:00Z', released_at: '2026-09-10T23:00:00Z' };
   assert.equal(leadTimeHours(base), 1);
   assert.equal(leadTimeHours({ ...base, deployed_at: null }), 1);
   assert.equal(leadTimeHours({ ...base, deployed_at: '' }), 1);
@@ -57,6 +59,7 @@ test('leadTimeHours falls back to released_at when deployed_at is absent, null o
 
 test('leadTimeHours prefers deployed_at over released_at when both are present and disagree', () => {
   const entry = {
+    status: 'complete' as const,
     issue_opened_at: '2026-09-10T22:00:00Z',
     released_at: '2026-09-10T23:00:00Z',
     deployed_at: '2026-09-11T00:00:00Z',
@@ -64,8 +67,8 @@ test('leadTimeHours prefers deployed_at over released_at when both are present a
   assert.equal(leadTimeHours(entry), 2);
 });
 
-test('leadTimeHours returns null for an entry with neither deployed_at nor released_at, and formatLeadTime of that is the em dash', () => {
-  const entry = { issue_opened_at: '2026-09-10T22:00:00Z' };
+test('leadTimeHours returns null for a complete entry with neither deployed_at nor released_at, and formatLeadTime of that is the em dash', () => {
+  const entry = { status: 'complete' as const, issue_opened_at: '2026-09-10T22:00:00Z' };
   const hours = leadTimeHours(entry);
   assert.equal(hours, null);
   assert.equal(formatLeadTime(hours), '—');
@@ -73,10 +76,20 @@ test('leadTimeHours returns null for an entry with neither deployed_at nor relea
 
 test('leadTimeHours returns exactly 0 when issue_opened_at and the end timestamp are the same instant, distinct from the missing rendering', () => {
   const sameInstant = '2026-09-10T22:00:00Z';
-  const hours = leadTimeHours({ issue_opened_at: sameInstant, deployed_at: sameInstant });
+  const hours = leadTimeHours({ status: 'complete', issue_opened_at: sameInstant, deployed_at: sameInstant });
   assert.equal(hours, 0);
   assert.equal(formatLeadTime(hours), '0.0');
   assert.notEqual(formatLeadTime(hours), formatLeadTime(null));
+});
+
+test('leadTimeHours returns null for in_progress and abandoned entries even with an end timestamp present', () => {
+  const timestamped = {
+    issue_opened_at: '2026-09-10T22:00:00Z',
+    released_at: '2026-09-10T23:00:00Z',
+    deployed_at: '2026-09-10T23:30:00Z',
+  };
+  assert.equal(leadTimeHours({ ...timestamped, status: 'in_progress' }), null);
+  assert.equal(leadTimeHours({ ...timestamped, status: 'abandoned' }), null);
 });
 
 test('cycleEndTimestamp returns deployed_at when present, else released_at, else null', () => {
@@ -98,10 +111,11 @@ test('cycleEndTimestamp returns deployed_at when present, else released_at, else
   );
 });
 
-test('leadTimeHours throws RangeError when deployed_at precedes issue_opened_at', () => {
+test('leadTimeHours throws RangeError when deployed_at precedes issue_opened_at, for a complete entry', () => {
   assert.throws(
     () =>
       leadTimeHours({
+        status: 'complete',
         issue_opened_at: '2026-09-10T23:00:00Z',
         deployed_at: '2026-09-10T22:00:00Z',
       }),
@@ -109,10 +123,11 @@ test('leadTimeHours throws RangeError when deployed_at precedes issue_opened_at'
   );
 });
 
-test('leadTimeHours throws RangeError on an unparseable timestamp', () => {
+test('leadTimeHours throws RangeError on an unparseable timestamp, for a complete entry', () => {
   assert.throws(
     () =>
       leadTimeHours({
+        status: 'complete',
         issue_opened_at: '2026-09-10T22:44:09Z',
         deployed_at: 'not-a-timestamp',
       }),

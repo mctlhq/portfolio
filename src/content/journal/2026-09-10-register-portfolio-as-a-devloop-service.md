@@ -5,6 +5,7 @@ proposal_slug: issue-330-register-portfolio-as-a-non-rotating-dev
 pr: https://github.com/mctlhq/mctl-agents/pull/331
 release: 1.41.0
 visibility: public
+status: complete
 title:
   en: "Register portfolio as a non-rotating DevLoop service"
   ru: "Регистрация portfolio как сервиса DevLoop вне ротации"

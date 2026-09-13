@@ -5,7 +5,7 @@ import CycleTable from '../../components/CycleTable.astro';
 import { ui } from '../../i18n/ui';
 import { getCollection } from 'astro:content';
 import { publicEntries } from '../../lib/content';
-import { byNewestFirst, totalInterventions } from '../../lib/journal';
+import { byNewestFirst, statusCounts, totalInterventions } from '../../lib/journal';
 import { byAdrId, padAdrId } from '../../lib/adr';
 import { chainSegments } from '../../lib/chain';
 
@@ -13,6 +13,7 @@ const journal = publicEntries(await getCollection('journal')).sort(byNewestFirst
 const adrs = publicEntries(await getCollection('adr')).sort(byAdrId);
 const cycleCount = journal.length;
 const interventionsTotal = totalInterventions(journal.map((entry) => entry.data));
+const counts = statusCounts(journal.map((entry) => entry.data));
 
 const adrStatusLabel = {
   proposed: ui.adrStatusProposed,
@@ -49,7 +50,16 @@ const adrStatusLabel = {
     <p class="cycle-totals">
       <span data-cycle-count={cycleCount}>{cycleCount}</span>{' '}
       <Lang en={ui.colophonTotalCycles.en} ru={ui.colophonTotalCycles.ru} />
+      {': '}
+      <span data-complete-count={counts.complete}>{counts.complete}</span>{' '}
+      <Lang en={ui.colophonTotalComplete.en} ru={ui.colophonTotalComplete.ru} />
       {', '}
+      <span data-in-progress-count={counts.in_progress}>{counts.in_progress}</span>{' '}
+      <Lang en={ui.colophonTotalInProgress.en} ru={ui.colophonTotalInProgress.ru} />
+      {', '}
+      <span data-abandoned-count={counts.abandoned}>{counts.abandoned}</span>{' '}
+      <Lang en={ui.colophonTotalAbandoned.en} ru={ui.colophonTotalAbandoned.ru} />
+      {'; '}
       <span data-intervention-count={interventionsTotal}>{interventionsTotal}</span>{' '}
       <Lang en={ui.colophonTotalInterventions.en} ru={ui.colophonTotalInterventions.ru} />
     </p>

@@ -582,7 +582,8 @@ table.cycles td:nth-child(4),
 table.cycles td:nth-child(5),
 table.cycles td:nth-child(6),
 table.cycles td:nth-child(7),
-table.cycles td:nth-child(8) {
+table.cycles td:nth-child(8),
+table.cycles td:nth-child(9) {
   white-space: nowrap;
 }
 table.adr-index td:nth-child(1),
@@ -591,8 +592,8 @@ table.adr-index td:nth-child(4) {
   white-space: nowrap;
 }
 table.cycles td:nth-child(1),
-table.cycles td:nth-child(7),
-table.cycles td:nth-child(8) {
+table.cycles td:nth-child(8),
+table.cycles td:nth-child(9) {
   font-variant-numeric: tabular-nums;
 }
 .lead-time-missing {
@@ -603,13 +604,14 @@ table.cycles td:nth-child(8) {
   margin-inline-start: var(--mctl-space-2);
 }
 /* Below 600px, drop Service and Pull request from table.cycles (heading and
- * cells alike) so the remaining six columns fit a phone; both values remain
- * one click away on the cycle's own journal page. */
+ * cells alike) so the remaining seven columns fit a phone; both values
+ * remain one click away on the cycle's own journal page. Column 6 (Pull
+ * request), not 5, since Status is now inserted at column 4. */
 @media (max-width: 599px) {
   table.cycles th:nth-child(2),
   table.cycles td:nth-child(2),
-  table.cycles th:nth-child(5),
-  table.cycles td:nth-child(5) {
+  table.cycles th:nth-child(6),
+  table.cycles td:nth-child(6) {
     display: none;
   }
 }
@@ -636,6 +638,16 @@ table.cycles td:nth-child(8) {
 .journal-meta dd {
   margin: 0;
   font-variant-numeric: tabular-nums;
+}
+/* The abandonment reason, rendered under .journal-meta only for an
+ * abandoned entry -- a muted, quoted-looking paragraph, distinct from the
+ * decided-heading prose but with no animation or transition (test/a11y.test.ts). */
+.journal-abandoned {
+  color: var(--surface-fg-muted);
+  font-family: var(--font-display);
+  font-size: var(--mctl-typography-font-size-body);
+  line-height: var(--mctl-typography-line-height-body);
+  margin-block-end: var(--mctl-space-2);
 }
 .journal-decided {
   font-family: var(--font-display);

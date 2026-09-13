@@ -5,6 +5,7 @@ proposal_slug: issue-3-p1-astro-static-skeleton-nginx-image-and
 pr: https://github.com/mctlhq/portfolio/pull/12
 release: 0.1.0
 visibility: public
+status: complete
 title:
   en: "Astro static skeleton, nginx image and health endpoints"
   ru: "Статический каркас Astro, образ nginx и проверки состояния"

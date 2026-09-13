@@ -2,7 +2,10 @@
 service: portfolio
 issue: https://github.com/mctlhq/portfolio/issues/65
 proposal_slug: issue-65-q6-share-image-asset-hashing-cache-lifet
+pr: https://github.com/mctlhq/portfolio/pull/66
+release: 0.1.16
 visibility: public
+status: complete
 title:
   en: "Share image, font preload, cache lifetime and the DevLoop diagram"
   ru: "Изображение для шеринга, предзагрузка шрифтов, время жизни кеша и диаграмма DevLoop"
@@ -11,4 +14,6 @@ decided:
   ru: "og:image и twitter:image теперь указывают на PNG 1200x630, отрендеренный офлайн во время сборки; Base.astro предзагружает четыре начертания Onest (латиница и кириллица, 400 и 700) из хешированного манифеста активов, а подстроенный по метрикам резервный шрифт в site.css устраняет сдвиг макета при первой отрисовке. Каждый встроенный в сборку файл под /assets/ и /styles/ несёт хеш содержимого и отдаётся с Cache-Control: public, max-age=31536000, immutable, при этом политика кеширования HTML не меняется. Широкий вариант диаграммы DevLoop пересчитан заново с видимой подписью к пунктирной рамке, а имя в хиро ограничено так, что остаётся на одной строке вплоть до 1920px."
 issue_opened_at: '2026-09-12T11:26:52Z'
 proposal_approved_at: '2026-09-12T11:36:33Z'
+merged_at: '2026-09-12T12:26:11Z'
+released_at: '2026-09-12T12:28:58Z'
 ---
