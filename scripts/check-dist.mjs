@@ -733,7 +733,7 @@ const TITLE_MAX_LENGTH = 75;
 function checkTitleLength(html, rel) {
   const problems = [];
   const titleMatch = html.match(/<title>([^<]*)<\/title>/);
-  const titleText = titleMatch ? titleMatch[1] : '';
+  const titleText = titleMatch ? decodeHtmlEntities(titleMatch[1]) : '';
   const length = [...titleText].length;
   if (length > TITLE_MAX_LENGTH) {
     problems.push(`check-dist: ${rel} <title> is ${length} characters, over the ${TITLE_MAX_LENGTH}-character limit: "${titleText}"`);
