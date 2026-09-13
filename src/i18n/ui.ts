@@ -208,7 +208,6 @@ export const ui = {
       'Release: release-please; deploy dispatched to release-deploy in mctl-gitops; ArgoCD syncs the image tag',
       'Onboarding, rollbacks and custom domains: mctl MCP tools only',
       'Live at dmitriimashkov.com; www redirects to it with a 301',
-      'Rehearsal host preview.dmitriimashkov.com shares the same certificate and stays until the apex has been observed',
     ],
     ru: [
       'Исходники: github.com/mctlhq/portfolio',
@@ -217,7 +216,6 @@ export const ui = {
       'Релиз: release-please; деплой запускается через release-deploy в mctl-gitops; ArgoCD синхронизирует тег образа',
       'Онбординг, откаты и кастомные домены: только MCP-инструменты mctl',
       'Работает на dmitriimashkov.com; www перенаправляется на него с кодом 301',
-      'Репетиционный хост preview.dmitriimashkov.com делит тот же сертификат и остаётся, пока апекс не будет отнаблюдён',
     ],
   },
   colophonCyclesHeading: { en: 'Cycles', ru: 'Циклы' },
