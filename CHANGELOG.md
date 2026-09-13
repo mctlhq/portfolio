@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.24](https://github.com/mctlhq/portfolio/compare/0.1.23...0.1.24) (2026-09-13)
+
+
+### Features
+
+* **agents:** issue-88-q13-link-targets-below-the-floor-titles ([7a7139c](https://github.com/mctlhq/portfolio/commit/7a7139c356f659ada89598417714b5a7a537c337))
+* **agents:** issue-88-q13-link-targets-below-the-floor-titles ([0b41d73](https://github.com/mctlhq/portfolio/commit/0b41d73b74d42625a1cadebfd4ce05c135382a6d))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-88-q13-link-targets-below-the-floor-titles ([04c407f](https://github.com/mctlhq/portfolio/commit/04c407f6ad93489d7176c162b121365b311bbb01))
+
 ## [0.1.23](https://github.com/mctlhq/portfolio/compare/0.1.22...0.1.23) (2026-09-13)
 
 
