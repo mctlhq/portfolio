@@ -260,6 +260,25 @@ async function checkHomePage() {
     );
   }
 
+  // scripts/check-links.mjs classifies a bare `#fragment` href as resolving
+  // to the current document without checking that a matching id exists
+  // there (see its classifyHref() doc comment) -- the same gap
+  // checkNavigationState() above already closes for the skip link
+  // (href="#main" against <main id="main">). The primary CTA's
+  // href="#contact" gets the same treatment here: prove the id it targets
+  // is actually present on the page, rather than leaving it the one link on
+  // the site no gate resolves.
+  if (!/<a\b[^>]*\bclass="cta cta-primary"[^>]*\bhref="#contact"[^>]*>/.test(html)) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, indexPath)} has no <a class="cta cta-primary" href="#contact"> primary CTA`,
+    );
+  }
+  if (!/\bid="contact"/.test(html)) {
+    problems.push(
+      `check-dist: ${path.relative(ROOT, indexPath)} has no element carrying id="contact"; the primary CTA's href="#contact" does not resolve to anything on the page`,
+    );
+  }
+
   problems.push(...checkHomeJsonLd(html, path.relative(ROOT, indexPath)));
 
   return problems;
