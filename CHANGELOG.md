@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.33](https://github.com/mctlhq/portfolio/compare/0.1.32...0.1.33) (2026-09-14)
+
+
+### Features
+
+* **agents:** issue-105-q17-issue-opened-at-is-typed-from-memory ([d479843](https://github.com/mctlhq/portfolio/commit/d47984340377fd130459836c0250ea0f7c29e4b8))
+
+
+### Bug Fixes
+
+* **journal:** close cycle 108 ([63c858f](https://github.com/mctlhq/portfolio/commit/63c858fde8c57b1775a432ebdc2d4aeebc154ebd))
+* **journal:** close cycle 108 ([5adacdd](https://github.com/mctlhq/portfolio/commit/5adacdd70c4d8c3031c14c7a7ffbae59309a9d46))
+* **journal:** resolve issue_opened_at from a recorded source ([1df1295](https://github.com/mctlhq/portfolio/commit/1df129561338e539445555fc63b0ff762ded0727))
+* **journal:** resolveIssueOpenedAt must not throw on a non-404 GitHub error ([90e4593](https://github.com/mctlhq/portfolio/commit/90e4593ead2b798a1adab8b180110762827fa3c7))
+
 ## [0.1.32](https://github.com/mctlhq/portfolio/compare/0.1.31...0.1.32) (2026-09-14)
 
 
