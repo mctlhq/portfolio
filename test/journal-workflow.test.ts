@@ -58,10 +58,16 @@ Every entry carries \`status\`.
 - A cycle creates its own entry with \`status: in_progress\`. Record a known
   implementation PR and merge time when available; do not invent evidence.
   An in-progress entry has no release, release time or deployment time.
+- \`issue_opened_at\` is the \`created_at\` of the GitHub issue the entry's
+  \`issue\` field names, copied verbatim to the second from the proposal, which
+  inlines it; the closure workflow re-resolves it against the GitHub API for
+  a \`mctlhq/portfolio\` issue, and the journal loader requires entries whose
+  issues share a repository to carry stamps that increase with their issue
+  numbers.
 - After the first published stable release containing the implementation
   merge commit, the journal-closure workflow opens a closure PR. It records
-  \`pr\`, \`merged_at\`, \`release\` and \`released_at\` from verified GitHub evidence
-  and sets \`status: complete\`.
+  \`issue_opened_at\`, \`pr\`, \`merged_at\`, \`release\` and \`released_at\` from
+  verified GitHub evidence and sets \`status: complete\`.
 - The release owner merges the closure PR and the resulting metadata-only
   patch release through the normal CI, review and merge-commit gates, then
   verifies deployment. This publishes the closed entry without waiting for
@@ -104,6 +110,14 @@ actual manual interventions follow the existing journal recording rules.
 
 test('docs/journal.md matches section F byte for byte', () => {
   assert.equal(docs, EXPECTED_DOCS);
+});
+
+// Pinned separately from the byte-for-byte EXPECTED_DOCS constant above so a
+// future rewrite of that text cannot silently drop the field's meaning while
+// keeping the constant in sync (issue #105, Q17): this assertion fails on
+// its own wording, not only on a diff against a frozen string.
+test('docs/journal.md states what issue_opened_at means and where its value comes from', () => {
+  assert.match(docs, /`issue_opened_at`[\s\S]*?`created_at`/);
 });
 
 test('README.md links docs/journal.md', () => {

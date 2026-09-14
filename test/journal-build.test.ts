@@ -282,6 +282,109 @@ test('astro sync passes with exactly one in_progress entry, even when it belongs
   }
 });
 
+// -- T2/T3: journalLoader's issue-stamp-order guard (issue #105, Q17) -------
+
+function completeEntry(overrides: {
+  issue: string;
+  proposalSlug: string;
+  issueOpenedAt: string;
+  prNumber: number;
+}): string {
+  return entry([
+    ...baseLines({ issue: overrides.issue, proposal_slug: overrides.proposalSlug }),
+    'status: complete',
+    `pr: https://github.com/mctlhq/portfolio/pull/${overrides.prNumber}`,
+    'release: 0.1.0',
+    `issue_opened_at: '${overrides.issueOpenedAt}'`,
+    "merged_at: '2026-06-01T00:00:00Z'",
+    "released_at: '2026-06-02T00:00:00Z'",
+  ]);
+}
+
+test('astro sync fails when two same-repository entries have issue_opened_at decreasing against issue number, naming both entries', async () => {
+  const tmp = await makeFixtureTree({
+    '2026-01-01-lower-issue-later-stamp.md': completeEntry({
+      issue: 'https://github.com/mctlhq/portfolio/issues/1',
+      proposalSlug: 'issue-1-example',
+      issueOpenedAt: '2026-01-05T00:00:00Z',
+      prNumber: 1,
+    }),
+    '2026-01-02-higher-issue-earlier-stamp.md': completeEntry({
+      issue: 'https://github.com/mctlhq/portfolio/issues/2',
+      proposalSlug: 'issue-2-example',
+      issueOpenedAt: '2026-01-01T00:00:00Z',
+      prNumber: 2,
+    }),
+  });
+  try {
+    const result = runAstro(tmp, ['sync']);
+    assert.notEqual(result.status, 0);
+    const output = result.stdout + result.stderr;
+    assert.match(output, /Journal validation failed/);
+    assert.match(output, /2026-01-01-lower-issue-later-stamp/);
+    assert.match(output, /2026-01-02-higher-issue-earlier-stamp/);
+  } finally {
+    await cleanup(tmp);
+  }
+});
+
+test('astro sync passes when the issue_opened_at decrease spans two different repositories', async () => {
+  const tmp = await makeFixtureTree({
+    '2026-01-01-portfolio.md': completeEntry({
+      issue: 'https://github.com/mctlhq/portfolio/issues/1',
+      proposalSlug: 'issue-1-example',
+      issueOpenedAt: '2026-01-05T00:00:00Z',
+      prNumber: 1,
+    }),
+    '2026-01-02-other-repo.md': completeEntry({
+      issue: 'https://github.com/mctlhq/mctl-api/issues/2',
+      proposalSlug: 'issue-2-example',
+      issueOpenedAt: '2026-01-01T00:00:00Z',
+      prNumber: 2,
+    }),
+  });
+  try {
+    const result = runAstro(tmp, ['sync']);
+    assert.equal(result.status, 0, `expected sync to pass, stderr: ${result.stderr}`);
+  } finally {
+    await cleanup(tmp);
+  }
+});
+
+test('mutant: removing journalLoader\'s issue-stamp-order guard call lets the same-repository-decrease fixture build, proving the guard is what fails the negative case above', async () => {
+  const realConfig = await readFile(path.join(ROOT, 'src/content.config.ts'), 'utf8');
+  assert.match(realConfig, /checkIssueStampOrder\(/, 'expected the real content.config.ts to call checkIssueStampOrder');
+  const mutated = realConfig.replace(
+    /checkIssueStampOrder\(\n[\s\S]*?\n {6}\);\n/,
+    '// checkIssueStampOrder call removed by test/journal-build.test.ts mutation\n',
+  );
+  assert.notEqual(mutated, realConfig, 'expected the mutation to actually remove the checkIssueStampOrder call');
+
+  const tmp = await makeFixtureTree(
+    {
+      '2026-01-01-lower-issue-later-stamp.md': completeEntry({
+        issue: 'https://github.com/mctlhq/portfolio/issues/1',
+        proposalSlug: 'issue-1-example',
+        issueOpenedAt: '2026-01-05T00:00:00Z',
+        prNumber: 1,
+      }),
+      '2026-01-02-higher-issue-earlier-stamp.md': completeEntry({
+        issue: 'https://github.com/mctlhq/portfolio/issues/2',
+        proposalSlug: 'issue-2-example',
+        issueOpenedAt: '2026-01-01T00:00:00Z',
+        prNumber: 2,
+      }),
+    },
+    { contentConfigOverride: mutated },
+  );
+  try {
+    const result = runAstro(tmp, ['sync']);
+    assert.equal(result.status, 0, `expected sync to pass once the guard is removed, stderr: ${result.stderr}`);
+  } finally {
+    await cleanup(tmp);
+  }
+});
+
 test('mutant: removing journalLoader\'s collection guard call lets the two-in_progress fixture build, proving the guard is what fails the negative case above', async () => {
   const realConfig = await readFile(path.join(ROOT, 'src/content.config.ts'), 'utf8');
   assert.match(realConfig, /checkJournalCollection\(/, 'expected the real content.config.ts to call checkJournalCollection');

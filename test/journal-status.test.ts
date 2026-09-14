@@ -17,9 +17,12 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import {
+  checkIssueStampOrder,
   checkJournalCollection,
   isComplete,
   isRealTimestamp,
+  issueRef,
+  issueStampOrderProblems,
   journalEntryProblems,
   leadTimeHours,
   statusCounts,
@@ -250,6 +253,90 @@ test('checkJournalCollection throws, naming both ids, for two in_progress entrie
         { id: 'b', data: { status: 'in_progress' } },
       ]),
     /Journal validation failed:[\s\S]*a[\s\S]*b/,
+  );
+});
+
+// -- issueRef / issueStampOrderProblems / checkIssueStampOrder --------------
+
+test('issueRef parses an issue URL into { repo, number } and returns null otherwise', () => {
+  assert.deepEqual(issueRef('https://github.com/mctlhq/portfolio/issues/105'), {
+    repo: 'mctlhq/portfolio',
+    number: 105,
+  });
+  assert.equal(issueRef('not-a-url'), null);
+  assert.equal(issueRef('https://github.com/mctlhq/portfolio/pull/105'), null);
+});
+
+test('issueStampOrderProblems returns no problem for stamps increasing with issue number', () => {
+  assert.deepEqual(
+    issueStampOrderProblems([
+      { id: 'a', issue: 'https://github.com/mctlhq/portfolio/issues/1', issue_opened_at: '2026-01-01T00:00:00Z' },
+      { id: 'b', issue: 'https://github.com/mctlhq/portfolio/issues/2', issue_opened_at: '2026-01-02T00:00:00Z' },
+    ]),
+    [],
+  );
+});
+
+test('issueStampOrderProblems returns no problem for equal instants', () => {
+  const same = '2026-01-01T00:00:00Z';
+  assert.deepEqual(
+    issueStampOrderProblems([
+      { id: 'a', issue: 'https://github.com/mctlhq/portfolio/issues/1', issue_opened_at: same },
+      { id: 'b', issue: 'https://github.com/mctlhq/portfolio/issues/2', issue_opened_at: same },
+    ]),
+    [],
+  );
+});
+
+test('issueStampOrderProblems returns no problem for a decrease across two different repositories', () => {
+  assert.deepEqual(
+    issueStampOrderProblems([
+      { id: 'a', issue: 'https://github.com/mctlhq/portfolio/issues/1', issue_opened_at: '2026-01-02T00:00:00Z' },
+      { id: 'b', issue: 'https://github.com/mctlhq/mctl-api/issues/2', issue_opened_at: '2026-01-01T00:00:00Z' },
+    ]),
+    [],
+  );
+});
+
+test('issueStampOrderProblems skips an entry whose issue URL does not parse', () => {
+  assert.deepEqual(
+    issueStampOrderProblems([
+      { id: 'a', issue: 'https://github.com/mctlhq/portfolio/issues/1', issue_opened_at: '2026-01-02T00:00:00Z' },
+      { id: 'b', issue: 'not-a-url', issue_opened_at: '2026-01-01T00:00:00Z' },
+    ]),
+    [],
+  );
+});
+
+test('issueStampOrderProblems reports one problem naming both ids, both numbers and both instants for a decrease within one repository', () => {
+  const problems = issueStampOrderProblems([
+    { id: 'older-issue-newer-stamp', issue: 'https://github.com/mctlhq/portfolio/issues/1', issue_opened_at: '2026-01-05T00:00:00Z' },
+    { id: 'newer-issue-older-stamp', issue: 'https://github.com/mctlhq/portfolio/issues/2', issue_opened_at: '2026-01-01T00:00:00Z' },
+  ]);
+  assert.equal(problems.length, 1);
+  assert.equal(problems[0].field, 'issue_opened_at');
+  assert.match(problems[0].message, /newer-issue-older-stamp/);
+  assert.match(problems[0].message, /older-issue-newer-stamp/);
+  assert.match(problems[0].message, /#1/);
+  assert.match(problems[0].message, /#2/);
+  assert.match(problems[0].message, /2026-01-05T00:00:00\.000Z/);
+  assert.match(problems[0].message, /2026-01-01T00:00:00\.000Z/);
+});
+
+test('checkIssueStampOrder throws Journal validation failed: for a same-repository decrease and does not throw otherwise', () => {
+  assert.throws(
+    () =>
+      checkIssueStampOrder([
+        { id: 'a', issue: 'https://github.com/mctlhq/portfolio/issues/1', issue_opened_at: '2026-01-05T00:00:00Z' },
+        { id: 'b', issue: 'https://github.com/mctlhq/portfolio/issues/2', issue_opened_at: '2026-01-01T00:00:00Z' },
+      ]),
+    /Journal validation failed:/,
+  );
+  assert.doesNotThrow(() =>
+    checkIssueStampOrder([
+      { id: 'a', issue: 'https://github.com/mctlhq/portfolio/issues/1', issue_opened_at: '2026-01-01T00:00:00Z' },
+      { id: 'b', issue: 'https://github.com/mctlhq/portfolio/issues/2', issue_opened_at: '2026-01-02T00:00:00Z' },
+    ]),
   );
 });
 

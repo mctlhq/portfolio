@@ -600,8 +600,11 @@ main a:hover {
   border-radius: var(--mctl-radius-sm);
 }
 
-/* Tap targets: every interactive element on the page is at least 44px tall
- * at any viewport width, per the 360px acceptance criterion. */
+/* Tap targets: the navigation and footer links are at least 44px tall at any
+ * viewport width, per the 360px acceptance criterion. This is not a
+ * page-wide floor -- the standalone-link rule below is 24px, and the
+ * header's .icon-toggle controls are a fixed 32px box -- and 24px is the
+ * floor test/a11y.test.ts enforces for every selector in TARGET_SELECTORS. */
 .site-nav a,
 .site-footer a {
   display: inline-flex;

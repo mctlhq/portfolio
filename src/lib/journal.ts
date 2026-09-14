@@ -224,6 +224,91 @@ export function checkJournalCollection(entries: readonly JournalCollectionEntry[
   }
 }
 
+export interface IssueRef {
+  /** '<owner>/<repo>', e.g. 'mctlhq/portfolio'. */
+  repo: string;
+  number: number;
+}
+
+/**
+ * Parses a journal entry's `issue` URL into `{ repo, number }`, e.g.
+ * 'https://github.com/mctlhq/portfolio/issues/79' ->
+ * `{ repo: 'mctlhq/portfolio', number: 79 }`. Returns null when the URL does
+ * not match that shape, so a caller can skip the entry rather than throw.
+ */
+export function issueRef(url: string): IssueRef | null {
+  const match = /^https:\/\/github\.com\/([^/\s]+\/[^/\s]+)\/issues\/(\d+)\/?$/.exec(url);
+  if (!match) return null;
+  return { repo: match[1], number: Number(match[2]) };
+}
+
+export interface IssueStampEntry {
+  id: string;
+  issue: string;
+  issue_opened_at: Date | string;
+}
+
+/**
+ * The one invariant the repository's own committed data can support for
+ * `issue_opened_at` with no network access: within a single GitHub
+ * repository, issue numbers increase with creation time, so
+ * `issue_opened_at` must be nondecreasing in issue number among entries
+ * whose `issue` URLs name that repository. Equal instants are permitted
+ * (GitHub `created_at` has one-second granularity and two issues can share a
+ * second). Entries whose `issue` URL does not parse are skipped rather than
+ * failed. Groups entries by issueRef().repo, sorts each group by issue
+ * number, and returns one JournalProblem per adjacent pair that decreases,
+ * naming both entry ids, both issue numbers and both ISO instants. This
+ * check is relative, not absolute: it cannot prove a single stamp correct,
+ * and a uniformly shifted set of stamps would still satisfy it.
+ */
+export function issueStampOrderProblems(entries: readonly IssueStampEntry[]): JournalProblem[] {
+  const problems: JournalProblem[] = [];
+  const byRepo = new Map<string, Array<{ id: string; number: number; date: Date }>>();
+
+  for (const entry of entries) {
+    const ref = issueRef(entry.issue);
+    if (!ref) continue;
+    const list = byRepo.get(ref.repo) ?? [];
+    list.push({ id: entry.id, number: ref.number, date: toDate(entry.issue_opened_at) });
+    byRepo.set(ref.repo, list);
+  }
+
+  for (const list of byRepo.values()) {
+    list.sort((a, b) => a.number - b.number);
+    for (let i = 1; i < list.length; i += 1) {
+      const previous = list[i - 1];
+      const current = list[i];
+      if (current.date.getTime() < previous.date.getTime()) {
+        problems.push({
+          field: 'issue_opened_at',
+          message:
+            `${current.id} (issue #${current.number}, issue_opened_at ${current.date.toISOString()}) ` +
+            `precedes ${previous.id} (issue #${previous.number}, issue_opened_at ` +
+            `${previous.date.toISOString()}); issue_opened_at must be nondecreasing in issue number ` +
+            'within one repository',
+        });
+      }
+    }
+  }
+
+  return problems;
+}
+
+/**
+ * Throws the aggregated issueStampOrderProblems() list for the whole
+ * journal collection, mirroring checkJournalCollection(). Called by
+ * journalLoader() in content.config.ts immediately after
+ * checkJournalCollection(), so it runs on `astro sync`, `astro check`,
+ * `astro dev` and `astro build` alike.
+ */
+export function checkIssueStampOrder(entries: readonly IssueStampEntry[]): void {
+  const problems = issueStampOrderProblems(entries);
+  if (problems.length > 0) {
+    throw new Error(`Journal validation failed:\n${problems.map((problem) => `- ${problem.message}`).join('\n')}`);
+  }
+}
+
 export interface Intervention {
   what: string;
   why: string;

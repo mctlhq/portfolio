@@ -11,7 +11,8 @@ import { test } from 'node:test';
 import { minBlockSizes } from './support/css-rules.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
-const siteCss = readFileSync(path.join(ROOT, 'src/styles/site.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+const siteCssRaw = readFileSync(path.join(ROOT, 'src/styles/site.css'), 'utf8');
+const siteCss = siteCssRaw.replace(/\/\*[\s\S]*?\*\//g, '');
 const langAstro = readFileSync(path.join(ROOT, 'src/i18n/Lang.astro'), 'utf8');
 
 const MIN_TARGET_PX = 24;
@@ -79,6 +80,16 @@ test('minBlockSizeProblems reports a problem when the selector has no min-block-
   const problems = minBlockSizeProblems(synthetic, '.foo', MIN_TARGET_PX);
   assert.ok(problems.length > 0);
   assert.match(problems.join('\n'), /no min-block-size rule found/);
+});
+
+// Carried P3 from the #103 review (issue #105, Q17): the comment above the
+// .site-nav a, .site-footer a rule used to claim every interactive element
+// on the page is at least 44px tall, which is false -- the standalone-link
+// rule is 24px and the header's .icon-toggle is a fixed 32px box, both
+// checked by MIN_TARGET_PX/TARGET_SELECTORS above. This reads the raw file
+// (siteCssRaw, comments included) rather than the comment-stripped siteCss.
+test('site.css carries no comment claiming every interactive element is at least 44px', () => {
+  assert.doesNotMatch(siteCssRaw, /every interactive element[\s\S]{0,80}44px/);
 });
 
 test('site.css declares no animation or transition anywhere', () => {

@@ -21,6 +21,7 @@ import {
   createGitHubClient,
   earliestContainingRelease,
   entryIssueNumber,
+  entryIssueRef,
   parseFrontmatter,
   run,
   selectClosableEntry,
@@ -62,6 +63,7 @@ interface FakeGithubOptions {
   mainFile?: { content: string; sha: string } | null;
   branchFile?: { content: string; sha: string } | null;
   openPull?: Record<string, unknown> | null;
+  issue?: Record<string, unknown> | null;
   throwOn?: string;
 }
 
@@ -102,6 +104,10 @@ function makeFakeGithub(opts: FakeGithubOptions) {
     async getPullRequest(number: number) {
       maybeThrow('getPullRequest');
       return opts.pull ?? null;
+    },
+    async getIssue(number: number) {
+      maybeThrow('getIssue');
+      return opts.issue ?? null;
     },
     async findPullsIntroducingFile(filePath: string) {
       maybeThrow('findPullsIntroducingFile');
@@ -302,7 +308,13 @@ test('run() throws on an ambiguous release tie (two stable releases with the sam
 test('run() reuses an existing branch/PR with no new commit when a retry delivers the same intended content', async () => {
   const repoRoot = await makeRepoRoot({ '2026-09-13-example.md': IN_PROGRESS_ENTRY });
   try {
-    const evidence = { pr: 'https://github.com/mctlhq/portfolio/pull/100', merged_at: '2026-09-13T00:30:00Z', release: '0.1.30', released_at: '2026-09-13T01:00:00Z' };
+    const evidence = {
+      pr: 'https://github.com/mctlhq/portfolio/pull/100',
+      merged_at: '2026-09-13T00:30:00Z',
+      release: '0.1.30',
+      released_at: '2026-09-13T01:00:00Z',
+      issue_opened_at: '2026-09-13T00:00:00Z',
+    };
     const intended = applyClosure(IN_PROGRESS_ENTRY, evidence);
     const github = makeFakeGithub({
       release: HAPPY_RELEASE,
@@ -385,7 +397,7 @@ test('run() with dryRun reports the intended match and diff and writes nothing',
   }
 });
 
-test('the R -> closure PR -> R2 -> no-op sequence: closure touches only the five allowed fields, release stays R, and R2 is a no-op', async () => {
+test('the R -> closure PR -> R2 -> no-op sequence: closure touches only the six allowed fields, release stays R, and R2 is a no-op', async () => {
   const repoRoot = await makeRepoRoot({ '2026-09-13-example.md': IN_PROGRESS_ENTRY });
   try {
     const r = HAPPY_RELEASE;
@@ -425,7 +437,109 @@ test('the R -> closure PR -> R2 -> no-op sequence: closure touches only the five
   }
 });
 
+// -- issue_opened_at resolution (Q17, issue #105) -----------------------------
+
+test('run() writes the resolved issue created_at into the closure content when it differs from the recorded value', async () => {
+  const repoRoot = await makeRepoRoot({ '2026-09-13-example.md': IN_PROGRESS_ENTRY });
+  try {
+    const github = makeFakeGithub({
+      release: HAPPY_RELEASE,
+      stableReleases: [HAPPY_RELEASE],
+      pull: HAPPY_PULL,
+      ancestry: { 'merge-sha-1->commit-for-0.1.30': true },
+      mainFile: { content: IN_PROGRESS_ENTRY, sha: 'main-sha' },
+      issue: { number: 99, created_at: '2026-09-12T23:45:00Z' },
+    });
+    const result = await run({ tag: '0.1.30', github, repoRoot });
+    assert.equal(result.closed, true);
+    assert.equal(result.evidence?.issue_opened_at, '2026-09-12T23:45:00Z');
+    assert.ok(github.calls.includes('getIssue'));
+    const written = github.capturedArgs.createOrUpdateBranchFile[0]?.content as string;
+    assert.match(written, /issue_opened_at: '2026-09-12T23:45:00Z'/);
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('run() keeps the recorded issue_opened_at, logs a non-resolution, and still closes for a cross-repository issue or a 404, without throwing', async () => {
+  const crossRepoEntry = IN_PROGRESS_ENTRY.replace(
+    'issue: https://github.com/mctlhq/portfolio/issues/99',
+    'issue: https://github.com/mctlhq/mctl-api/issues/99',
+  );
+  const crossRepoRoot = await makeRepoRoot({ '2026-09-13-example.md': crossRepoEntry });
+  try {
+    const logs: string[] = [];
+    const github = makeFakeGithub({
+      release: HAPPY_RELEASE,
+      stableReleases: [HAPPY_RELEASE],
+      pull: HAPPY_PULL,
+      ancestry: { 'merge-sha-1->commit-for-0.1.30': true },
+      mainFile: { content: crossRepoEntry, sha: 'main-sha' },
+    });
+    const result = await run({ tag: '0.1.30', github, repoRoot: crossRepoRoot, log: (msg: string) => logs.push(msg) });
+    assert.equal(result.closed, true);
+    assert.equal(result.evidence?.issue_opened_at, '2026-09-13T00:00:00Z');
+    assert.ok(!github.calls.includes('getIssue'), 'must never call getIssue for an issue outside this repository');
+    assert.ok(logs.some((line) => line.includes('issue_opened_at not resolved') && line.includes('mctl-api')));
+  } finally {
+    await rm(crossRepoRoot, { recursive: true, force: true });
+  }
+
+  const repoRoot = await makeRepoRoot({ '2026-09-13-example.md': IN_PROGRESS_ENTRY });
+  try {
+    const logs: string[] = [];
+    const github = makeFakeGithub({
+      release: HAPPY_RELEASE,
+      stableReleases: [HAPPY_RELEASE],
+      pull: HAPPY_PULL,
+      ancestry: { 'merge-sha-1->commit-for-0.1.30': true },
+      mainFile: { content: IN_PROGRESS_ENTRY, sha: 'main-sha' },
+      issue: null, // getIssue 404s
+    });
+    const result = await run({ tag: '0.1.30', github, repoRoot, log: (msg: string) => logs.push(msg) });
+    assert.equal(result.closed, true);
+    assert.equal(result.evidence?.issue_opened_at, '2026-09-13T00:00:00Z');
+    assert.ok(logs.some((line) => line.includes('issue_opened_at not resolved') && line.includes('lookup returned no issue')));
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+});
+
+test('closureDiffProblems still reports a frontmatter change outside the six CLOSURE_FIELDS and a body change, and reports none for an issue_opened_at-only change', () => {
+  const issueOpenedAtOnly = IN_PROGRESS_ENTRY.replace(
+    "issue_opened_at: '2026-09-13T00:00:00Z'",
+    "issue_opened_at: '2026-09-12T23:45:00Z'",
+  );
+  assert.deepEqual(closureDiffProblems(IN_PROGRESS_ENTRY, issueOpenedAtOnly), []);
+
+  const outsideFieldChanged = IN_PROGRESS_ENTRY.replace(
+    'title:\n  en: "Example cycle"',
+    'title:\n  en: "A different title entirely"',
+  );
+  const frontmatterProblems = closureDiffProblems(IN_PROGRESS_ENTRY, outsideFieldChanged);
+  assert.equal(frontmatterProblems.length, 1);
+  assert.match(frontmatterProblems[0], /frontmatter changed outside/);
+
+  const bodyChanged = `${IN_PROGRESS_ENTRY}\nAn added paragraph.\n`;
+  const bodyProblems = closureDiffProblems(IN_PROGRESS_ENTRY, bodyChanged);
+  assert.ok(bodyProblems.some((p) => p.includes('the markdown body changed')));
+});
+
 // -- Pure helper unit coverage ------------------------------------------------
+
+test('entryIssueRef parses owner, repo and number, and returns null for a non-issue URL', () => {
+  assert.deepEqual(entryIssueRef({ issue: 'https://github.com/mctlhq/portfolio/issues/79' }), {
+    owner: 'mctlhq',
+    repo: 'portfolio',
+    number: 79,
+  });
+  assert.deepEqual(entryIssueRef({ issue: 'https://github.com/mctlhq/mctl-api/issues/281' }), {
+    owner: 'mctlhq',
+    repo: 'mctl-api',
+    number: 281,
+  });
+  assert.equal(entryIssueRef({ issue: 'not-a-url' }), null);
+});
 
 test('parseFrontmatter splits frontmatter and body and extracts only top-level scalar keys', () => {
   const { frontmatter, body, data } = parseFrontmatter(IN_PROGRESS_ENTRY);
