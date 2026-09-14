@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.32](https://github.com/mctlhq/portfolio/compare/0.1.31...0.1.32) (2026-09-14)
+
+
+### Features
+
+* **agents:** issue-108-q18-single-icon-button-toggles-replace-t ([4eedd04](https://github.com/mctlhq/portfolio/commit/4eedd048d8548fa5452553814018193d90c9a266))
+* **agents:** issue-108-q18-single-icon-button-toggles-replace-t ([dd46a95](https://github.com/mctlhq/portfolio/commit/dd46a95a33abbb5ed6ff768c79741c167eb78fb0))
+
 ## [0.1.31](https://github.com/mctlhq/portfolio/compare/0.1.30...0.1.31) (2026-09-14)
 
 
