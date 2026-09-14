@@ -180,15 +180,40 @@ pre,
   color: var(--surface-fg-muted);
 }
 
-/* Toggle groups. A bordered box with per-segment corner radii, not
- * overflow: hidden -- outline-offset draws the :focus-visible ring outside
- * the button box, so overflow: hidden on this container would clip the ring
- * on the first and last segment. */
-.toggle-group {
+/* Icon toggles (issue #108, Q18): one button per CSS stance -- .t.dark/
+ * .t.light, .l.en/.l.ru -- the same mutually-exclusive display:none
+ * mechanism as every other bilingual/theme element on the site, just one
+ * glyph or label each instead of a two-button segmented pair. No inner
+ * divider and no overflow: the lesson from the Q16 segmented control (an
+ * overflow:hidden container clips the :focus-visible ring) doesn't even
+ * arise here, but is worth restating: this class must never gain one. */
+.icon-toggle {
   display: inline-flex;
-  gap: 0;
+  align-items: center;
+  justify-content: center;
+  inline-size: 32px;
+  block-size: 32px;
+  min-inline-size: 32px;
+  min-block-size: 32px;
+  padding: 0;
   border: 1px solid var(--surface-line);
-  border-radius: var(--mctl-radius-md);
+  border-radius: var(--mctl-radius-lg);
+  background: var(--surface-card);
+  color: var(--surface-fg-muted);
+  cursor: pointer;
+}
+.icon-toggle:hover {
+  background: var(--surface-elevated);
+}
+.icon-toggle svg {
+  inline-size: 20px;
+  block-size: 20px;
+}
+.lang-toggle {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: var(--mctl-typography-font-weight-semibold);
+  letter-spacing: 0.02em;
 }
 .toggle-bar {
   display: flex;
@@ -201,33 +226,6 @@ pre,
 .toggle-bar noscript {
   flex-basis: 100%;
   text-align: end;
-}
-.toggle-group button {
-  font: inherit;
-  font-size: var(--mctl-typography-font-size-sm);
-  line-height: 1;
-  color: var(--surface-fg-muted);
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  padding-inline: var(--mctl-space-3);
-  padding-block: 0;
-  cursor: pointer;
-}
-.toggle-group button:first-child {
-  border-start-start-radius: var(--mctl-radius-md);
-  border-end-start-radius: var(--mctl-radius-md);
-}
-.toggle-group button:last-child {
-  border-start-end-radius: var(--mctl-radius-md);
-  border-end-end-radius: var(--mctl-radius-md);
-}
-.toggle-group button + button {
-  border-inline-start: 1px solid var(--surface-line);
-}
-.toggle-group button[aria-pressed='true'] {
-  background: var(--accent);
-  color: var(--accent-fg);
 }
 
 /* Footer. */
@@ -610,16 +608,6 @@ main a:hover {
   align-items: center;
   min-block-size: 44px;
 }
-/* The language and theme segments are the one deliberate exception: 32px is
- * above the 24px floor test/a11y.test.ts enforces and above the WCAG 2.2 AA
- * 2.5.8 minimum, below the 2.5.5 AAA 44px used on every navigation link,
- * footer link, CTA, disclosure summary and standalone link on the site. */
-.toggle-group button {
-  display: inline-flex;
-  align-items: center;
-  min-block-size: 32px;
-}
-
 /* Standalone links (issue #88, Q13): a link that stands on its own -- a
  * repository or docs link on /work/, a breadcrumb step, the issue and PR
  * links in a journal entry's meta list, a link inside one of the colophon

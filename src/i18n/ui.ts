@@ -39,17 +39,19 @@ export const ui = {
   skipToContent: { en: 'Skip to content', ru: 'Перейти к содержимому' },
   breadcrumbLabel: { en: 'Breadcrumb', ru: 'Навигационная цепочка' },
 
-  langToggleLabel: { en: 'Language', ru: 'Язык' },
   langEn: { en: 'EN', ru: 'EN' },
   langRu: { en: 'RU', ru: 'RU' },
+  langSwitchToEn: { en: 'Switch to English', ru: 'Переключить на английский' },
+  langSwitchToRu: { en: 'Switch to Russian', ru: 'Переключить на русский' },
   langNoScript: {
     en: 'Switching language requires JavaScript. Enable it to read this site in Russian.',
     ru: 'Для переключения языка требуется JavaScript. Включите его, чтобы читать сайт на русском.',
   },
 
-  themeToggleLabel: { en: 'Theme', ru: 'Тема' },
   themeDark: { en: 'Dark', ru: 'Тёмная' },
   themeLight: { en: 'Light', ru: 'Светлая' },
+  themeSwitchToDark: { en: 'Switch to dark theme', ru: 'Переключить на тёмную тему' },
+  themeSwitchToLight: { en: 'Switch to light theme', ru: 'Переключить на светлую тему' },
   themeNoScript: {
     en: 'Switching theme requires JavaScript.',
     ru: 'Для переключения темы требуется JavaScript.',

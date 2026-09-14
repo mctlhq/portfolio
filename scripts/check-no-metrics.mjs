@@ -117,6 +117,17 @@ export const ALLOW = [
       'recording that the latin-only reduction was reviewed and rejected there -- not a ' +
       'metric value.',
   },
+  {
+    file: 'src/components/ThemeToggle.astro',
+    values: [1, 2, 3, 5, 7, 10, 12, 14, 18, 19, 22, 24, 25, 45, 55, 75, 78, 85, 95, 99],
+    reason:
+      'Hand-authored sun/moon SVG glyphs: stroke-width, viewBox extent and path/line ' +
+      'coordinates. ThemeToggle.astro is props-less and never imports ' +
+      'src/data/metrics.json, so none of these can be a metric value; most are the ' +
+      'leading-zero or fractional tail of a decimal coordinate (e.g. "75" from ' +
+      'stroke-width="1.75", "01" from y1="18.01") that \\b[0-9]{2,}\\b matches as a ' +
+      'standalone token.',
+  },
 ];
 
 async function walk(dir) {

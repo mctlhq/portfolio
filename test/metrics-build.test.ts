@@ -186,6 +186,10 @@ async function makeCheckNoMetricsScriptCopy(): Promise<string> {
     fileURLToPath(new URL('../src/layouts/Base.astro', import.meta.url)),
     path.join(root, 'src/layouts/Base.astro'),
   );
+  await cp(
+    fileURLToPath(new URL('../src/components/ThemeToggle.astro', import.meta.url)),
+    path.join(root, 'src/components/ThemeToggle.astro'),
+  );
   return root;
 }
 

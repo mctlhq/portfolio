@@ -47,17 +47,17 @@ test('Nav.astro gives the site-nav landmark an aria-labelledby, not a bilingual 
   assert.doesNotMatch(nav, /aria-label=/);
 });
 
-test('LangToggle.astro and ThemeToggle.astro give every .toggle-group role="group" and an aria-labelledby, never an aria-label', () => {
+test('LangToggle.astro and ThemeToggle.astro render exactly two .icon-toggle buttons, each with its own aria-labelledby, no role="group" and no aria-label', () => {
   for (const [name, source] of [
     ['LangToggle.astro', langToggle],
     ['ThemeToggle.astro', themeToggle],
   ] as const) {
-    const groupTags = source.match(/<div\s+class="toggle-group[^"]*"[^>]*>/g) ?? [];
-    assert.equal(groupTags.length, 2, `${name}: expected exactly two .toggle-group divs`);
-    for (const tag of groupTags) {
-      assert.match(tag, /role="group"/, `${name}: ${tag} is missing role="group"`);
+    const buttonTags = source.match(/<button\s+type="button"\s+class="[^"]*icon-toggle[^"]*"[^>]*>/g) ?? [];
+    assert.equal(buttonTags.length, 2, `${name}: expected exactly two .icon-toggle buttons`);
+    for (const tag of buttonTags) {
       assert.match(tag, /aria-labelledby="/, `${name}: ${tag} is missing aria-labelledby`);
     }
+    assert.doesNotMatch(source, /role="group"/, `${name}: no role="group" should remain -- a single button is not a set`);
     assert.doesNotMatch(source, /aria-label=/, `${name}: no aria-label should remain`);
     assert.doesNotMatch(source, /groupLabel/, `${name}: no groupLabel const should remain`);
   }

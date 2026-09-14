@@ -3,23 +3,26 @@ import Lang from '../i18n/Lang.astro';
 import { ui } from '../i18n/ui';
 ---
 
-<div class="toggle-group t dark" role="group" aria-labelledby="theme-toggle-label">
-  <button type="button" data-set-theme="dark" aria-pressed="true">
-    <Lang en={ui.themeDark.en} ru={ui.themeDark.ru} />
-  </button>
-  <button type="button" data-set-theme="light" aria-pressed="false">
-    <Lang en={ui.themeLight.en} ru={ui.themeLight.ru} />
-  </button>
-</div>
-<div class="toggle-group t light" role="group" aria-labelledby="theme-toggle-label">
-  <button type="button" data-set-theme="dark" aria-pressed="false">
-    <Lang en={ui.themeDark.en} ru={ui.themeDark.ru} />
-  </button>
-  <button type="button" data-set-theme="light" aria-pressed="true">
-    <Lang en={ui.themeLight.en} ru={ui.themeLight.ru} />
-  </button>
-</div>
-<span id="theme-toggle-label" class="visually-hidden"><Lang en={ui.themeToggleLabel.en} ru={ui.themeToggleLabel.ru} /></span>
+<button type="button" class="t dark icon-toggle" data-set-theme="light" aria-labelledby="theme-toggle-to-light">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    <path d="M20.5 14.5c-1.1.45-2.3.7-3.55.7-5.25 0-9.5-4.25-9.5-9.5 0-1.25.25-2.45.7-3.55C4.6 3.4 2.5 6.95 2.5 11c0 5.8 4.7 10.5 10.5 10.5 4.05 0 7.6-2.1 8.85-4.9 0-.03.02-.07.03-.1z" />
+  </svg>
+</button>
+<span id="theme-toggle-to-light" class="visually-hidden"><Lang en={ui.themeSwitchToLight.en} ru={ui.themeSwitchToLight.ru} /></span>
+<button type="button" class="t light icon-toggle" data-set-theme="dark" aria-labelledby="theme-toggle-to-dark">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true" focusable="false">
+    <circle cx="12" cy="12" r="4.5" />
+    <line x1="12" y1="1.75" x2="12" y2="4.25" />
+    <line x1="12" y1="19.75" x2="12" y2="22.25" />
+    <line x1="4.22" y1="4.22" x2="5.99" y2="5.99" />
+    <line x1="18.01" y1="18.01" x2="19.78" y2="19.78" />
+    <line x1="1.75" y1="12" x2="4.25" y2="12" />
+    <line x1="19.75" y1="12" x2="22.25" y2="12" />
+    <line x1="4.22" y1="19.78" x2="5.99" y2="18.01" />
+    <line x1="18.01" y1="5.99" x2="19.78" y2="4.22" />
+  </svg>
+</button>
+<span id="theme-toggle-to-dark" class="visually-hidden"><Lang en={ui.themeSwitchToDark.en} ru={ui.themeSwitchToDark.ru} /></span>
 <noscript>
   <p><Lang en={ui.themeNoScript.en} ru={ui.themeNoScript.ru} /></p>
 </noscript>

@@ -22,7 +22,7 @@ test('site.css keeps a :focus-visible outline rule', () => {
 
 const TARGET_SELECTORS = [
   '.site-nav a',
-  '.toggle-group button',
+  '.icon-toggle',
   '.site-footer a',
   '.cta',
   '.block > summary',
