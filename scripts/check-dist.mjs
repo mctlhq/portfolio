@@ -98,7 +98,17 @@ async function checkApproachPage() {
     return { problems, svgBytes: null };
   }
 
-  const slices = extractSvgSlices(html);
+  // Issue #108 (Q18): the header's ThemeToggle renders two decorative,
+  // aria-hidden sun/moon <svg> glyphs into every page, this one included.
+  // The per-slice loop below asserts the DevLoop cycle diagram's own
+  // contract (role="img", an aria-labelledby resolving to a <title>/<desc>
+  // pair) and the 12 KB budget this function's docstring scopes to "the two
+  // inline <svg> variants of the DevLoop cycle diagram" -- neither applies
+  // to a decorative glyph. Narrow the slice list to the diagram by the
+  // `cycle-svg` class src/components/CycleDiagram.astro puts on both
+  // variants, so an unrelated inline icon anywhere in the layout can
+  // neither fail this check nor eat the diagram's byte budget.
+  const slices = extractSvgSlices(html).filter((slice) => /\bcycle-svg\b/.test(svgOpenTag(slice)));
   if (slices.length < 2) {
     problems.push(
       `check-dist: ${path.relative(ROOT, approachPath)} has ${slices.length} <svg> root(s), expected at least 2 (wide and narrow variants)`,

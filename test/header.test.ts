@@ -50,30 +50,21 @@ test('T3: the .toggle-bar block declares margin-inline-start: auto', () => {
   );
 });
 
-test('T4: some .toggle-group block declares a border and a border-radius, and no .toggle-group block declares overflow', () => {
-  const bodies = ruleBlockBodies(siteCss, '.toggle-group');
-  assert.ok(bodies.length > 0, 'expected at least one .toggle-group rule block');
+test('some .icon-toggle block declares border, border-radius and background, and no .icon-toggle block declares overflow', () => {
+  const bodies = ruleBlockBodies(siteCss, '.icon-toggle');
+  assert.ok(bodies.length > 0, 'expected at least one .icon-toggle rule block');
   assert.ok(
-    bodies.some((b) => /\bborder:\s*[^;]+;/.test(b) && /border-radius:/.test(b)),
-    'expected a .toggle-group block declaring both border and border-radius',
+    bodies.some((b) => /\bborder:\s*[^;]+;/.test(b) && /border-radius:/.test(b) && /background:/.test(b)),
+    'expected a .icon-toggle block declaring border, border-radius and background',
   );
   assert.ok(
     bodies.every((b) => !/\boverflow\s*:/.test(b)),
-    'expected no .toggle-group block to declare overflow -- it would clip the focus-visible ring on the first and last segment',
+    'expected no .icon-toggle block to declare overflow',
   );
 });
 
-test('T5: a rule block whose selector list includes .toggle-group button + button declares border-inline-start', () => {
-  const bodies = ruleBlockBodies(siteCss, '.toggle-group button + button');
-  assert.ok(bodies.length > 0, 'expected at least one ".toggle-group button + button" rule block');
-  assert.ok(
-    bodies.some((b) => /border-inline-start:/.test(b)),
-    'expected a ".toggle-group button + button" block declaring border-inline-start',
-  );
-});
-
-test('T6: .toggle-group button resolves to exactly one min-block-size of 32px, .site-nav a and .site-footer a resolve to 44px', () => {
-  assert.deepEqual(minBlockSizes(siteCss, '.toggle-group button'), [32]);
+test('T6: .icon-toggle resolves to exactly one min-block-size of 32px, .site-nav a and .site-footer a resolve to 44px', () => {
+  assert.deepEqual(minBlockSizes(siteCss, '.icon-toggle'), [32]);
   assert.ok(minBlockSizes(siteCss, '.site-nav a').includes(44));
   assert.ok(minBlockSizes(siteCss, '.site-footer a').includes(44));
 });

@@ -58,6 +58,7 @@ const SEMANTIC_TOKENS = {
     'surface-elevated': 'mctl-surface-dark-elevated',
     'surface-fg': 'mctl-surface-dark-fg',
     'surface-fg-muted': 'mctl-surface-dark-fg-muted',
+    'surface-card': 'mctl-surface-dark-card',
     accent: 'mctl-accent-terracotta-dark-primary',
     'accent-fg': 'mctl-accent-terracotta-dark-fg',
   },
@@ -66,6 +67,7 @@ const SEMANTIC_TOKENS = {
     'surface-elevated': 'mctl-surface-light-elevated',
     'surface-fg': 'mctl-surface-light-fg',
     'surface-fg-muted': 'mctl-surface-light-fg-muted',
+    'surface-card': 'mctl-surface-light-card',
     accent: 'mctl-accent-terracotta-light-primary',
     'accent-fg': 'mctl-accent-terracotta-light-fg',
   },
@@ -92,6 +94,7 @@ const PAIRS = [
   { fg: 'accent', bg: 'surface-bg', kind: 'focus-ring' },
   { fg: 'accent', bg: 'surface-elevated', kind: 'focus-ring' },
   { fg: 'accent-fg', bg: 'accent', kind: 'text' },
+  { fg: 'surface-fg-muted', bg: 'surface-card', kind: 'text' },
 ];
 
 // Named exemptions only, never a lowered threshold: { theme, fg, bg, reason }.
