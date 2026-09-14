@@ -423,7 +423,21 @@ async function resolveIssueOpenedAt(entry, github, log) {
     return recorded;
   }
 
-  const issue = await github.getIssue(ref.number);
+  let issue;
+  try {
+    issue = await github.getIssue(ref.number);
+  } catch (err) {
+    // Never throws (see docstring): api() only turns a 404 into
+    // { status: 404, json: null } for a GET -- any other non-ok status
+    // (401, 403, a 5xx, a rate limit) propagates as a thrown error, and an
+    // unresolved timestamp must not abort a closure whose release, PR,
+    // ancestry and merge evidence have already been verified. Same
+    // fail-open contract as the 404/cross-repo branches above.
+    log(
+      `close-journal: ${entry.id} issue_opened_at not resolved: issue #${ref.number} lookup failed: ${err.message}`,
+    );
+    return recorded;
+  }
   if (!issue || !issue.created_at) {
     log(`close-journal: ${entry.id} issue_opened_at not resolved: issue #${ref.number} lookup returned no issue`);
     return recorded;

@@ -505,6 +505,27 @@ test('run() keeps the recorded issue_opened_at, logs a non-resolution, and still
   }
 });
 
+test('run() keeps the recorded issue_opened_at, logs the failure, and still closes when getIssue throws (a non-404 error, e.g. 401/403/5xx/rate-limit)', async () => {
+  const repoRoot = await makeRepoRoot({ '2026-09-13-example.md': IN_PROGRESS_ENTRY });
+  try {
+    const logs: string[] = [];
+    const github = makeFakeGithub({
+      release: HAPPY_RELEASE,
+      stableReleases: [HAPPY_RELEASE],
+      pull: HAPPY_PULL,
+      ancestry: { 'merge-sha-1->commit-for-0.1.30': true },
+      mainFile: { content: IN_PROGRESS_ENTRY, sha: 'main-sha' },
+      throwOn: 'getIssue',
+    });
+    const result = await run({ tag: '0.1.30', github, repoRoot, log: (msg: string) => logs.push(msg) });
+    assert.equal(result.closed, true);
+    assert.equal(result.evidence?.issue_opened_at, '2026-09-13T00:00:00Z');
+    assert.ok(logs.some((line) => line.includes('issue_opened_at not resolved') && line.includes('lookup failed')));
+  } finally {
+    await rm(repoRoot, { recursive: true, force: true });
+  }
+});
+
 test('closureDiffProblems still reports a frontmatter change outside the six CLOSURE_FIELDS and a body change, and reports none for an issue_opened_at-only change', () => {
   const issueOpenedAtOnly = IN_PROGRESS_ENTRY.replace(
     "issue_opened_at: '2026-09-13T00:00:00Z'",
