@@ -2,6 +2,7 @@ import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 import type { Loader } from 'astro/loaders';
 import {
+  checkIssueStampOrder,
   checkJournalCollection,
   isRealTimestamp,
   journalEntryProblems,
@@ -164,15 +165,26 @@ const journalSchema = z
     }
   });
 
-// Wraps the base glob loader for `journal` to run one extra pass, after
-// every file has synced, that enforces the one-cycle-at-a-time rule across
-// the whole collection (checkJournalCollection): at most one entry, public
-// or private, may be `status: in_progress`. Mirrors projectsLoader and
-// adrLoader above -- the loader runs on `astro sync`, `astro check`,
-// `astro dev` and `astro build` alike, so the guard cannot be bypassed by
-// any of them. No ordering or issue-age rule is added here: a backlog issue
-// may run after a newer one, and the display sort (byNewestFirst over
-// cycleTimestamp) is untouched.
+// Widens JournalCollectionEntry's data shape with the two fields
+// checkIssueStampOrder needs (issue, issue_opened_at), so journalLoader can
+// cast ctx.store's entries once for both collection-wide checks below.
+type JournalLoaderEntryData = JournalCollectionEntry['data'] & {
+  issue: string;
+  issue_opened_at: Date | string;
+};
+
+// Wraps the base glob loader for `journal` to run two extra passes, after
+// every file has synced: checkJournalCollection enforces the one-cycle-at-a-
+// time rule across the whole collection (at most one entry, public or
+// private, may be `status: in_progress`); checkIssueStampOrder enforces
+// that, among entries whose `issue` URLs name the same repository,
+// `issue_opened_at` is nondecreasing in issue number (issue #105, Q17) --
+// the one invariant the repository's own committed data can check with no
+// network access. Mirrors projectsLoader and adrLoader above -- the loader
+// runs on `astro sync`, `astro check`, `astro dev` and `astro build` alike,
+// so neither guard can be bypassed by any of them. No ordering or issue-age
+// rule is added by either check: a backlog issue may run after a newer one,
+// and the display sort (byNewestFirst over cycleTimestamp) is untouched.
 function journalLoader(): Loader {
   const base = glob({
     pattern: '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*.md',
@@ -184,11 +196,15 @@ function journalLoader(): Loader {
     name: 'journal-with-lifecycle-check',
     load: async (ctx) => {
       await base.load(ctx);
+      const entries = ctx.store.entries().map(([id, entry]) => ({
+        id,
+        data: entry.data as unknown as JournalLoaderEntryData,
+      }));
       checkJournalCollection(
-        ctx.store.entries().map(([id, entry]) => ({
-          id,
-          data: entry.data as unknown as JournalCollectionEntry['data'],
-        })),
+        entries,
+      );
+      checkIssueStampOrder(
+        entries.map(({ id, data }) => ({ id, issue: data.issue, issue_opened_at: data.issue_opened_at })),
       );
     },
   };

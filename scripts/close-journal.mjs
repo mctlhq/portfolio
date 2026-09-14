@@ -25,10 +25,15 @@
 //   5. among published stable releases, pick the earliest one that contains
 //      the merge commit; a tie at the same published_at fails with both
 //      candidates named;
-//   6. compute the new file text (applyClosure); reuse an existing branch/PR
+//   6. resolve `issue_opened_at` against the GitHub issue the entry's `issue`
+//      field names, when that issue is in this repository; log any drift
+//      from the recorded value, and log an explicit non-resolution and keep
+//      the recorded value for a cross-repository issue or a 404 -- never
+//      throw on it;
+//   7. compute the new file text (applyClosure); reuse an existing branch/PR
 //      with no new commit if the intended content already matches; report a
 //      conflict and write nothing if main or the branch carries evidence
-//      outside the five allowed fields; otherwise create or update the
+//      outside the six allowed fields; otherwise create or update the
 //      deterministic branch and open (or reuse) the PR.
 
 import { realpathSync } from 'node:fs';
@@ -77,6 +82,25 @@ export function parseFrontmatter(source) {
 export function entryIssueNumber(data) {
   const match = /\/issues\/(\d+)\/?$/.exec(data.issue ?? '');
   return match ? Number(match[1]) : null;
+}
+
+/**
+ * Parses a journal entry's `issue` URL into `{ owner, repo, number }`, e.g.
+ * 'https://github.com/mctlhq/portfolio/issues/79' ->
+ * `{ owner: 'mctlhq', repo: 'portfolio', number: 79 }`. Returns null when the
+ * URL does not match that shape. Distinct from entryIssueNumber, which
+ * returns only the number: this script's GitHub client is hardcoded to
+ * `REPO`, so resolving a cross-repository entry's issue (e.g. an
+ * `mctl-api#281`) against a bare number would silently fetch
+ * `portfolio#281` instead. Callers must compare `${owner}/${repo}` against
+ * `REPO` before calling `getIssue`, never assume the entry's issue lives in
+ * this repository.
+ */
+export function entryIssueRef(data) {
+  const match = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)\/?$/.exec(data.issue ?? '');
+  if (!match) return null;
+  const [, owner, repo, number] = match;
+  return { owner, repo, number: Number(number) };
 }
 
 /**
@@ -136,7 +160,7 @@ export async function earliestContainingRelease(releases, contains) {
   return matches[0];
 }
 
-const CLOSURE_FIELDS = ['status', 'pr', 'release', 'merged_at', 'released_at'];
+const CLOSURE_FIELDS = ['status', 'pr', 'release', 'merged_at', 'released_at', 'issue_opened_at'];
 
 function setFrontmatterLine(lines, key, value, insertAfterKeys) {
   const lineRe = new RegExp(`^${key}:`);
@@ -160,10 +184,10 @@ function setFrontmatterLine(lines, key, value, insertAfterKeys) {
 /**
  * Returns the new file text for one journal entry, given verified closure
  * evidence: sets `status: complete` and inserts/updates only `pr`,
- * `merged_at`, `release` and `released_at`. Every other line -- including
- * nested blocks this module never parses into `data` -- is copied through
- * unchanged, so closureDiffProblems() can prove the whole diff is confined to
- * these five fields.
+ * `merged_at`, `release`, `released_at` and `issue_opened_at`. Every other
+ * line -- including nested blocks this module never parses into `data` -- is
+ * copied through unchanged, so closureDiffProblems() can prove the whole
+ * diff is confined to these six fields.
  */
 export function applyClosure(source, evidence) {
   const { frontmatter, body } = parseFrontmatter(source);
@@ -174,6 +198,7 @@ export function applyClosure(source, evidence) {
   setFrontmatterLine(lines, 'release', evidence.release, ['pr']);
   setFrontmatterLine(lines, 'merged_at', `'${evidence.merged_at}'`, ['proposal_approved_at', 'issue_opened_at']);
   setFrontmatterLine(lines, 'released_at', `'${evidence.released_at}'`, ['merged_at']);
+  setFrontmatterLine(lines, 'issue_opened_at', `'${evidence.issue_opened_at}'`, ['proposal_slug']);
 
   return `---\n${lines.join('\n')}\n---\n${body}`;
 }
@@ -181,7 +206,7 @@ export function applyClosure(source, evidence) {
 /**
  * Reports every part of the frontmatter that changed between `before` and
  * `after` outside CLOSURE_FIELDS, plus any change to the markdown body.
- * Strips every line beginning with one of the five allowed keys from each
+ * Strips every line beginning with one of the six allowed keys from each
  * side and compares what remains verbatim -- this catches a stray edit
  * anywhere in the frontmatter, including inside a nested block this module
  * never parses into `data`, not just a changed top-level key.
@@ -272,6 +297,10 @@ export function createGitHubClient({ token, repo = REPO, fetchImpl = fetch }) {
     },
     async getPullRequest(number) {
       const { json } = await api(`/repos/${repo}/pulls/${number}`);
+      return json;
+    },
+    async getIssue(number) {
+      const { json } = await api(`/repos/${repo}/issues/${number}`);
       return json;
     },
     async findPullsIntroducingFile(filePath) {
@@ -376,6 +405,54 @@ async function resolveImplementationPull(entry, github, journalFilePath, issueNu
 }
 
 /**
+ * Resolves `issue_opened_at` against the GitHub issue the entry's `issue`
+ * field names, when -- and only when -- that issue lives in this script's
+ * own repository (`REPO`): the closure workflow's App token is scoped to
+ * `repositories: portfolio`, so a cross-repository lookup would 404 by
+ * construction, not by a real absence. Logs both instants and returns the
+ * resolved value when it differs from the recorded one; logs an explicit
+ * non-resolution and returns the recorded value unchanged for a
+ * cross-repository issue or a 404. Never throws: a merged, released cycle
+ * must still close even when this resolution cannot complete.
+ */
+async function resolveIssueOpenedAt(entry, github, log) {
+  const recorded = entry.data.issue_opened_at;
+  const ref = entryIssueRef(entry.data);
+  if (!ref || `${ref.owner}/${ref.repo}` !== REPO) {
+    log(`close-journal: ${entry.id} issue_opened_at not resolved: issue "${entry.data.issue}" is not in ${REPO}`);
+    return recorded;
+  }
+
+  let issue;
+  try {
+    issue = await github.getIssue(ref.number);
+  } catch (err) {
+    // Never throws (see docstring): api() only turns a 404 into
+    // { status: 404, json: null } for a GET -- any other non-ok status
+    // (401, 403, a 5xx, a rate limit) propagates as a thrown error, and an
+    // unresolved timestamp must not abort a closure whose release, PR,
+    // ancestry and merge evidence have already been verified. Same
+    // fail-open contract as the 404/cross-repo branches above.
+    log(
+      `close-journal: ${entry.id} issue_opened_at not resolved: issue #${ref.number} lookup failed: ${err.message}`,
+    );
+    return recorded;
+  }
+  if (!issue || !issue.created_at) {
+    log(`close-journal: ${entry.id} issue_opened_at not resolved: issue #${ref.number} lookup returned no issue`);
+    return recorded;
+  }
+
+  if (issue.created_at !== recorded) {
+    log(
+      `close-journal: ${entry.id} issue_opened_at drift: recorded "${recorded}", resolved "${issue.created_at}" ` +
+        `from issue #${ref.number}`,
+    );
+  }
+  return issue.created_at;
+}
+
+/**
  * Pure orchestration over the injected `github` client: resolves the tag to
  * a release, selects the one closable entry, verifies the implementation PR
  * and its merge ancestry, picks the earliest containing stable release, and
@@ -431,11 +508,14 @@ export async function run({ tag, github, repoRoot, dryRun = false, log = () => {
     );
   }
 
+  const resolvedIssueOpenedAt = await resolveIssueOpenedAt(entry, github, log);
+
   const evidence = {
     pr: pr.html_url ?? entry.data.pr,
     merged_at: pr.merged_at,
     release: chosen.tag_name,
     released_at: chosen.published_at,
+    issue_opened_at: resolvedIssueOpenedAt,
   };
 
   const newSource = applyClosure(entry.source, evidence);

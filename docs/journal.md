@@ -6,10 +6,16 @@ Every entry carries `status`.
 - A cycle creates its own entry with `status: in_progress`. Record a known
   implementation PR and merge time when available; do not invent evidence.
   An in-progress entry has no release, release time or deployment time.
+- `issue_opened_at` is the `created_at` of the GitHub issue the entry's
+  `issue` field names, copied verbatim to the second from the proposal, which
+  inlines it; the closure workflow re-resolves it against the GitHub API for
+  a `mctlhq/portfolio` issue, and the journal loader requires entries whose
+  issues share a repository to carry stamps that increase with their issue
+  numbers.
 - After the first published stable release containing the implementation
   merge commit, the journal-closure workflow opens a closure PR. It records
-  `pr`, `merged_at`, `release` and `released_at` from verified GitHub evidence
-  and sets `status: complete`.
+  `issue_opened_at`, `pr`, `merged_at`, `release` and `released_at` from
+  verified GitHub evidence and sets `status: complete`.
 - The release owner merges the closure PR and the resulting metadata-only
   patch release through the normal CI, review and merge-commit gates, then
   verifies deployment. This publishes the closed entry without waiting for
