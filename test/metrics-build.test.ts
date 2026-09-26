@@ -5,14 +5,14 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { buildMetrics } from '../scripts/snapshot-metrics.mjs';
+import { buildMetrics, countServiceValuesFiles } from '../scripts/snapshot-metrics.mjs';
 import { metricProblems } from '../src/lib/metrics.ts';
 import { scanForTypedNumbers, RULES } from '../scripts/check-no-metrics.mjs';
 
 const GITHUB_METHOD =
-  'gh api: repos of org mctlhq plus mashkoffdmitry/pelican-libertex-social; commits and releases per repository via the REST API';
+  'gh api: repos of org mctlhq; commits and releases per repository via the REST API';
 const MCTL_METHOD =
-  'mctl_list_services via api.mctl.ai and count of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops';
+  'count of platform-gitops/services/*/*/values.yaml (the set mctl_list_services reads) and of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops';
 
 function fixtureInputs() {
   return {
@@ -61,7 +61,7 @@ test('buildMetrics is deterministic across two `now` values, except the three ti
   assert.deepEqual(a, b);
 });
 
-// T2: carry-forward -- MCTL_TOKEN-absent case (mctl.services undefined)
+// T2: carry-forward -- services could not be collected (mctl.services undefined)
 // carries the previous services value forward and marks the source stale;
 // a collected value is used as-is and marked not stale.
 test('buildMetrics carries sources.mctl.services forward and sets stale when services is not collected', () => {
@@ -110,6 +110,36 @@ async function withFixtureTree(files: Record<string, string>, run: (root: string
     await rm(root, { recursive: true, force: true });
   }
 }
+
+test('countServiceValuesFiles counts only <team>/<app>/values.yaml blobs', () => {
+  const tree = {
+    truncated: false,
+    tree: [
+      { path: 'labs', type: 'tree' },
+      { path: 'labs/seerrsense', type: 'tree' },
+      { path: 'labs/seerrsense/values.yaml', type: 'blob' },
+      { path: 'labs/seerrsense/README.md', type: 'blob' },
+      { path: 'labs/portfolio/values.yaml', type: 'blob' },
+      { path: 'admins/openclaw/values.yaml', type: 'blob' },
+      // deeper than <team>/<app>: not a service
+      { path: 'labs/seerrsense/overlays/values.yaml', type: 'blob' },
+      // team level: not a service
+      { path: 'labs/values.yaml', type: 'blob' },
+      // a directory that happens to be named values.yaml is not a blob
+      { path: 'ovk/odd/values.yaml', type: 'tree' },
+      { path: 'labs/portfolio/values.yml', type: 'blob' },
+    ],
+  };
+  assert.equal(countServiceValuesFiles(tree), 3);
+  assert.equal(countServiceValuesFiles({ truncated: false, tree: [] }), 0);
+});
+
+test('countServiceValuesFiles throws on a truncated tree instead of undercounting', () => {
+  assert.throws(
+    () => countServiceValuesFiles({ truncated: true, tree: [{ path: 'labs/a/values.yaml', type: 'blob' }] }),
+    /truncated/,
+  );
+});
 
 test('check-no-metrics permits an ISO date and rejects a bare unclassified number, naming file/line/text', async () => {
   await withFixtureTree(

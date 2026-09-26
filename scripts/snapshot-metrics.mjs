@@ -17,22 +17,26 @@
 //   the three timestamps from the injected `now`.
 //
 //   main() -- collects `github` and `mctl` over the network (GH_TOKEN
-//   required; MCTL_TOKEN optional, see below), then calls buildMetrics and
+//   required, and the only credential), then calls buildMetrics and
 //   writes the file, refusing to write anything a failed collection or a
 //   failed metricProblems validation would make partial or invalid.
 //
 // GitHub collection needs only GH_TOKEN. Repositories counted: every
-// non-archived repository of the mctlhq org (INCLUDE_ARCHIVED below), plus
-// mashkoffdmitry/pelican-libertex-social. For mctlhq/mctl-openclaw -- a fork
-// -- only commits authored by the owner's GitHub identities are counted, so
-// the upstream history the fork inherited (tens of thousands of commits) is
-// excluded; OWNER_IDENTITIES documents which logins that means and why.
+// non-archived repository of the mctlhq org (INCLUDE_ARCHIVED below). For
+// mctlhq/mctl-openclaw -- a fork -- only commits authored by the owner's
+// GitHub identities are counted, so the upstream history the fork inherited
+// (tens of thousands of commits) is excluded; OWNER_IDENTITIES documents
+// which logins that means and why.
 //
-// mctl collection: devloop_proposals needs only GH_TOKEN (it is a directory
-// count over mctlhq/mctl-gitops via the contents API). services needs
-// MCTL_TOKEN; if that variable is absent the call is skipped, the previous
-// file's services value is carried forward, and sources.mctl.stale is set
-// true so the file records that one field did not refresh this run.
+// mctl collection needs only GH_TOKEN too. devloop_proposals is a directory
+// count over mctlhq/mctl-gitops via the contents API. services counts
+// platform-gitops/services/<team>/<app>/values.yaml in the same repository
+// via the git trees API. mctl-api's GET /api/v1/services
+// (mctl_list_services) reads exactly this set (internal/gitops/reader.go
+// ListServices), and for an admin caller its `count` is the size of the
+// whole set, so the number matches without an mctl credential. See
+// buildMetrics() for the carry-forward branch kept for an undefined
+// `services`.
 
 import { realpathSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -45,12 +49,11 @@ const METRICS_PATH = path.join(ROOT, 'src', 'data', 'metrics.json');
 
 const GITHUB_API = 'https://api.github.com';
 const ORG = 'mctlhq';
-const EXTRA_REPO = 'mashkoffdmitry/pelican-libertex-social';
 
 // The issue says "repos of org mctlhq" without qualifying archived status.
-// Proceeding with every non-archived repository, plus the one external
-// repository -- flip this to `true` to also count archived repositories, a
-// one-constant change (see requirements.md "Open questions").
+// Proceeding with every non-archived repository -- flip this to `true` to
+// also count archived repositories, a one-constant change (see
+// requirements.md "Open questions").
 const INCLUDE_ARCHIVED = false;
 
 // The owner's GitHub identities, used to filter every counted mctlhq-org
@@ -66,25 +69,12 @@ const INCLUDE_ARCHIVED = false;
 // "mashkoffdmitry" has authored zero commits on either. Both logins are
 // kept here because the owner commits under either identity depending on
 // the repository; adding a third identity later is a one-line change.
-//
-// This filter is applied only to forks inside the mctlhq org (repo.fork
-// with owner "mctlhq"), not to EXTRA_REPO below: mashkoffdmitry/
-// pelican-libertex-social happens to be a fork too (of Yevhen79/
-// pelican-libertex-social) but requirements.md names it explicitly as a
-// first-class addition to the counted set -- "repos of org mctlhq plus
-// mashkoffdmitry/pelican-libertex-social" -- alongside, not inside, "the
-// upstream history of forks" criterion, which reads naturally as scoped to
-// members of the org's own repository list. Filtering it too would cut its
-// commit count from 88 to 64 on an interpretation the requirements never
-// raised as an open question; a reviewer who wants it filtered as well can
-// flip EXTRA_REPO_IS_FORK_FILTERED below, a one-line change.
 const OWNER_IDENTITIES = ['mashkovd', 'mashkoffdmitry'];
-const EXTRA_REPO_IS_FORK_FILTERED = false;
 
 const GITHUB_METHOD =
-  'gh api: repos of org mctlhq plus mashkoffdmitry/pelican-libertex-social; commits and releases per repository via the REST API';
+  'gh api: repos of org mctlhq; commits and releases per repository via the REST API';
 const MCTL_METHOD =
-  'mctl_list_services via api.mctl.ai and count of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops';
+  'count of platform-gitops/services/*/*/values.yaml (the set mctl_list_services reads) and of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops';
 
 const RELEASE_TAG_RE = /^\d+\.\d+\.\d+$/;
 
@@ -291,17 +281,11 @@ async function collectRepoReleases(owner, name, applyForkFilter) {
 }
 
 /** Lists the repositories counted by this snapshot: every non-archived
- * (per INCLUDE_ARCHIVED) repository of the mctlhq org, plus the one external
- * repository, sorted by full_name for stable downstream iteration. */
+ * (per INCLUDE_ARCHIVED) repository of the mctlhq org, sorted by full_name
+ * for stable downstream iteration. */
 async function listCountedRepos() {
   const orgRepos = await ghFetchAllPages(`${GITHUB_API}/orgs/${ORG}/repos?per_page=100&type=all`);
   const filtered = orgRepos.filter((r) => INCLUDE_ARCHIVED || !r.archived);
-
-  const [extraOwner, extraName] = EXTRA_REPO.split('/');
-  const { json: extraRepo } = await ghFetch(`${GITHUB_API}/repos/${extraOwner}/${extraName}`);
-  if (INCLUDE_ARCHIVED || !extraRepo.archived) {
-    filtered.push(extraRepo);
-  }
 
   filtered.sort((a, b) => (a.full_name < b.full_name ? -1 : a.full_name > b.full_name ? 1 : 0));
   return filtered;
@@ -314,8 +298,7 @@ async function collectGithub() {
   const perRepo = {};
   for (const repo of repos) {
     const [owner, name] = repo.full_name.split('/');
-    const isOrgRepo = owner === ORG;
-    const applyForkFilter = Boolean(repo.fork) && (isOrgRepo || EXTRA_REPO_IS_FORK_FILTERED);
+    const applyForkFilter = Boolean(repo.fork);
     const [commitStats, releases] = await Promise.all([
       collectRepoCommits(owner, name, repo.default_branch, applyForkFilter),
       collectRepoReleases(owner, name, applyForkFilter),
@@ -354,36 +337,53 @@ async function collectDevloopProposals() {
   return total;
 }
 
-/** Collects the mctl half of the snapshot. `services` is `undefined` when
- * MCTL_TOKEN is absent, which buildMetrics() reads as "carry the previous
- * value forward and mark the source stale". */
+/** Pure half of collectServices(): counts `<team>/<app>/values.yaml` blobs
+ * in a recursive git-trees response for platform-gitops/services -- the
+ * set mctl-api's ListServices reads. Deeper values.yaml files, other files
+ * at the app level, and tree (directory) entries do not count. Throws on a
+ * truncated tree, which would otherwise undercount silently. */
+export function countServiceValuesFiles(tree) {
+  if (tree.truncated) {
+    throw new Error('platform-gitops/services tree is truncated');
+  }
+  return tree.tree.filter(
+    (entry) => entry.type === 'blob' && /^[^/]+\/[^/]+\/values\.yaml$/.test(entry.path),
+  ).length;
+}
+
+/** Counts deployed services: one contents-API call to resolve the tree sha
+ * of platform-gitops/services in mctlhq/mctl-gitops, then one recursive
+ * git-trees call under it, counted by countServiceValuesFiles(). */
+async function collectServices() {
+  const { json: top } = await ghFetch(`${GITHUB_API}/repos/mctlhq/mctl-gitops/contents/platform-gitops`);
+  const servicesDir = top.find((entry) => entry.type === 'dir' && entry.name === 'services');
+  if (!servicesDir) {
+    throw new GhFetchError('mctlhq/mctl-gitops: platform-gitops/services not found', 404);
+  }
+  const { json: tree } = await ghFetch(
+    `${GITHUB_API}/repos/mctlhq/mctl-gitops/git/trees/${servicesDir.sha}?recursive=1`,
+  );
+  return countServiceValuesFiles(tree);
+}
+
+/** Collects the mctl half of the snapshot, both fields from mctlhq/mctl-gitops. */
 async function collectMctl() {
-  const devloopProposals = await collectDevloopProposals();
-
-  const mctlToken = process.env.MCTL_TOKEN;
-  if (!mctlToken) {
-    return { devloopProposals, services: undefined };
-  }
-
-  const res = await fetch('https://api.mctl.ai/api/v1/services', {
-    headers: { Authorization: `Bearer ${mctlToken}` },
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!res.ok) {
-    throw new GhFetchError(`https://api.mctl.ai/api/v1/services: HTTP ${res.status}`, res.status);
-  }
-  const body = await res.json();
-  return { devloopProposals, services: body.count };
+  const [devloopProposals, services] = await Promise.all([collectDevloopProposals(), collectServices()]);
+  return { devloopProposals, services };
 }
 
 /**
  * Pure assembly: shapes the final metrics object from already-collected
  * data, with no I/O of its own. `github` is `{ perRepo }`; `mctl` is
- * `{ devloopProposals, services }` where `services` is `undefined` when
- * MCTL_TOKEN was absent; `previous` is the parsed contents of the existing
- * src/data/metrics.json, used only to carry `sources.mctl.services` forward
- * in that case; `now` is an injected Date, stamped (via toISOString(), UTC
- * ending in "Z") onto generated_at and both collected_at fields.
+ * `{ devloopProposals, services }`; `previous` is the parsed contents of
+ * the existing src/data/metrics.json. collectMctl() always yields a number
+ * for `services` or aborts the run, so main() never passes `undefined`; the
+ * carry-forward-and-mark-stale branch for that case is kept only as the
+ * pure contract of this function (sources.mctl.stale stays in the schema
+ * src/lib/metrics.ts validates) and is exercised by
+ * test/metrics-build.test.ts; `now` is an injected Date, stamped (via
+ * toISOString(), UTC ending in "Z") onto generated_at and both collected_at
+ * fields.
  *
  * Deterministic given the same inputs and independent of `now` beyond the
  * three timestamp fields: calling this twice with one fixture and two

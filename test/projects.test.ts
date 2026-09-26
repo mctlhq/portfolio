@@ -186,7 +186,7 @@ const EXPECTED_LINKS: readonly ExpectedLink[] = [
   { slug: 'mctl-loyalty', url: 'https://rewards.mctl.ai', en: 'Service', ru: 'Сервис' },
 ];
 
-const NO_LINKS_SLUGS = ['mctl-gitops', 'pelican-libertex-social'];
+const NO_LINKS_SLUGS = ['mctl-gitops'];
 
 test('the six service-link slugs carry exactly the listed url and EN/RU label', () => {
   for (const link of EXPECTED_LINKS) {
@@ -214,7 +214,7 @@ test('mctl-api keeps its existing Docs / Документация link and gains
   assert.equal((ruSource.match(/^  - label:/gm) ?? []).length, 1, 'mctl-api.ru.md: expected exactly one links entry');
 });
 
-test('mctl-gitops and pelican-libertex-social carry no links: line', () => {
+test('mctl-gitops carries no links: line', () => {
   for (const slug of NO_LINKS_SLUGS) {
     for (const lang of ['en', 'ru'] as const) {
       const source = readFileSync(`${PROJECTS_DIR}${slug}.${lang}.md`, 'utf8');
@@ -223,16 +223,17 @@ test('mctl-gitops and pelican-libertex-social carry no links: line', () => {
   }
 });
 
-// -- issue-89 task 9(c): the four removed slugs are gone ---------------------
+// -- issue-89 task 9(c): the removed slugs are gone ---------------------
 
 // src/data/metrics.json is excluded from this walk: it is a snapshot of
 // twenty-four repositories, and the issue's own out-of-scope list keeps the
 // per-repo keys for the removed projects there deliberately. Every other
 // file under src/ and test/ must carry no word-bounded occurrence of a
-// removed slug. The word boundary matters because one removed slug is a
-// proper prefix of a remaining one (with an "s" appended), so a plain
+// removed slug. The fifth one joined later: a product outside mctl, never
+// built through DevLoop. The word boundary matters because one removed slug
+// is a proper prefix of a remaining one (with an "s" appended), so a plain
 // substring search would false-positive on every surviving file that names
-// it. The four slugs below are assembled from parts rather than written as
+// it. The slugs below are assembled from parts rather than written as
 // contiguous literals, on purpose: this very test file lives under test/
 // and is itself part of the walk, and a literal occurrence here would be a
 // false positive against its own guard.
@@ -241,6 +242,7 @@ const REMOVED_SLUGS = [
   ['mctl', 'pairdesk'].join('-'),
   ['pfeifenpatenschaft', 'backend'].join('-'),
   ['mctl', 'openclaw'].join('-'),
+  ['pelican', 'libertex', 'social'].join('-'),
 ];
 const METRICS_JSON_REL = 'src/data/metrics.json';
 const SCAN_DIRS = ['src', 'test'];
