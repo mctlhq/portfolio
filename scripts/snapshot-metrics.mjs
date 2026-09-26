@@ -337,10 +337,23 @@ async function collectDevloopProposals() {
   return total;
 }
 
+/** Pure half of collectServices(): counts `<team>/<app>/values.yaml` blobs
+ * in a recursive git-trees response for platform-gitops/services -- the
+ * set mctl-api's ListServices reads. Deeper values.yaml files, other files
+ * at the app level, and tree (directory) entries do not count. Throws on a
+ * truncated tree, which would otherwise undercount silently. */
+export function countServiceValuesFiles(tree) {
+  if (tree.truncated) {
+    throw new Error('platform-gitops/services tree is truncated');
+  }
+  return tree.tree.filter(
+    (entry) => entry.type === 'blob' && /^[^/]+\/[^/]+\/values\.yaml$/.test(entry.path),
+  ).length;
+}
+
 /** Counts deployed services: one contents-API call to resolve the tree sha
  * of platform-gitops/services in mctlhq/mctl-gitops, then one recursive
- * git-trees call under it, counting `<team>/<app>/values.yaml` blobs. A
- * truncated tree would undercount silently, so it throws instead. */
+ * git-trees call under it, counted by countServiceValuesFiles(). */
 async function collectServices() {
   const { json: top } = await ghFetch(`${GITHUB_API}/repos/mctlhq/mctl-gitops/contents/platform-gitops`);
   const servicesDir = top.find((entry) => entry.type === 'dir' && entry.name === 'services');
@@ -350,11 +363,7 @@ async function collectServices() {
   const { json: tree } = await ghFetch(
     `${GITHUB_API}/repos/mctlhq/mctl-gitops/git/trees/${servicesDir.sha}?recursive=1`,
   );
-  if (tree.truncated) {
-    throw new GhFetchError('mctlhq/mctl-gitops: platform-gitops/services tree is truncated', 200);
-  }
-  return tree.tree.filter((entry) => entry.type === 'blob' && /^[^/]+\/[^/]+\/values\.yaml$/.test(entry.path))
-    .length;
+  return countServiceValuesFiles(tree);
 }
 
 /** Collects the mctl half of the snapshot, both fields from mctlhq/mctl-gitops. */
@@ -366,11 +375,15 @@ async function collectMctl() {
 /**
  * Pure assembly: shapes the final metrics object from already-collected
  * data, with no I/O of its own. `github` is `{ perRepo }`; `mctl` is
- * `{ devloopProposals, services }` where `services` is `undefined` when it
- * could not be collected; `previous` is the parsed contents of the existing
- * src/data/metrics.json, used only to carry `sources.mctl.services` forward
- * in that case; `now` is an injected Date, stamped (via toISOString(), UTC
- * ending in "Z") onto generated_at and both collected_at fields.
+ * `{ devloopProposals, services }`; `previous` is the parsed contents of
+ * the existing src/data/metrics.json. collectMctl() always yields a number
+ * for `services` or aborts the run, so main() never passes `undefined`; the
+ * carry-forward-and-mark-stale branch for that case is kept only as the
+ * pure contract of this function (sources.mctl.stale stays in the schema
+ * src/lib/metrics.ts validates) and is exercised by
+ * test/metrics-build.test.ts; `now` is an injected Date, stamped (via
+ * toISOString(), UTC ending in "Z") onto generated_at and both collected_at
+ * fields.
  *
  * Deterministic given the same inputs and independent of `now` beyond the
  * three timestamp fields: calling this twice with one fixture and two
