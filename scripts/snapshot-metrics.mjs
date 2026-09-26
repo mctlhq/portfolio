@@ -17,7 +17,7 @@
 //   the three timestamps from the injected `now`.
 //
 //   main() -- collects `github` and `mctl` over the network (GH_TOKEN
-//   required; MCTL_TOKEN optional, see below), then calls buildMetrics and
+//   required, and the only credential), then calls buildMetrics and
 //   writes the file, refusing to write anything a failed collection or a
 //   failed metricProblems validation would make partial or invalid.
 //
@@ -25,13 +25,18 @@
 // non-archived repository of the mctlhq org (INCLUDE_ARCHIVED below). For
 // mctlhq/mctl-openclaw -- a fork -- only commits authored by the owner's
 // GitHub identities are counted, so the upstream history the fork inherited
-// (tens of thousands of commits) is excluded; OWNER_IDENTITIES documents which logins that means and why.
+// (tens of thousands of commits) is excluded; OWNER_IDENTITIES documents
+// which logins that means and why.
 //
-// mctl collection: devloop_proposals needs only GH_TOKEN (it is a directory
-// count over mctlhq/mctl-gitops via the contents API). services needs
-// MCTL_TOKEN; if that variable is absent the call is skipped, the previous
-// file's services value is carried forward, and sources.mctl.stale is set
-// true so the file records that one field did not refresh this run.
+// mctl collection needs only GH_TOKEN too. devloop_proposals is a directory
+// count over mctlhq/mctl-gitops via the contents API. services counts
+// platform-gitops/services/<team>/<app>/values.yaml in the same repository
+// via the git trees API: that is exactly the set mctl-api's
+// GET /api/v1/services (mctl_list_services) reads and returns `count` of
+// for an admin caller (internal/gitops/reader.go ListServices), so the
+// number matches without an mctl credential. buildMetrics() still carries
+// the previous value forward and sets sources.mctl.stale when `services`
+// comes back undefined.
 
 import { realpathSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -68,7 +73,7 @@ const OWNER_IDENTITIES = ['mashkovd', 'mashkoffdmitry'];
 const GITHUB_METHOD =
   'gh api: repos of org mctlhq; commits and releases per repository via the REST API';
 const MCTL_METHOD =
-  'mctl_list_services via api.mctl.ai and count of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops';
+  'count of platform-gitops/services/*/*/values.yaml (the set mctl_list_services reads) and of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops';
 
 const RELEASE_TAG_RE = /^\d+\.\d+\.\d+$/;
 
@@ -330,33 +335,37 @@ async function collectDevloopProposals() {
   return total;
 }
 
-/** Collects the mctl half of the snapshot. `services` is `undefined` when
- * MCTL_TOKEN is absent, which buildMetrics() reads as "carry the previous
- * value forward and mark the source stale". */
+/** Counts deployed services: one contents-API call to resolve the tree sha
+ * of platform-gitops/services in mctlhq/mctl-gitops, then one recursive
+ * git-trees call under it, counting `<team>/<app>/values.yaml` blobs. A
+ * truncated tree would undercount silently, so it throws instead. */
+async function collectServices() {
+  const { json: top } = await ghFetch(`${GITHUB_API}/repos/mctlhq/mctl-gitops/contents/platform-gitops`);
+  const servicesDir = top.find((entry) => entry.type === 'dir' && entry.name === 'services');
+  if (!servicesDir) {
+    throw new GhFetchError('mctlhq/mctl-gitops: platform-gitops/services not found', 404);
+  }
+  const { json: tree } = await ghFetch(
+    `${GITHUB_API}/repos/mctlhq/mctl-gitops/git/trees/${servicesDir.sha}?recursive=1`,
+  );
+  if (tree.truncated) {
+    throw new GhFetchError('mctlhq/mctl-gitops: platform-gitops/services tree is truncated', 200);
+  }
+  return tree.tree.filter((entry) => entry.type === 'blob' && /^[^/]+\/[^/]+\/values\.yaml$/.test(entry.path))
+    .length;
+}
+
+/** Collects the mctl half of the snapshot, both fields from mctlhq/mctl-gitops. */
 async function collectMctl() {
-  const devloopProposals = await collectDevloopProposals();
-
-  const mctlToken = process.env.MCTL_TOKEN;
-  if (!mctlToken) {
-    return { devloopProposals, services: undefined };
-  }
-
-  const res = await fetch('https://api.mctl.ai/api/v1/services', {
-    headers: { Authorization: `Bearer ${mctlToken}` },
-    signal: AbortSignal.timeout(30_000),
-  });
-  if (!res.ok) {
-    throw new GhFetchError(`https://api.mctl.ai/api/v1/services: HTTP ${res.status}`, res.status);
-  }
-  const body = await res.json();
-  return { devloopProposals, services: body.count };
+  const [devloopProposals, services] = await Promise.all([collectDevloopProposals(), collectServices()]);
+  return { devloopProposals, services };
 }
 
 /**
  * Pure assembly: shapes the final metrics object from already-collected
  * data, with no I/O of its own. `github` is `{ perRepo }`; `mctl` is
- * `{ devloopProposals, services }` where `services` is `undefined` when
- * MCTL_TOKEN was absent; `previous` is the parsed contents of the existing
+ * `{ devloopProposals, services }` where `services` is `undefined` when it
+ * could not be collected; `previous` is the parsed contents of the existing
  * src/data/metrics.json, used only to carry `sources.mctl.services` forward
  * in that case; `now` is an injected Date, stamped (via toISOString(), UTC
  * ending in "Z") onto generated_at and both collected_at fields.

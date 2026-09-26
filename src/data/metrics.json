@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-09-26T12:23:27.472Z",
+  "generated_at": "2026-09-26T12:39:12.541Z",
   "sources": {
     "github": {
-      "collected_at": "2026-09-26T12:23:27.472Z",
+      "collected_at": "2026-09-26T12:39:12.541Z",
       "method": "gh api: repos of org mctlhq; commits and releases per repository via the REST API",
       "repos": 26,
-      "commits": 12590,
+      "commits": 12595,
       "releases": 738,
       "per_repo": {
         "mctlhq/.github": {
@@ -87,10 +87,10 @@
           "last_commit_at": "2026-09-23T11:47:31Z"
         },
         "mctlhq/mctl-gitops": {
-          "commits": 6134,
+          "commits": 6137,
           "releases": 6,
           "first_commit_at": "2026-03-15T19:20:54Z",
-          "last_commit_at": "2026-09-26T11:24:58Z"
+          "last_commit_at": "2026-09-26T12:30:27Z"
         },
         "mctlhq/mctl-loyalty": {
           "commits": 75,
@@ -153,10 +153,10 @@
           "last_commit_at": "2026-09-26T09:07:13Z"
         },
         "mctlhq/seerrsense": {
-          "commits": 165,
+          "commits": 167,
           "releases": 22,
           "first_commit_at": "2026-09-06T20:49:34Z",
-          "last_commit_at": "2026-09-25T18:58:06Z"
+          "last_commit_at": "2026-09-26T12:27:54Z"
         },
         "mctlhq/spring-test": {
           "commits": 3,
@@ -167,11 +167,11 @@
       }
     },
     "mctl": {
-      "collected_at": "2026-09-26T12:23:27.472Z",
-      "method": "mctl_list_services via api.mctl.ai and count of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops",
-      "services": 24,
-      "devloop_proposals": 705,
-      "stale": true
+      "collected_at": "2026-09-26T12:39:12.541Z",
+      "method": "count of platform-gitops/services/*/*/values.yaml (the set mctl_list_services reads) and of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops",
+      "services": 29,
+      "devloop_proposals": 706,
+      "stale": false
     }
   }
 }

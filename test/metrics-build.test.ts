@@ -12,7 +12,7 @@ import { scanForTypedNumbers, RULES } from '../scripts/check-no-metrics.mjs';
 const GITHUB_METHOD =
   'gh api: repos of org mctlhq; commits and releases per repository via the REST API';
 const MCTL_METHOD =
-  'mctl_list_services via api.mctl.ai and count of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops';
+  'count of platform-gitops/services/*/*/values.yaml (the set mctl_list_services reads) and of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops';
 
 function fixtureInputs() {
   return {
@@ -61,7 +61,7 @@ test('buildMetrics is deterministic across two `now` values, except the three ti
   assert.deepEqual(a, b);
 });
 
-// T2: carry-forward -- MCTL_TOKEN-absent case (mctl.services undefined)
+// T2: carry-forward -- services could not be collected (mctl.services undefined)
 // carries the previous services value forward and marks the source stale;
 // a collected value is used as-is and marked not stale.
 test('buildMetrics carries sources.mctl.services forward and sets stale when services is not collected', () => {
