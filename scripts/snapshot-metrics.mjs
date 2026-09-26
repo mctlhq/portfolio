@@ -52,7 +52,8 @@ const ORG = 'mctlhq';
 
 // The issue says "repos of org mctlhq" without qualifying archived status.
 // Proceeding with every non-archived repository -- flip this to `true` to
-// also count archived repositories, a one-constant change (see requirements.md "Open questions").
+// also count archived repositories, a one-constant change (see
+// requirements.md "Open questions").
 const INCLUDE_ARCHIVED = false;
 
 // The owner's GitHub identities, used to filter every counted mctlhq-org
@@ -280,7 +281,8 @@ async function collectRepoReleases(owner, name, applyForkFilter) {
 }
 
 /** Lists the repositories counted by this snapshot: every non-archived
- * (per INCLUDE_ARCHIVED) repository of the mctlhq org, sorted by full_name for stable downstream iteration. */
+ * (per INCLUDE_ARCHIVED) repository of the mctlhq org, sorted by full_name
+ * for stable downstream iteration. */
 async function listCountedRepos() {
   const orgRepos = await ghFetchAllPages(`${GITHUB_API}/orgs/${ORG}/repos?per_page=100&type=all`);
   const filtered = orgRepos.filter((r) => INCLUDE_ARCHIVED || !r.archived);
