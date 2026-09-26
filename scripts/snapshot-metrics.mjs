@@ -31,12 +31,12 @@
 // mctl collection needs only GH_TOKEN too. devloop_proposals is a directory
 // count over mctlhq/mctl-gitops via the contents API. services counts
 // platform-gitops/services/<team>/<app>/values.yaml in the same repository
-// via the git trees API: that is exactly the set mctl-api's
-// GET /api/v1/services (mctl_list_services) reads and returns `count` of
-// for an admin caller (internal/gitops/reader.go ListServices), so the
-// number matches without an mctl credential. buildMetrics() still carries
-// the previous value forward and sets sources.mctl.stale when `services`
-// comes back undefined.
+// via the git trees API. mctl-api's GET /api/v1/services
+// (mctl_list_services) reads exactly this set (internal/gitops/reader.go
+// ListServices), and for an admin caller its `count` is the size of the
+// whole set, so the number matches without an mctl credential. See
+// buildMetrics() for the carry-forward branch kept for an undefined
+// `services`.
 
 import { realpathSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
