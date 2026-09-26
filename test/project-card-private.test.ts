@@ -15,12 +15,13 @@
 // `prebuild` would recurse).
 
 import assert from 'node:assert/strict';
-import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
+import { finishAstroTree } from './support/astro-tree.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const ASTRO_BIN = path.join(ROOT, 'node_modules/astro/bin/astro.mjs');
@@ -98,8 +99,9 @@ function projectFile(spec: FixtureSpec, lang: 'en' | 'ru'): string {
 /** Copies the committed src/ tree into a fresh mkdtemp directory, replaces
  * src/content/projects with the four FIXTURES (en and ru each), optionally
  * overwrites src/components/ProjectCard.astro with `cardSource`, and
- * symlinks node_modules and public/ from the real repository. Also copies
- * astro.config.mjs and package.json, which astro's own tooling reads. */
+ * finishes the tree with finishAstroTree (test/support/astro-tree.ts):
+ * config with a per-tree cacheDir, package.json, and node_modules and
+ * public/ symlinked. */
 async function makeProjectFixtureTree(cardSource?: string): Promise<string> {
   const tmp = await mkdtemp(path.join(tmpdir(), 'project-card-private-test-'));
   await cp(path.join(ROOT, 'src'), path.join(tmp, 'src'), { recursive: true });
@@ -112,11 +114,7 @@ async function makeProjectFixtureTree(cardSource?: string): Promise<string> {
   if (cardSource) {
     await writeFile(path.join(tmp, 'src/components/ProjectCard.astro'), cardSource, 'utf8');
   }
-  await cp(path.join(ROOT, 'astro.config.mjs'), path.join(tmp, 'astro.config.mjs'));
-  await cp(path.join(ROOT, 'package.json'), path.join(tmp, 'package.json'));
-  await cp(path.join(ROOT, 'tsconfig.json'), path.join(tmp, 'tsconfig.json'));
-  await symlink(path.join(ROOT, 'node_modules'), path.join(tmp, 'node_modules'));
-  await symlink(path.join(ROOT, 'public'), path.join(tmp, 'public'));
+  await finishAstroTree(ROOT, tmp);
   return tmp;
 }
 
