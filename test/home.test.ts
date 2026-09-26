@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { cp, mkdtemp, readdir, readFile, rm, symlink } from 'node:fs/promises';
+import { cp, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { resolveMctlCssPath } from '../scripts/check-contrast.mjs';
 import { ui } from '../src/i18n/ui.ts';
+import { finishAstroTree } from './support/astro-tree.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const SOURCE_PATH = fileURLToPath(new URL('../src/pages/index.astro', import.meta.url));
@@ -231,11 +232,7 @@ function builtTree(): Promise<BuiltTree> {
       const tmp = await mkdtemp(path.join(tmpdir(), 'home-build-test-'));
       try {
         await cp(path.join(ROOT, 'src'), path.join(tmp, 'src'), { recursive: true });
-        await cp(path.join(ROOT, 'astro.config.mjs'), path.join(tmp, 'astro.config.mjs'));
-        await cp(path.join(ROOT, 'package.json'), path.join(tmp, 'package.json'));
-        await cp(path.join(ROOT, 'tsconfig.json'), path.join(tmp, 'tsconfig.json'));
-        await symlink(path.join(ROOT, 'node_modules'), path.join(tmp, 'node_modules'));
-        await symlink(path.join(ROOT, 'public'), path.join(tmp, 'public'));
+        await finishAstroTree(ROOT, tmp);
         const result = spawnSync('node', [ASTRO_BIN, 'build'], { cwd: tmp, encoding: 'utf8' });
         assert.equal(result.status, 0, `expected astro build to pass, stderr: ${result.stderr}`);
 

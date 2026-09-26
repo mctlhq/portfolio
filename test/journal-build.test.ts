@@ -13,22 +13,23 @@
 // astro CLI directly, per the issue's constraint on npm test.
 
 import assert from 'node:assert/strict';
-import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
+import { finishAstroTree } from './support/astro-tree.ts';
 
 const ROOT = path.resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const ASTRO_BIN = path.join(ROOT, 'node_modules/astro/bin/astro.mjs');
 
 /** Copies the committed src/ tree into a fresh mkdtemp directory, replaces
  * src/content/journal with `journalFiles` (name -> content; an empty object
- * builds a journal directory with zero entries), and symlinks node_modules
- * and public/ from the real repository so nothing is duplicated. Also
- * copies astro.config.mjs and package.json, which astro's own tooling reads. */
+ * builds a journal directory with zero entries), and finishes the tree
+ * with finishAstroTree (test/support/astro-tree.ts): config with a per-tree
+ * cacheDir, package.json, and node_modules and public/ symlinked. */
 async function makeFixtureTree(
   journalFiles: Record<string, string>,
   opts: { contentConfigOverride?: string } = {},
@@ -43,11 +44,7 @@ async function makeFixtureTree(
   if (opts.contentConfigOverride) {
     await writeFile(path.join(tmp, 'src/content.config.ts'), opts.contentConfigOverride, 'utf8');
   }
-  await cp(path.join(ROOT, 'astro.config.mjs'), path.join(tmp, 'astro.config.mjs'));
-  await cp(path.join(ROOT, 'package.json'), path.join(tmp, 'package.json'));
-  await cp(path.join(ROOT, 'tsconfig.json'), path.join(tmp, 'tsconfig.json'));
-  await symlink(path.join(ROOT, 'node_modules'), path.join(tmp, 'node_modules'));
-  await symlink(path.join(ROOT, 'public'), path.join(tmp, 'public'));
+  await finishAstroTree(ROOT, tmp);
   return tmp;
 }
 
