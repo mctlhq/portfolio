@@ -10,7 +10,7 @@ import { metricProblems } from '../src/lib/metrics.ts';
 import { scanForTypedNumbers, RULES } from '../scripts/check-no-metrics.mjs';
 
 const GITHUB_METHOD =
-  'gh api: repos of org mctlhq plus mashkoffdmitry/pelican-libertex-social; commits and releases per repository via the REST API';
+  'gh api: repos of org mctlhq; commits and releases per repository via the REST API';
 const MCTL_METHOD =
   'mctl_list_services via api.mctl.ai and count of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops';
 

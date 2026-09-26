@@ -22,11 +22,10 @@
 //   failed metricProblems validation would make partial or invalid.
 //
 // GitHub collection needs only GH_TOKEN. Repositories counted: every
-// non-archived repository of the mctlhq org (INCLUDE_ARCHIVED below), plus
-// mashkoffdmitry/pelican-libertex-social. For mctlhq/mctl-openclaw -- a fork
-// -- only commits authored by the owner's GitHub identities are counted, so
-// the upstream history the fork inherited (tens of thousands of commits) is
-// excluded; OWNER_IDENTITIES documents which logins that means and why.
+// non-archived repository of the mctlhq org (INCLUDE_ARCHIVED below). For
+// mctlhq/mctl-openclaw -- a fork -- only commits authored by the owner's
+// GitHub identities are counted, so the upstream history the fork inherited
+// (tens of thousands of commits) is excluded; OWNER_IDENTITIES documents which logins that means and why.
 //
 // mctl collection: devloop_proposals needs only GH_TOKEN (it is a directory
 // count over mctlhq/mctl-gitops via the contents API). services needs
@@ -45,12 +44,10 @@ const METRICS_PATH = path.join(ROOT, 'src', 'data', 'metrics.json');
 
 const GITHUB_API = 'https://api.github.com';
 const ORG = 'mctlhq';
-const EXTRA_REPO = 'mashkoffdmitry/pelican-libertex-social';
 
 // The issue says "repos of org mctlhq" without qualifying archived status.
-// Proceeding with every non-archived repository, plus the one external
-// repository -- flip this to `true` to also count archived repositories, a
-// one-constant change (see requirements.md "Open questions").
+// Proceeding with every non-archived repository -- flip this to `true` to
+// also count archived repositories, a one-constant change (see requirements.md "Open questions").
 const INCLUDE_ARCHIVED = false;
 
 // The owner's GitHub identities, used to filter every counted mctlhq-org
@@ -66,23 +63,10 @@ const INCLUDE_ARCHIVED = false;
 // "mashkoffdmitry" has authored zero commits on either. Both logins are
 // kept here because the owner commits under either identity depending on
 // the repository; adding a third identity later is a one-line change.
-//
-// This filter is applied only to forks inside the mctlhq org (repo.fork
-// with owner "mctlhq"), not to EXTRA_REPO below: mashkoffdmitry/
-// pelican-libertex-social happens to be a fork too (of Yevhen79/
-// pelican-libertex-social) but requirements.md names it explicitly as a
-// first-class addition to the counted set -- "repos of org mctlhq plus
-// mashkoffdmitry/pelican-libertex-social" -- alongside, not inside, "the
-// upstream history of forks" criterion, which reads naturally as scoped to
-// members of the org's own repository list. Filtering it too would cut its
-// commit count from 88 to 64 on an interpretation the requirements never
-// raised as an open question; a reviewer who wants it filtered as well can
-// flip EXTRA_REPO_IS_FORK_FILTERED below, a one-line change.
 const OWNER_IDENTITIES = ['mashkovd', 'mashkoffdmitry'];
-const EXTRA_REPO_IS_FORK_FILTERED = false;
 
 const GITHUB_METHOD =
-  'gh api: repos of org mctlhq plus mashkoffdmitry/pelican-libertex-social; commits and releases per repository via the REST API';
+  'gh api: repos of org mctlhq; commits and releases per repository via the REST API';
 const MCTL_METHOD =
   'mctl_list_services via api.mctl.ai and count of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops';
 
@@ -291,17 +275,10 @@ async function collectRepoReleases(owner, name, applyForkFilter) {
 }
 
 /** Lists the repositories counted by this snapshot: every non-archived
- * (per INCLUDE_ARCHIVED) repository of the mctlhq org, plus the one external
- * repository, sorted by full_name for stable downstream iteration. */
+ * (per INCLUDE_ARCHIVED) repository of the mctlhq org, sorted by full_name for stable downstream iteration. */
 async function listCountedRepos() {
   const orgRepos = await ghFetchAllPages(`${GITHUB_API}/orgs/${ORG}/repos?per_page=100&type=all`);
   const filtered = orgRepos.filter((r) => INCLUDE_ARCHIVED || !r.archived);
-
-  const [extraOwner, extraName] = EXTRA_REPO.split('/');
-  const { json: extraRepo } = await ghFetch(`${GITHUB_API}/repos/${extraOwner}/${extraName}`);
-  if (INCLUDE_ARCHIVED || !extraRepo.archived) {
-    filtered.push(extraRepo);
-  }
 
   filtered.sort((a, b) => (a.full_name < b.full_name ? -1 : a.full_name > b.full_name ? 1 : 0));
   return filtered;
@@ -314,8 +291,7 @@ async function collectGithub() {
   const perRepo = {};
   for (const repo of repos) {
     const [owner, name] = repo.full_name.split('/');
-    const isOrgRepo = owner === ORG;
-    const applyForkFilter = Boolean(repo.fork) && (isOrgRepo || EXTRA_REPO_IS_FORK_FILTERED);
+    const applyForkFilter = Boolean(repo.fork);
     const [commitStats, releases] = await Promise.all([
       collectRepoCommits(owner, name, repo.default_branch, applyForkFilter),
       collectRepoReleases(owner, name, applyForkFilter),
