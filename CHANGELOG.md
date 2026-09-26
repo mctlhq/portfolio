@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.34](https://github.com/mctlhq/portfolio/compare/0.1.33...0.1.34) (2026-09-26)
+
+
+### Features
+
+* **metrics:** count services from mctl-gitops, no MCTL_TOKEN needed ([a2f2f3d](https://github.com/mctlhq/portfolio/commit/a2f2f3d19fb6912309fa3fccc9f385bd50f702f4))
+
+
+### Bug Fixes
+
+* **test:** give each throwaway Astro build its own cacheDir ([011f5e2](https://github.com/mctlhq/portfolio/commit/011f5e2379f8a796f6f45e37f0cdb810fa144b15))
+* **test:** give each throwaway Astro build its own cacheDir ([ce9aa30](https://github.com/mctlhq/portfolio/commit/ce9aa30a54153a623eec9698f2e1b7e22cfdccd4))
+
+
+### Documentation
+
+* **metrics:** fix the garbled services sentence in the header comment ([4ccc0ac](https://github.com/mctlhq/portfolio/commit/4ccc0acc2008de05db277e1c20bd92f9f9ed4793))
+
 ## [0.1.33](https://github.com/mctlhq/portfolio/compare/0.1.32...0.1.33) (2026-09-14)
 
 
