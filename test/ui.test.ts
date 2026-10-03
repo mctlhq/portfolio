@@ -269,3 +269,22 @@ test('ctaColophon and detailsContactSummary are still present and unchanged, eve
   assert.equal(ui.detailsContactSummary.en, 'Contact');
   assert.equal(ui.detailsContactSummary.ru, 'Контакты');
 });
+
+test('Q20: run and stack items name Valkey, MinIO and OpenTelemetry at indices 3 and 4', () => {
+  const en3 = 'CloudNativePG, Valkey and MinIO';
+  const en4 = 'VictoriaMetrics, Grafana, Loki and OpenTelemetry';
+  const ru3 = 'CloudNativePG, Valkey и MinIO';
+  const ru4 = 'VictoriaMetrics, Grafana, Loki и OpenTelemetry';
+  assert.equal(ui.detailsRunItems.en.length, 9);
+  assert.equal(ui.detailsRunItems.ru.length, 9);
+  assert.equal(ui.detailsStackItems.en.length, 13);
+  assert.equal(ui.detailsStackItems.ru.length, 13);
+  for (const items of [ui.detailsRunItems.en, ui.detailsStackItems.en]) {
+    assert.equal(items[3], en3);
+    assert.equal(items[4], en4);
+  }
+  for (const items of [ui.detailsRunItems.ru, ui.detailsStackItems.ru]) {
+    assert.equal(items[3], ru3);
+    assert.equal(items[4], ru4);
+  }
+});

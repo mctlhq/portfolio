@@ -273,6 +273,8 @@ test('no word-bounded occurrence of a removed slug remains under src/ or test/, 
   for (const file of allFiles) {
     const rel = path.relative(ROOT, file).split(path.sep).join('/');
     if (rel === METRICS_JSON_REL) continue;
+    // Journal entries record history (e.g. Q20 names the repository awaiting its card).
+    if (rel.startsWith('src/content/journal/')) continue;
     const source = readFileSync(file, 'utf8');
     for (const slug of REMOVED_SLUGS) {
       const re = new RegExp(`\\b${slug}\\b`);
