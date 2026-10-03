@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.37](https://github.com/mctlhq/portfolio/compare/0.1.36...0.1.37) (2026-10-03)
+
+
+### Features
+
+* **agents:** issue-137-q20-proven-open-source-catches-up-with-t ([59fc7a9](https://github.com/mctlhq/portfolio/commit/59fc7a96673a0192b73a3e0a74e14d94ccac57a6))
+* **agents:** issue-137-q20-proven-open-source-catches-up-with-t ([a1b3ff5](https://github.com/mctlhq/portfolio/commit/a1b3ff5318c5baee6c2536948cf7936e02257c0e))
+
+
+### Bug Fixes
+
+* **journal:** close cycle 129 ([4419648](https://github.com/mctlhq/portfolio/commit/4419648cafc6ecd7c53a22c1afd4bef11b1fe2f7))
+* **journal:** close cycle 129 ([b42cbe8](https://github.com/mctlhq/portfolio/commit/b42cbe82df33be46197153f345db31b480cc9214))
+* **journal:** keep the removed-slug guard over journal entries ([55600eb](https://github.com/mctlhq/portfolio/commit/55600eb7bf282aa218ea16fc78ceee0c1b33f5b7))
+
 ## [0.1.36](https://github.com/mctlhq/portfolio/compare/0.1.35...0.1.36) (2026-10-03)
 
 
