@@ -2,7 +2,9 @@
 service: portfolio
 issue: https://github.com/mctlhq/portfolio/issues/129
 proposal_slug: issue-129-q19-weekly-sunday-snapshot-and-org-drift
-status: in_progress
+pr: https://github.com/mctlhq/portfolio/pull/131
+release: 0.1.36
+status: complete
 visibility: public
 indexing: noindex
 title:
@@ -17,4 +19,6 @@ interventions:
     why: "the second Claude review asked for a test on each fix; the implementer read both P2s as affirmations and declined three times, leaving the proposal review-stuck, a state the shepherd does not pick up again"
     at: '2026-10-03T16:27:04Z'
 issue_opened_at: '2026-10-03T13:26:15Z'
+merged_at: '2026-10-03T16:32:23Z'
+released_at: '2026-10-03T16:40:25Z'
 ---
