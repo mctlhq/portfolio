@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.38](https://github.com/mctlhq/portfolio/compare/0.1.37...0.1.38) (2026-10-03)
+
+
+### Bug Fixes
+
+* **journal:** close cycle 137 ([eb47984](https://github.com/mctlhq/portfolio/commit/eb479846fa212dbfe6a47ace60d774f0c8e09007))
+* **journal:** close cycle 137 ([0944214](https://github.com/mctlhq/portfolio/commit/09442148da2ed630f76f3a47893cd769d9b8f0c9))
+
 ## [0.1.37](https://github.com/mctlhq/portfolio/compare/0.1.36...0.1.37) (2026-10-03)
 
 
