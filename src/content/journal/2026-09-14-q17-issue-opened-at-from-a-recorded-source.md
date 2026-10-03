@@ -2,7 +2,9 @@
 service: portfolio
 issue: https://github.com/mctlhq/portfolio/issues/105
 proposal_slug: issue-105-q17-issue-opened-at-is-typed-from-memory
-status: in_progress
+pr: https://github.com/mctlhq/portfolio/pull/114
+release: 0.1.33
+status: complete
 visibility: public
 title:
   en: "Q17: issue_opened_at comes from a recorded source"
@@ -14,4 +16,6 @@ decided:
   ru: "issue_opened_at была единственной временной меткой жизненного цикла записи журнала, которая вводилась по памяти, а не бралась из источника: у трёх из двадцати девяти зафиксированных записей значение отличалось от реального created_at issue на величину от минут до часов, причём в одном случае расхождение превышало возраст самого issue, и ни схема, ни сборка этого не отлавливали. В этом цикле три неверных значения исправлены на created_at соответствующих issue; в src/lib/journal.ts добавлена чистая тройка issueRef()/issueStampOrderProblems()/checkIssueStampOrder(), подключённая в journalLoader() в src/content.config.ts, так что astro sync, check, dev и build отклоняют пару записей одного репозитория, у которых issue_opened_at убывает относительно номера issue; а scripts/close-journal.mjs теперь резолвит issue_opened_at через GitHub API для issue из mctlhq/portfolio в момент закрытия записи -- логируя расхождение с записанным значением и логируя явный отказ от резолюции с сохранением записанного значения, без исключения, для issue из другого репозитория или при 404. issue_opened_at стало шестым полем, которое пишет CLOSURE_FIELDS. docs/journal.md теперь описывает смысл и источник поля, а устаревший комментарий про тап-таргет 44px в src/styles/site.css, унаследованный из ревью #103, сужен до двух селекторов, которые он действительно покрывает."
 interventions: []
 issue_opened_at: '2026-09-13T22:07:31Z'
+merged_at: '2026-09-14T10:17:10Z'
+released_at: '2026-09-14T10:17:40Z'
 ---
