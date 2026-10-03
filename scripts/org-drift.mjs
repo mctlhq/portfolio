@@ -27,7 +27,18 @@ const PROJECTS_DIR = path.join(ROOT, 'src/content/projects');
 
 export const ORG = 'mctlhq';
 export const SITE_REPO = 'mctlhq/portfolio';
-export const IGNORED_REPOS = ['.github', 'portfolio', 'mctl-rule'];
+export const IGNORED_REPOS = [
+  '.github',
+  'portfolio',
+  'mctl-rule',
+  'mctl-web', // the mctl.ai landing page; the site already links mctl.ai
+  'mctl-docs', // the docs.mctl.ai sources; already linked from the mctl-api card
+  'mctl-claude-remote', // internal operator tooling, not a product
+  'mctl-alice', // personal smart-home integration, not built through DevLoop
+  'projects-mcp', // private customer-facing service
+  'newton-mcp-gateway', // client work
+  'mctl-pairdesk', // P2P exchange board; kept off the public portfolio by owner decision
+];
 export const BOOTSTRAP_DIRS = [
   'platform-gitops/bootstrap/templates/core-infra',
   'platform-gitops/bootstrap/templates/data',

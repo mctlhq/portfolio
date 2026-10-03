@@ -115,6 +115,10 @@ test('ui.detailsStackItems is ui.detailsRunItems plus the four extra items, in b
   assert.deepEqual(ui.detailsStackItems.ru.slice(ui.detailsRunItems.ru.length), extra);
   assert.equal(ui.detailsStackItems.en.length, 13);
   assert.equal(ui.detailsStackItems.ru.length, 13);
+  assert.equal(ui.detailsStackItems.en[3], 'CloudNativePG, Valkey and MinIO');
+  assert.equal(ui.detailsStackItems.en[4], 'VictoriaMetrics, Grafana, Loki and OpenTelemetry');
+  assert.equal(ui.detailsStackItems.ru[3], 'CloudNativePG, Valkey и MinIO');
+  assert.equal(ui.detailsStackItems.ru[4], 'VictoriaMetrics, Grafana, Loki и OpenTelemetry');
 });
 
 test('Nav.astro links the approach entry to /approach/ and no longer to /#approach', () => {

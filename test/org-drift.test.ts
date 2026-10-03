@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 
@@ -27,8 +27,8 @@ const EXPECTED = {
     { item: 'k3s on Hetzner, provisioned with OpenTofu', evidence: [g('infrastructure/k3s-preview'), g('infrastructure/k3s-prod')], covers: [] },
     { item: 'ArgoCD, Argo Workflows and Argo Rollouts', evidence: [g('platform-gitops/argocd'), g('platform-gitops/argo-workflows'), g('platform-gitops/bootstrap/templates/core-infra/argo-rollouts.yaml')], covers: ['argo-workflows', 'argo-workflows-config', 'argo-rollouts'] },
     { item: 'HashiCorp Vault with External Secrets', evidence: [g('platform-gitops/bootstrap/templates/core-infra/vault.yaml'), g('platform-gitops/bootstrap/templates/core-infra/external-secrets.yaml')], covers: ['vault', 'vault-auto-unseal', 'vault-backup', 'vault-netpol', 'external-secrets'] },
-    { item: 'CloudNativePG', evidence: [g('platform-gitops/bootstrap/templates/data/cloudnative-pg.yaml'), g('platform-gitops/infra-components/data/cnpg')], covers: ['cloudnative-pg', 'cnpg-rbac', 'shared-pg'] },
-    { item: 'VictoriaMetrics, Grafana and Loki', evidence: [g('platform-gitops/bootstrap/templates/observability/monitoring.yaml'), g('platform-gitops/bootstrap/templates/observability/loki.yaml')], covers: ['monitoring', 'monitoring-externalsecret', 'loki', 'loki-datasource', 'promtail-podscrape'] },
+    { item: 'CloudNativePG, Valkey and MinIO', evidence: [g('platform-gitops/bootstrap/templates/data/cloudnative-pg.yaml'), g('platform-gitops/infra-components/data/cnpg'), g('platform-gitops/bootstrap/templates/data/valkey.yaml'), g('platform-gitops/bootstrap/templates/data/minio.yaml')], covers: ['cloudnative-pg', 'cnpg-rbac', 'shared-pg', 'valkey', 'minio'] },
+    { item: 'VictoriaMetrics, Grafana, Loki and OpenTelemetry', evidence: [g('platform-gitops/bootstrap/templates/observability/monitoring.yaml'), g('platform-gitops/bootstrap/templates/observability/loki.yaml'), g('platform-gitops/bootstrap/templates/observability/otel-collector.yaml')], covers: ['monitoring', 'monitoring-externalsecret', 'loki', 'loki-datasource', 'promtail-podscrape', 'otel-collector'] },
     { item: 'Traefik and cert-manager', evidence: [g('infrastructure/k3s-preview/extra-manifests/traefik-helmchartconfig.yaml.tpl'), g('infrastructure/k3s-preview/extra-manifests/cert-manager-helmchartconfig.yaml.tpl')], covers: ['traefik-origin-cert', 'traefik-origin-pull'] },
     { item: 'Temporal', evidence: [g('platform-gitops/bootstrap/templates/data/temporal.yaml')], covers: ['temporal', 'temporal-web'] },
     { item: 'Backstage', evidence: [g('platform-gitops/backstage')], covers: [] },
@@ -38,7 +38,10 @@ const EXPECTED = {
     { item: 'Astro', evidence: [{ repo: 'portfolio', path: 'astro.config.mjs' }], covers: [] },
     { item: 'nginx', evidence: [{ repo: 'portfolio', path: 'nginx.conf' }], covers: [] },
   ],
-  ignored_components: ['image-prune', 'local-path-provisioner', 'academy-postgres-datasource', 'eval-candidates', 'eval-namespace'],
+  // forgejo: the owner chose to keep it off the list. zitadel: deployed
+  // 2026-10-03; revisit once it is the primary sign-in path. reflector: copies
+  // Secrets and ConfigMaps between namespaces; platform glue, not a showcase item.
+  ignored_components: ['image-prune', 'local-path-provisioner', 'academy-postgres-datasource', 'eval-candidates', 'eval-namespace', 'forgejo', 'zitadel', 'reflector'],
 };
 
 test('stack-evidence.json has the specified content and matches detailsStackItems.en in order', () => {
@@ -284,3 +287,100 @@ test('syncDriftIssue throws when a write fails', async () => {
   const fetchImpl = (async (_u: string, init: any) => (init.method === 'GET' ? res(200, []) : res(422, {}))) as any;
   await assert.rejects(syncDriftIssue({ drift: WITH_DRIFT, date: '2026-10-04', token: 't', fetchImpl }));
 });
+
+// ---- Q20: the dated live snapshot ----------------------------------------
+
+// Assembled from parts: test/projects.test.ts forbids contiguous removed slugs under test/.
+const S_AGENT = ['mctl', 'agent'].join('-');
+const S_PAIRDESK = ['mctl', 'pairdesk'].join('-');
+const S_BACKEND = ['pfeifenpatenschaft', 'backend'].join('-');
+const S_OPENCLAW = ['mctl', 'openclaw'].join('-');
+const SECTION_C = ['mctl-web', 'mctl-docs', 'mctl-claude-remote', 'mctl-alice', 'projects-mcp', 'newton-mcp-gateway', S_PAIRDESK];
+
+// Snapshot of `gh repo list mctlhq` as observed on 2026-10-03.
+const LIVE_ORG_2026_10_03 = [
+  repo('portfolio'),
+  repo('mctl-gitops'),
+  repo('mctl-claude-remote'),
+  repo('.github'),
+  repo('mctl-telegram'),
+  repo('projects-mcp', { private: true }),
+  repo('mctl-agents'),
+  repo('mctl-academy'),
+  repo(S_AGENT),
+  repo('newton-mcp-gateway'),
+  repo('mctl-api'),
+  repo('mctl-web'),
+  repo('mctl-design'),
+  repo('mctl-portal'),
+  repo('mctl-docs'),
+  repo('seerrsense'),
+  repo('mctl-alice'),
+  repo(S_PAIRDESK),
+  repo('mctl-loyalty'),
+  repo(S_OPENCLAW, { fork: true, archived: true }),
+  repo(S_BACKEND, { private: true, archived: true }),
+  repo('mctl-mcp', { archived: true }),
+  repo('mctl-rule', { private: true }),
+  repo('mctl-trading-data', { archived: true }),
+];
+const LIVE_BOOTSTRAP = [
+  'argo-rollouts', 'argo-workflows-config', 'argo-workflows', 'cnpg-rbac', 'external-secrets', 'image-prune',
+  'local-path-provisioner', 'reflector', 'traefik-origin-cert', 'traefik-origin-pull', 'vault-auto-unseal',
+  'vault-backup', 'vault-netpol', 'vault', 'zitadel',
+  'cloudnative-pg', 'forgejo', 'minio', 'shared-pg', 'temporal-web', 'temporal', 'valkey',
+  'academy-postgres-datasource', 'eval-candidates', 'eval-namespace', 'loki-datasource', 'loki',
+  'monitoring-externalsecret', 'monitoring', 'otel-collector', 'promtail-podscrape',
+];
+const realCards = () =>
+  cardsFromMarkdown(
+    readdirSync(`${ROOT}src/content/projects`)
+      .filter((n) => n.endsWith('.en.md'))
+      .sort()
+      .map((n) => ({ text: readFileSync(`${ROOT}src/content/projects/${n}`, 'utf8') })),
+  );
+const liveFixture = (ev: any = evidence): any => ({
+  orgRepos: LIVE_ORG_2026_10_03,
+  cards: realCards(),
+  evidence: ev,
+  evidenceResults: ev.items.flatMap((i: any) => i.evidence.map((e: any) => ({ ...e, result: 'present' }))),
+  bootstrapFiles: LIVE_BOOTSTRAP,
+});
+
+test('IGNORED_REPOS is the specified list', () => {
+  assert.deepEqual(IGNORED_REPOS, ['.github', 'portfolio', 'mctl-rule', 'mctl-web', 'mctl-docs', 'mctl-claude-remote', 'mctl-alice', 'projects-mcp', 'newton-mcp-gateway', S_PAIRDESK]);
+});
+
+test('over the 2026-10-03 organisation the only drift is the one repository awaiting its rename', () => {
+  assert.deepEqual(computeDrift(liveFixture()), { ...EMPTY, uncardedRepos: [{ name: S_AGENT, private: false, fork: false }] });
+});
+
+for (const name of SECTION_C) {
+  test(`removing ${name} from IGNORED_REPOS reports it as uncarded`, () => {
+    const at = IGNORED_REPOS.indexOf(name);
+    assert.ok(at >= 0);
+    IGNORED_REPOS.splice(at, 1);
+    try {
+      const names = computeDrift(liveFixture()).uncardedRepos.map((r: any) => r.name);
+      assert.ok(names.includes(name));
+    } finally {
+      IGNORED_REPOS.splice(at, 0, name);
+    }
+  });
+}
+
+for (const name of ['valkey', 'minio', 'otel-collector']) {
+  test(`removing ${name} from the evidence covers makes it a candidate`, () => {
+    const ev = JSON.parse(JSON.stringify(evidence));
+    for (const i of ev.items) i.covers = i.covers.filter((c: string) => c !== name);
+    assert.ok(computeDrift(liveFixture(ev)).candidateComponents.includes(name));
+  });
+}
+
+for (const name of ['forgejo', 'zitadel', 'reflector']) {
+  test(`removing ${name} from ignored_components makes it a candidate`, () => {
+    const ev = JSON.parse(JSON.stringify(evidence));
+    ev.ignored_components = ev.ignored_components.filter((c: string) => c !== name);
+    assert.ok(computeDrift(liveFixture(ev)).candidateComponents.includes(name));
+  });
+}
