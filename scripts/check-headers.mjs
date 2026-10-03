@@ -56,6 +56,7 @@ const STYLES_FALLBACK_PATH = '/styles/probe-check-headers.css';
 // (unlike a hashed /assets/ href) to probe /assets/fonts/LICENSES/'s own
 // location block at runtime.
 const LICENSES_PROBE_PATH = '/assets/fonts/LICENSES/onest.txt';
+const NOT_FOUND_PROBE_PATH = '/this-path-does-not-exist-check-headers';
 
 /**
  * B3a: GETs `/` and returns `{ path, expectStatus, homePage }` for the
@@ -179,7 +180,7 @@ async function run() {
     astroAsset,
     stylesAsset,
     { path: LICENSES_PROBE_PATH, expectStatus: 200 },
-    { path: '/this-path-does-not-exist-check-headers', expectStatus: 404 },
+    { path: NOT_FOUND_PROBE_PATH, expectStatus: 404 },
   ];
 
   // B4a: every probe's result is reported, in one flat loop, before any
@@ -205,10 +206,20 @@ async function run() {
     }
   }
 
+  const notFoundRes = results.get(NOT_FOUND_PROBE_PATH);
+  if (notFoundRes) {
+    const notFoundCacheControl = notFoundRes.headers.get('cache-control');
+    if (notFoundCacheControl !== 'no-cache') {
+      problems.push(
+        `${baseUrl}${NOT_FOUND_PROBE_PATH}: Cache-Control is "${notFoundCacheControl ?? '(missing)'}", expected "no-cache"`,
+      );
+    }
+  }
+
   if (homePage) {
     // Cache lifetime (issue #50, Q6): a hashed /assets/ path answers with a
-    // year plus immutable, and / -- which keeps its existing, un-hashed
-    // cache policy -- carries neither directive. A3c: GETs the body (not
+    // year plus immutable, and / -- HTML, revalidated on every
+    // visit -- answers with exactly no-cache. A3c: GETs the body (not
     // just HEADs it) and compares contentHash8(body) to the hash segment
     // embedded in the URL, so a byte-content-hash divergence at runtime --
     // not just a shape-valid URL -- fails this check too. This is a second
@@ -241,9 +252,9 @@ async function run() {
         problems.push(`${assetUrl}: ${mismatch}`);
       }
     }
-    const homeCacheControl = homePage.headers.get('cache-control') ?? '';
-    if (homeCacheControl.includes('max-age=31536000') || homeCacheControl.includes('immutable')) {
-      problems.push(`${baseUrl}/: Cache-Control is "${homeCacheControl}", expected it to carry neither "max-age=31536000" nor "immutable"`);
+    const homeCacheControl = homePage.headers.get('cache-control');
+    if (homeCacheControl !== 'no-cache') {
+      problems.push(`${baseUrl}/: Cache-Control is "${homeCacheControl ?? '(missing)'}", expected "no-cache"`);
     }
 
     const homeCsp = homePage.headers.get('content-security-policy');

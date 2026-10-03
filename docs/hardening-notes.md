@@ -58,6 +58,10 @@ verifies. The fallback keeps the location itself covered by the gate without
 inventing a fixture file; discovery takes over automatically the moment a
 future cycle does put something there.
 
+## HTML cache policy
+
+HTML pages, served by `location /` (including `/404.html` through `error_page`), carry `Cache-Control: no-cache`: the browser may keep a copy but must revalidate it before every use, because the content changes weekly through the snapshot (Snapshot numbers, `/work/` metrics, the `/colophon/` cycle table) and heuristic freshness left pages more than a day stale. Revalidation uses `Last-Modified` / `If-Modified-Since`, so an unchanged page costs a 304. Content-hashed assets under `/assets/`, `/styles/` and `/_astro/` keep `public, immutable` with a one-year lifetime, since a content change always changes their URL. `expires` is deliberately absent from `location /`, as it would emit a second, conflicting `Cache-Control`.
+
 ## `style-src` and the inline script
 
 `style-src 'self'` has carried no `'unsafe-inline'` since the CSP was first
