@@ -2,7 +2,9 @@
 service: portfolio
 issue: https://github.com/mctlhq/portfolio/issues/141
 proposal_slug: issue-141-q21-html-pages-revalidate-on-every-visit
-status: in_progress
+pr: https://github.com/mctlhq/portfolio/pull/142
+release: 0.1.39
+status: complete
 visibility: public
 indexing: noindex
 title:
@@ -14,4 +16,6 @@ decided:
   ru: "HTML-страницы теперь отдаются с Cache-Control: no-cache: браузер сверяется с сервером, прежде чем показать сохранённую копию, а неизменившаяся страница стоит лишь короткого ответа «не изменилась». До сих пор страницы вообще не сообщали политику кэширования, и браузер сам угадывал, сколько копия остаётся свежей; после еженедельного снимка браузер владельца ещё больше суток показывал устаревшие страницы работ и колофона. Хэшированные стили и шрифты сохраняют годовое неизменяемое кэширование: любое их изменение меняет адрес."
 interventions: []
 issue_opened_at: '2026-10-03T20:42:30Z'
+merged_at: '2026-10-03T21:12:19Z'
+released_at: '2026-10-03T21:15:57Z'
 ---
