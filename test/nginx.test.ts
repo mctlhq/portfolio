@@ -121,13 +121,17 @@ test('location /assets/fonts/LICENSES/ sits before location /assets/ (nginx long
   assert.match(block, /try_files \$uri =404;/);
 });
 
-test('location / keeps error_page 404 and try_files, and carries neither expires nor add_header Cache-Control', () => {
+test('location / sets Cache-Control "no-cache" exactly once, with no expires, immutable or max-age, and keeps include, error_page and try_files', () => {
   const blockMatch = nginxConf.match(/location \/ \{([\s\S]*?)\n {4}\}/);
   assert.ok(blockMatch);
+  const noCache = blockMatch![1].match(/add_header Cache-Control "no-cache" always;/g) ?? [];
+  assert.equal(noCache.length, 1);
+  assert.doesNotMatch(blockMatch![1], /expires/);
+  assert.doesNotMatch(blockMatch![1], /immutable/);
+  assert.doesNotMatch(blockMatch![1], /max-age/);
+  assert.match(blockMatch![1], /include \/etc\/nginx\/security-headers\.conf;/);
   assert.match(blockMatch![1], /error_page 404 \/404\.html;/);
   assert.match(blockMatch![1], /try_files \$uri \$uri\/index\.html \$uri\.html =404;/);
-  assert.doesNotMatch(blockMatch![1], /expires/);
-  assert.doesNotMatch(blockMatch![1], /add_header Cache-Control/);
 });
 
 test('the CSP in security-headers.conf carries the hash placeholder, no unsafe-inline and no external origin', () => {

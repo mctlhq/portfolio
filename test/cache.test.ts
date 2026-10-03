@@ -1,6 +1,6 @@
 // Mechanical checks for issue #50 (Q6), "Cache lifetime": nginx.conf gives
 // /assets/ and /styles/ a year plus immutable (with the mandatory
-// security-headers include), location / carries neither directive, and
+// security-headers include), location / sets Cache-Control "no-cache", and
 // every href in src/data/assets.json is both content-hashed and resolves
 // to a real file. test/nginx.test.ts already covers the include-count and
 // enumerated-block invariants shared with the other locations; this file
@@ -54,10 +54,16 @@ test("nginx.conf's location /assets/fonts/LICENSES/ exists, includes security-he
   assert.doesNotMatch(block, /max-age=31536000/);
 });
 
-test('nginx.conf location / carries neither expires nor add_header Cache-Control', () => {
+test('nginx.conf location / sets Cache-Control "no-cache" exactly once, with no expires, immutable or max-age, and keeps include, error_page and try_files', () => {
   const block = locationBlock('/');
+  const noCache = block.match(/add_header Cache-Control "no-cache" always;/g) ?? [];
+  assert.equal(noCache.length, 1);
   assert.doesNotMatch(block, /expires/);
-  assert.doesNotMatch(block, /add_header Cache-Control/);
+  assert.doesNotMatch(block, /immutable/);
+  assert.doesNotMatch(block, /max-age/);
+  assert.match(block, /include \/etc\/nginx\/security-headers\.conf;/);
+  assert.match(block, /error_page 404 \/404\.html;/);
+  assert.match(block, /try_files \$uri \$uri\/index\.html \$uri\.html =404;/);
 });
 
 const HASHED_HREF_RE = /\.[0-9a-f]{8}\.(css|woff2)$/;
