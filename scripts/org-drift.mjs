@@ -187,16 +187,19 @@ export async function ghRequest(url, { token, fetchImpl = fetch, method = 'GET',
     init.body = JSON.stringify(body);
     headers['Content-Type'] = 'application/json';
   }
+  // POST is not idempotent: GitHub can answer 5xx after the write landed, so a
+  // retry would duplicate it. Only GET and PATCH are retried.
+  const maxRetries = method === 'GET' || method === 'PATCH' ? retries : 0;
   for (let attempt = 0; ; attempt++) {
     let res;
     try {
       res = await fetchImpl(url, init);
     } catch (err) {
-      if (attempt >= retries) throw new Error(`${method} ${url}: ${err.message}`);
+      if (attempt >= maxRetries) throw new Error(`${method} ${url}: ${err.message}`);
       await sleep(backoffMs * 2 ** attempt);
       continue;
     }
-    if (res.status >= 500 && attempt < retries) {
+    if (res.status >= 500 && attempt < maxRetries) {
       await sleep(backoffMs * 2 ** attempt);
       continue;
     }
@@ -261,7 +264,16 @@ async function readEvidence({ evidence, token, fetchImpl, retries, backoffMs }) 
       const url = `${API}/repos/${ORG}/${ev.repo}/contents/${ev.path}`;
       try {
         const res = await ghRequest(url, { token, fetchImpl, retries, backoffMs });
-        const result = classifyEvidence(res);
+        let result = classifyEvidence(res);
+        // A 404 is also what the API answers for a repository the token cannot
+        // see; only call the path absent when the repository itself is visible.
+        if (result === 'absent') {
+          const repoRes = await ghRequest(`${API}/repos/${ORG}/${ev.repo}`, { token, fetchImpl, retries, backoffMs });
+          if (repoRes.status !== 200) {
+            results.push({ repo: ev.repo, path: ev.path, result: 'unknown', error: `repository not visible (HTTP ${repoRes.status})` });
+            continue;
+          }
+        }
         results.push(
           result === 'unknown'
             ? { repo: ev.repo, path: ev.path, result, error: `HTTP ${res.status}` }
