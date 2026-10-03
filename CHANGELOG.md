@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.39](https://github.com/mctlhq/portfolio/compare/0.1.38...0.1.39) (2026-10-03)
+
+
+### Features
+
+* **agents:** issue-141-q21-html-pages-revalidate-on-every-visit ([aa7235c](https://github.com/mctlhq/portfolio/commit/aa7235c0b11daac68636585f0adbe99feb277c02))
+* **agents:** issue-141-q21-html-pages-revalidate-on-every-visit ([818de4b](https://github.com/mctlhq/portfolio/commit/818de4b24d710a9224459ef5753f01606a065705))
+
 ## [0.1.38](https://github.com/mctlhq/portfolio/compare/0.1.37...0.1.38) (2026-10-03)
 
 
