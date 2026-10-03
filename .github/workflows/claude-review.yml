@@ -10,12 +10,15 @@ permissions: {}
 
 jobs:
   claude-review:
-    uses: mctlhq/.github/.github/workflows/claude-review.yml@70d677cc1be17eb5c7e7b89e8d6f7cb5db20b79e
+    uses: mctlhq/.github/.github/workflows/claude-review.yml@ac6fc943b6ce18c4716966108ccc881fd849e9c4
     permissions:
       contents: read
       pull-requests: write
       issues: write
       id-token: write
+      # The pinned review job requests actions: read to see the PR's CI; a
+      # caller's block caps the called job, so it must be granted here too.
+      actions: read
     with:
       # dependabot and mctl-agents are listed so their PRs get reviewed
       # automatically. Without the slug claude-code-action hard-fails with
