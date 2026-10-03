@@ -2,7 +2,9 @@
 service: portfolio
 issue: https://github.com/mctlhq/portfolio/issues/137
 proposal_slug: issue-137-q20-proven-open-source-catches-up-with-t
-status: in_progress
+pr: https://github.com/mctlhq/portfolio/pull/138
+release: 0.1.37
+status: complete
 visibility: public
 indexing: noindex
 title:
@@ -17,4 +19,6 @@ interventions:
     why: "the approved copy named a removed project slug, so the implementer exempted every journal entry from the guard; that would have let any removed project reappear on the colophon unchecked. The copy was the defect, not the guard"
     at: '2026-10-03T17:06:20Z'
 issue_opened_at: '2026-10-03T16:45:28Z'
+merged_at: '2026-10-03T18:13:01Z'
+released_at: '2026-10-03T18:16:34Z'
 ---
