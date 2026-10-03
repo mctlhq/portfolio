@@ -1,0 +1,18 @@
+{
+  "items": [
+    { "item": "k3s on Hetzner, provisioned with OpenTofu", "evidence": [{ "repo": "mctl-gitops", "path": "infrastructure/k3s-preview" }, { "repo": "mctl-gitops", "path": "infrastructure/k3s-prod" }], "covers": [] },
+    { "item": "ArgoCD, Argo Workflows and Argo Rollouts", "evidence": [{ "repo": "mctl-gitops", "path": "platform-gitops/argocd" }, { "repo": "mctl-gitops", "path": "platform-gitops/argo-workflows" }, { "repo": "mctl-gitops", "path": "platform-gitops/bootstrap/templates/core-infra/argo-rollouts.yaml" }], "covers": ["argo-workflows", "argo-workflows-config", "argo-rollouts"] },
+    { "item": "HashiCorp Vault with External Secrets", "evidence": [{ "repo": "mctl-gitops", "path": "platform-gitops/bootstrap/templates/core-infra/vault.yaml" }, { "repo": "mctl-gitops", "path": "platform-gitops/bootstrap/templates/core-infra/external-secrets.yaml" }], "covers": ["vault", "vault-auto-unseal", "vault-backup", "vault-netpol", "external-secrets"] },
+    { "item": "CloudNativePG", "evidence": [{ "repo": "mctl-gitops", "path": "platform-gitops/bootstrap/templates/data/cloudnative-pg.yaml" }, { "repo": "mctl-gitops", "path": "platform-gitops/infra-components/data/cnpg" }], "covers": ["cloudnative-pg", "cnpg-rbac", "shared-pg"] },
+    { "item": "VictoriaMetrics, Grafana and Loki", "evidence": [{ "repo": "mctl-gitops", "path": "platform-gitops/bootstrap/templates/observability/monitoring.yaml" }, { "repo": "mctl-gitops", "path": "platform-gitops/bootstrap/templates/observability/loki.yaml" }], "covers": ["monitoring", "monitoring-externalsecret", "loki", "loki-datasource", "promtail-podscrape"] },
+    { "item": "Traefik and cert-manager", "evidence": [{ "repo": "mctl-gitops", "path": "infrastructure/k3s-preview/extra-manifests/traefik-helmchartconfig.yaml.tpl" }, { "repo": "mctl-gitops", "path": "infrastructure/k3s-preview/extra-manifests/cert-manager-helmchartconfig.yaml.tpl" }], "covers": ["traefik-origin-cert", "traefik-origin-pull"] },
+    { "item": "Temporal", "evidence": [{ "repo": "mctl-gitops", "path": "platform-gitops/bootstrap/templates/data/temporal.yaml" }], "covers": ["temporal", "temporal-web"] },
+    { "item": "Backstage", "evidence": [{ "repo": "mctl-gitops", "path": "platform-gitops/backstage" }], "covers": [] },
+    { "item": "Cloudflare", "evidence": [{ "repo": "mctl-gitops", "path": "infrastructure/cloudflare" }], "covers": [] },
+    { "item": "Claude Agent SDK", "evidence": [{ "repo": "mctl-agents", "path": "pyproject.toml" }], "covers": [] },
+    { "item": "release-please", "evidence": [{ "repo": "portfolio", "path": "release-please-config.json" }], "covers": [] },
+    { "item": "Astro", "evidence": [{ "repo": "portfolio", "path": "astro.config.mjs" }], "covers": [] },
+    { "item": "nginx", "evidence": [{ "repo": "portfolio", "path": "nginx.conf" }], "covers": [] }
+  ],
+  "ignored_components": ["image-prune", "local-path-provisioner", "academy-postgres-datasource", "eval-candidates", "eval-namespace"]
+}
