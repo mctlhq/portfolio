@@ -172,8 +172,10 @@ export function classifyEvidence(response) {
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Never throws on an HTTP status; retries network errors and 5xx. After the
- * retries are spent a network error is rethrown and a 5xx is returned.
+ * Never throws on an HTTP status. Retries network errors and 5xx on GET and
+ * PATCH only; a POST is attempted once, because GitHub can answer 5xx after
+ * the write landed. After the retries are spent a network error is rethrown
+ * and a 5xx is returned.
  */
 export async function ghRequest(url, { token, fetchImpl = fetch, method = 'GET', body, retries = 3, backoffMs = 300 } = {}) {
   const headers = {
@@ -257,7 +259,7 @@ export async function listBootstrapFiles({ token, fetchImpl = fetch, retries, ba
   return names;
 }
 
-async function readEvidence({ evidence, token, fetchImpl, retries, backoffMs }) {
+export async function readEvidence({ evidence, token, fetchImpl, retries, backoffMs }) {
   const results = [];
   for (const item of evidence.items) {
     for (const ev of item.evidence) {

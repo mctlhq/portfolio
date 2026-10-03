@@ -8,9 +8,11 @@ import {
   cardsFromMarkdown,
   classifyEvidence,
   computeDrift,
+  ghRequest,
   isNoDrift,
   listBootstrapFiles,
   listOrgRepos,
+  readEvidence,
   renderIssueBody,
   syncDriftIssue,
 } from '../scripts/org-drift.mjs';
@@ -167,6 +169,31 @@ test('classifyEvidence', () => {
   assert.equal(classifyEvidence({ status: 404, json: null } as any), 'absent');
   assert.equal(classifyEvidence({ status: 500, json: null } as any), 'unknown');
   assert.equal(classifyEvidence({ status: 200, json: null } as any), 'unknown');
+});
+
+test('ghRequest attempts a POST once on 5xx but retries a GET and a PATCH', async () => {
+  for (const [method, expected] of [['POST', 1], ['GET', 4], ['PATCH', 4]] as const) {
+    let calls = 0;
+    const fetchImpl = (async () => { calls += 1; return res(500, {}); }) as any;
+    const out = await ghRequest('https://api.github.com/x', { token: 't', fetchImpl, method, body: method === 'GET' ? undefined : {}, backoffMs: 0 });
+    assert.equal(out.status, 500);
+    assert.equal(calls, expected, `${method} made ${calls} attempts`);
+  }
+});
+
+test('readEvidence calls a 404 absent only when the repository itself is visible', async () => {
+  const one = { items: [{ item: 'X', evidence: [{ repo: 'r', path: 'p' }], covers: [] }], ignored_components: [] };
+  const contents = 'https://api.github.com/repos/mctlhq/r/contents/p';
+  const repoUrl = 'https://api.github.com/repos/mctlhq/r';
+  const run = (repoStatus: number) =>
+    readEvidence({ evidence: one, token: 't', backoffMs: 0, fetchImpl: (async (u: string) => (u === contents ? res(404, {}) : u === repoUrl ? res(repoStatus, {}) : res(599, {}))) as any });
+  assert.deepEqual(await run(200), [{ repo: 'r', path: 'p', result: 'absent' }]);
+  for (const status of [404, 403, 500]) {
+    const [out] = await run(status);
+    assert.equal(out.result, 'unknown', `repository HTTP ${status} must not be read as absent`);
+  }
+  const present = await readEvidence({ evidence: one, token: 't', backoffMs: 0, fetchImpl: (async () => res(200, {})) as any });
+  assert.deepEqual(present, [{ repo: 'r', path: 'p', result: 'present' }]);
 });
 
 // ---- rendering --------------------------------------------------------------
