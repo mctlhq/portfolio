@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.36](https://github.com/mctlhq/portfolio/compare/0.1.35...0.1.36) (2026-10-03)
+
+
+### Features
+
+* **agents:** issue-129-q19-weekly-sunday-snapshot-and-org-drift ([82798d4](https://github.com/mctlhq/portfolio/commit/82798d497290c7fbd244ecc0241dcbe6f6609d48))
+* **agents:** issue-129-q19-weekly-sunday-snapshot-and-org-drift ([7333503](https://github.com/mctlhq/portfolio/commit/73335036b20748ac4f378a7ad3cbd6a91f7bc08a))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-129-q19-weekly-sunday-snapshot-and-org-drift ([fb4ba78](https://github.com/mctlhq/portfolio/commit/fb4ba78e2a0460a5e4a1de28b20fe15186a4f61a))
+* **metrics:** weekly snapshot 2026-10-03 ([5cf2563](https://github.com/mctlhq/portfolio/commit/5cf256377710ee468ce050b6ed485ce9306a3db0))
+* **metrics:** weekly snapshot 2026-10-03 ([2d79150](https://github.com/mctlhq/portfolio/commit/2d791501aef0924085bbe673e3aa3639a7a724a0))
+
 ## [0.1.35](https://github.com/mctlhq/portfolio/compare/0.1.34...0.1.35) (2026-10-03)
 
 
