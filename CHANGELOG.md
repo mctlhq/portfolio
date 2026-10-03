@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.35](https://github.com/mctlhq/portfolio/compare/0.1.34...0.1.35) (2026-10-03)
+
+
+### Bug Fixes
+
+* **journal:** close cycle 105 ([04576d2](https://github.com/mctlhq/portfolio/commit/04576d236bf5a0b096a44585bed628e1c2df6453))
+
 ## [0.1.34](https://github.com/mctlhq/portfolio/compare/0.1.33...0.1.34) (2026-09-26)
 
 
