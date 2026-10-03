@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.40](https://github.com/mctlhq/portfolio/compare/0.1.39...0.1.40) (2026-10-03)
+
+
+### Bug Fixes
+
+* **journal:** close cycle 141 ([f6ac72a](https://github.com/mctlhq/portfolio/commit/f6ac72a78a91d146187edf92951251d566e2e0ce))
+* **journal:** close cycle 141 ([c86c95a](https://github.com/mctlhq/portfolio/commit/c86c95ac995549364889d047fcb45325fbe50c2a))
+
+
+### Dependencies
+
+* bump astro from 7.3.2 to 7.3.5 ([0f63cd3](https://github.com/mctlhq/portfolio/commit/0f63cd399af7465818c0c427e21abf3c69cce9cf))
+* bump nginx from 1.30-alpine to 1.31-alpine ([4390953](https://github.com/mctlhq/portfolio/commit/43909535ca6aecc4e25e4db6e9c06f2195e53e66))
+
 ## [0.1.39](https://github.com/mctlhq/portfolio/compare/0.1.38...0.1.39) (2026-10-03)
 
 
