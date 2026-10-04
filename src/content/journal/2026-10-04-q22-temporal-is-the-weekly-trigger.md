@@ -2,7 +2,9 @@
 service: portfolio
 issue: https://github.com/mctlhq/portfolio/issues/150
 proposal_slug: issue-150-q22-temporal-is-the-weekly-trigger-vault
-status: in_progress
+pr: https://github.com/mctlhq/portfolio/pull/151
+release: 0.1.42
+status: complete
 visibility: public
 indexing: noindex
 title:
@@ -17,4 +19,6 @@ interventions:
     why: "on 2026-10-04 the GitHub schedule fired in neither the 05:00 nor the 08:00 UTC slot; GitHub documents schedule as best-effort and silent when a slot is dropped. The schedule's first fire dispatched run 37193997890, which succeeded"
     at: '2026-10-04T10:01:00Z'
 issue_opened_at: '2026-10-04T10:17:16Z'
+merged_at: '2026-10-04T10:32:32Z'
+released_at: '2026-10-04T10:36:32Z'
 ---
