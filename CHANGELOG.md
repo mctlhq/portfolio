@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.42](https://github.com/mctlhq/portfolio/compare/0.1.41...0.1.42) (2026-10-04)
+
+
+### Features
+
+* **agents:** issue-150-q22-temporal-is-the-weekly-trigger-vault ([c03c859](https://github.com/mctlhq/portfolio/commit/c03c859f003a14fa121fbbbeb87029a167a9d073))
+* **agents:** issue-150-q22-temporal-is-the-weekly-trigger-vault ([7a1ea28](https://github.com/mctlhq/portfolio/commit/7a1ea287e52730865bece363d4fc83dc9092f2af))
+
 ## [0.1.41](https://github.com/mctlhq/portfolio/compare/0.1.40...0.1.41) (2026-10-04)
 
 
