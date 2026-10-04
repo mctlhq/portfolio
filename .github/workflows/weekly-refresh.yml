@@ -1,9 +1,7 @@
-# Weekly snapshot refresh and org drift report. See docs/weekly-refresh.md.
+# Weekly snapshot refresh and org drift report. Dispatched weekly by the mctl-agents Temporal Schedule; see docs/weekly-refresh.md.
 name: weekly-refresh
 
 on:
-  schedule:
-    - cron: '0 8 * * 0'
   workflow_dispatch:
 
 permissions:
