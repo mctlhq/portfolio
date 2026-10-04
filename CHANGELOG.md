@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.44](https://github.com/mctlhq/portfolio/compare/0.1.43...0.1.44) (2026-10-04)
+
+
+### Bug Fixes
+
+* **metrics:** weekly snapshot 2026-10-04 ([fe649ac](https://github.com/mctlhq/portfolio/commit/fe649acd6c6ce5fae44caf8e5a19b9676a39da30))
+* **metrics:** weekly snapshot 2026-10-04 ([61e7c6f](https://github.com/mctlhq/portfolio/commit/61e7c6fde461207869a411781ff9f2d5f744f6d3))
+
 ## [0.1.43](https://github.com/mctlhq/portfolio/compare/0.1.42...0.1.43) (2026-10-04)
 
 
