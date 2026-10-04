@@ -18,6 +18,9 @@ interventions:
   - what: "added the regression tests for both review-round-2 fixes by hand (POST attempted once on 5xx, a 404 is absent only when the repository is visible) and exported readEvidence so the second is testable"
     why: "the second Claude review asked for a test on each fix; the implementer read both P2s as affirmations and declined three times, leaving the proposal review-stuck, a state the shepherd does not pick up again"
     at: '2026-10-03T16:27:04Z'
+  - what: "moved the weekly-refresh cron from Sunday 05:00 UTC to Sunday 08:00 UTC by hand"
+    why: "the first scheduled run on 2026-10-04 never fired; the owner asked for a later slot that could be watched live to confirm the schedule triggers at all"
+    at: '2026-10-04T07:50:00Z'
 issue_opened_at: '2026-10-03T13:26:15Z'
 merged_at: '2026-10-03T16:32:23Z'
 released_at: '2026-10-03T16:40:25Z'

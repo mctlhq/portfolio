@@ -5,7 +5,7 @@ reports where two hand-maintained lists have drifted from the organisation.
 
 ## Schedule
 
-Every Sunday at 05:00 UTC (`cron: '0 5 * * 0'`) and on manual dispatch.
+Every Sunday at 08:00 UTC (`cron: '0 8 * * 0'`) and on manual dispatch.
 
 ## Tokens
 

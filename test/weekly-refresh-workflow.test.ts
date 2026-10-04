@@ -20,8 +20,8 @@ function step(re: RegExp): string {
   return found[0];
 }
 
-test('triggers on the Sunday 05:00 UTC cron and on workflow_dispatch', () => {
-  assert.match(workflow, /schedule:\s*\n\s*- cron: '0 5 \* \* 0'/);
+test('triggers on the Sunday 08:00 UTC cron and on workflow_dispatch', () => {
+  assert.match(workflow, /schedule:\s*\n\s*- cron: '0 8 \* \* 0'/);
   assert.match(workflow, /workflow_dispatch:\s*\n\s*\n?permissions:/);
 });
 
