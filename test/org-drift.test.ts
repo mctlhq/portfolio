@@ -26,7 +26,7 @@ const EXPECTED = {
   items: [
     { item: 'k3s on Hetzner, provisioned with OpenTofu', evidence: [g('infrastructure/k3s-preview'), g('infrastructure/k3s-prod')], covers: [] },
     { item: 'ArgoCD, Argo Workflows and Argo Rollouts', evidence: [g('platform-gitops/argocd'), g('platform-gitops/argo-workflows'), g('platform-gitops/bootstrap/templates/core-infra/argo-rollouts.yaml')], covers: ['argo-workflows', 'argo-workflows-config', 'argo-rollouts'] },
-    { item: 'HashiCorp Vault with External Secrets', evidence: [g('platform-gitops/bootstrap/templates/core-infra/vault.yaml'), g('platform-gitops/bootstrap/templates/core-infra/external-secrets.yaml')], covers: ['vault', 'vault-auto-unseal', 'vault-backup', 'vault-netpol', 'external-secrets'] },
+    { item: 'HashiCorp Vault with External Secrets', evidence: [g('platform-gitops/bootstrap/templates/core-infra/vault.yaml'), g('platform-gitops/bootstrap/templates/core-infra/external-secrets.yaml')], covers: ['vault', 'vault-auto-unseal', 'vault-backup', 'vault-netpol', 'vault-human-auth-iac', 'external-secrets'] },
     { item: 'CloudNativePG, Valkey and MinIO', evidence: [g('platform-gitops/bootstrap/templates/data/cloudnative-pg.yaml'), g('platform-gitops/infra-components/data/cnpg'), g('platform-gitops/bootstrap/templates/data/valkey.yaml'), g('platform-gitops/bootstrap/templates/data/minio.yaml')], covers: ['cloudnative-pg', 'cnpg-rbac', 'shared-pg', 'valkey', 'minio'] },
     { item: 'VictoriaMetrics, Grafana, Loki and OpenTelemetry', evidence: [g('platform-gitops/bootstrap/templates/observability/monitoring.yaml'), g('platform-gitops/bootstrap/templates/observability/loki.yaml'), g('platform-gitops/bootstrap/templates/observability/otel-collector.yaml')], covers: ['monitoring', 'monitoring-externalsecret', 'loki', 'loki-datasource', 'promtail-podscrape', 'otel-collector'] },
     { item: 'Traefik and cert-manager', evidence: [g('infrastructure/k3s-preview/extra-manifests/traefik-helmchartconfig.yaml.tpl'), g('infrastructure/k3s-preview/extra-manifests/cert-manager-helmchartconfig.yaml.tpl')], covers: ['traefik-origin-cert', 'traefik-origin-pull'] },
@@ -339,12 +339,14 @@ const realCards = () =>
       .sort()
       .map((n) => ({ text: readFileSync(`${ROOT}src/content/projects/${n}`, 'utf8') })),
   );
-const liveFixture = (ev: any = evidence): any => ({
+// The 2026-10-04 bootstrap listing: 2026-10-03 plus vault-human-auth-iac (Terraform for Vault's human auth).
+const LIVE_BOOTSTRAP_2026_10_04 = [...LIVE_BOOTSTRAP, 'vault-human-auth-iac'];
+const liveFixture = (ev: any = evidence, bootstrap: string[] = LIVE_BOOTSTRAP): any => ({
   orgRepos: LIVE_ORG_2026_10_03,
   cards: realCards(),
   evidence: ev,
   evidenceResults: ev.items.flatMap((i: any) => i.evidence.map((e: any) => ({ ...e, result: 'present' }))),
-  bootstrapFiles: LIVE_BOOTSTRAP,
+  bootstrapFiles: bootstrap,
 });
 
 test('IGNORED_REPOS is the specified list', () => {
@@ -376,6 +378,17 @@ for (const name of ['valkey', 'minio', 'otel-collector']) {
     assert.ok(computeDrift(liveFixture(ev)).candidateComponents.includes(name));
   });
 }
+
+test('over the 2026-10-04 bootstrap listing vault-human-auth-iac is covered, not a candidate', () => {
+  assert.deepEqual(computeDrift(liveFixture(evidence, LIVE_BOOTSTRAP_2026_10_04)).candidateComponents, []);
+  assert.ok(!evidence.ignored_components.includes('vault-human-auth-iac'));
+});
+
+test('removing vault-human-auth-iac from the evidence covers makes it a candidate', () => {
+  const ev = JSON.parse(JSON.stringify(evidence));
+  for (const i of ev.items) i.covers = i.covers.filter((c: string) => c !== 'vault-human-auth-iac');
+  assert.deepEqual(computeDrift(liveFixture(ev, LIVE_BOOTSTRAP_2026_10_04)).candidateComponents, ['vault-human-auth-iac']);
+});
 
 for (const name of ['forgejo', 'zitadel', 'reflector']) {
   test(`removing ${name} from ignored_components makes it a candidate`, () => {

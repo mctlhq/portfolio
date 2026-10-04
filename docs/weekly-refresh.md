@@ -5,7 +5,11 @@ reports where two hand-maintained lists have drifted from the organisation.
 
 ## Schedule
 
-Every Sunday at 08:00 UTC (`cron: '0 8 * * 0'`) and on manual dispatch.
+The mctl-agents Temporal Schedule `dispatch-mctlhq-portfolio-weekly-refresh-schedule` dispatches this workflow every Sunday at 10:01 UTC through `workflow_dispatch`, then checks that a run appeared. If the dispatch fails or no run appears, it opens an issue labelled `scheduled-dispatch-failed` in `mctlhq/portfolio`. The schedule lives in mctl-agents (mctl-agents#559 and #560, released in mctl-agents 1.65.0); changing the time is a change there, not here.
+
+The workflow has no GitHub Actions `schedule:` trigger. GitHub runs `schedule` on a best-effort basis and drops a slot without notice: on Sunday 2026-10-04 neither `0 5 * * 0` nor `0 8 * * 0` produced a run. A second, silent trigger would look like a backstop without being one, so `test/weekly-refresh-workflow.test.ts` fails if one is added back.
+
+A manual `workflow_dispatch` (see Manual run) still works at any time.
 
 ## Tokens
 
