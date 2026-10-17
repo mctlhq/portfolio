@@ -19,11 +19,13 @@ FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:378d0c32f6562f7fd9629170797f
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/security-headers.rendered.conf /etc/nginx/security-headers.conf
 COPY --from=builder /app/dist/ /usr/share/nginx/html/
-# Transitional: the build sandbox does not let uid 101 bind port 80, so the
-# config test runs as root until nginx.conf drops `listen 80`.
-USER root
-RUN nginx -t
 USER 101:101
+# The config test writes nginx.pid and temp directories into /tmp; clear them
+# so the image ships an empty /tmp. A root-owned leftover there crash-looped
+# 0.1.45 on a pod without a /tmp emptyDir.
+RUN nginx -t && rm -rf /tmp/*
+# Port contract: mctl-gitops labs/portfolio sets service.containerPort: 8080
+# (mctlhq/mctl-gitops#1943); keep the two in step.
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s CMD wget -q --spider http://127.0.0.1:8080/healthz || exit 1
 CMD ["nginx", "-g", "daemon off;"]
