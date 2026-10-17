@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.46](https://github.com/mctlhq/portfolio/compare/0.1.45...0.1.46) (2026-10-17)
+
+
+### Bug Fixes
+
+* serve the site on 8080 only and ship an empty /tmp ([048e5fa](https://github.com/mctlhq/portfolio/commit/048e5faf65acd76422254e162c0a2578c7681a2c))
+* serve the site on 8080 only and ship an empty /tmp ([267b41d](https://github.com/mctlhq/portfolio/commit/267b41d0664c4f168e01eadb0fd7219ba07c9bee))
+
 ## [0.1.45](https://github.com/mctlhq/portfolio/compare/0.1.44...0.1.45) (2026-10-17)
 
 
