@@ -4,19 +4,26 @@ COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
 RUN npm run build && node scripts/check-dist.mjs && node scripts/csp-hash.mjs > /app/csp-script-src.txt
+RUN HASHES="$(cat /app/csp-script-src.txt)" \
+ && sed "s|__SCRIPT_SRC_HASHES__|${HASHES}|g" security-headers.conf > security-headers.rendered.conf \
+ && grep -qE "script-src 'self' 'sha(256|384|512)-[A-Za-z0-9+/]+={0,2}'" security-headers.rendered.conf \
+ && ! grep -qE "(^|[^'])sha(256|384|512)-" security-headers.rendered.conf \
+ && ! grep -q "__SCRIPT_SRC_HASHES__" security-headers.rendered.conf
 
-FROM nginx:1.31-alpine@sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2
+# nginx-unprivileged runs as uid 101 and keeps its pid and temp files under
+# /tmp, so the container needs no capabilities and works with a read-only
+# root filesystem (base-service step-2 defaults). The numeric USER lets the
+# kubelet verify runAsNonRoot. The CSP substitution happens in the builder
+# stage so this stage needs no file writes as root.
+FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:378d0c32f6562f7fd9629170797f57d2b953aa09be983b3daaf4809bb039ca00
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY security-headers.conf /tmp/security-headers.conf
-COPY --from=builder /app/csp-script-src.txt /tmp/csp-script-src.txt
-RUN HASHES="$(cat /tmp/csp-script-src.txt)" \
- && sed "s|__SCRIPT_SRC_HASHES__|${HASHES}|g" /tmp/security-headers.conf > /etc/nginx/security-headers.conf \
- && grep -qE "script-src 'self' 'sha(256|384|512)-[A-Za-z0-9+/]+={0,2}'" /etc/nginx/security-headers.conf \
- && ! grep -qE "(^|[^'])sha(256|384|512)-" /etc/nginx/security-headers.conf \
- && ! grep -q "__SCRIPT_SRC_HASHES__" /etc/nginx/security-headers.conf \
- && rm /tmp/security-headers.conf /tmp/csp-script-src.txt
+COPY --from=builder /app/security-headers.rendered.conf /etc/nginx/security-headers.conf
 COPY --from=builder /app/dist/ /usr/share/nginx/html/
+# Transitional: the build sandbox does not let uid 101 bind port 80, so the
+# config test runs as root until nginx.conf drops `listen 80`.
+USER root
 RUN nginx -t
-EXPOSE 80
-HEALTHCHECK --interval=30s --timeout=3s CMD wget -q --spider http://127.0.0.1/healthz || exit 1
+USER 101:101
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s CMD wget -q --spider http://127.0.0.1:8080/healthz || exit 1
 CMD ["nginx", "-g", "daemon off;"]
