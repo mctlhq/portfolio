@@ -60,7 +60,10 @@ jobs:
       - name: Run container and check response headers
         run: |
           set -e
-          container_id="$(docker run -d -p 8080:80 portfolio:ci)"
+          # Run it the way the cluster does: non-root, read-only root
+          # filesystem with only /tmp writable, no capabilities.
+          container_id="$(docker run -d --read-only --tmpfs /tmp --cap-drop ALL \
+            --security-opt no-new-privileges -p 8080:8080 portfolio:ci)"
           trap 'docker logs "$container_id" || true; docker stop "$container_id" >/dev/null' EXIT
 
           for i in $(seq 1 30); do
