@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.45](https://github.com/mctlhq/portfolio/compare/0.1.44...0.1.45) (2026-10-17)
+
+
+### Bug Fixes
+
+* **metrics:** weekly snapshot 2026-10-11 ([15a79d1](https://github.com/mctlhq/portfolio/commit/15a79d12cf78ca75ae01efd5706603d4b8407bc6))
+* **metrics:** weekly snapshot 2026-10-11 ([42a9928](https://github.com/mctlhq/portfolio/commit/42a99284759b9785a0001110f2123aaa05a4d4eb))
+* run the site image as non-root nginx-unprivileged ([7849875](https://github.com/mctlhq/portfolio/commit/7849875ef0ed76b3d92edd8c55db07215ead775e))
+* run the site image as non-root nginx-unprivileged ([c430039](https://github.com/mctlhq/portfolio/commit/c430039a10b406fe8ebb0074007920d8ef39ee8c))
+
 ## [0.1.44](https://github.com/mctlhq/portfolio/compare/0.1.43...0.1.44) (2026-10-04)
 
 
