@@ -8,6 +8,12 @@ permissions:
   contents: write
   pull-requests: write
 
+# Serialized so a late run cannot act on a release PR a newer push already
+# reclassified; a newer queued run supersedes an older queued one.
+concurrency:
+  group: release-please-${{ github.repository }}
+  cancel-in-progress: false
+
 env:
   RELEASE_BRANCH: release-please--branches--main--components--portfolio
 
@@ -59,7 +65,9 @@ jobs:
           [ "$status" = "ahead" ] || verdict false "main is '${status}' relative to ${version}, not strictly ahead"
           count="$(jq -er '.files | length' <<<"$compare")" || verdict false "malformed compare response"
           [ "$count" -gt 0 ] && [ "$count" -lt 300 ] || verdict false "compare lists ${count} files (empty or truncated)"
-          other="$(jq -r '.files[].filename | select(. != "src/data/metrics.json" and (startswith(".github/") | not))' <<<"$compare")"
+          # A rename lists the new path in .filename and the old one in
+          # .previous_filename; both must be snapshot or wiring paths.
+          other="$(jq -r '.files[] | .filename, (.previous_filename // empty) | select(. != "src/data/metrics.json" and (startswith(".github/") | not))' <<<"$compare")"
           [ -z "$other" ] || verdict false "unreleased changes outside the snapshot: $(echo "$other" | tr '\n' ' ')"
           jq -e 'any(.files[]; .filename == "src/data/metrics.json")' <<<"$compare" >/dev/null \
             || verdict false "no snapshot among the unreleased changes"
@@ -72,8 +80,10 @@ jobs:
         run: |
           set -euo pipefail
           number="$(gh pr list -R "$GITHUB_REPOSITORY" --head "$RELEASE_BRANCH" --state open --json number --jq '.[0].number // empty')"
-          if [ -n "$number" ]; then
-            gh pr merge "$number" -R "$GITHUB_REPOSITORY" --disable-auto || echo "::notice::auto-merge was not enabled on #${number}"
+          [ -n "$number" ] || exit 0
+          auto="$(gh pr view "$number" -R "$GITHUB_REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest != null')"
+          if [ "$auto" = "true" ]; then
+            gh pr merge "$number" -R "$GITHUB_REPOSITORY" --disable-auto
           fi
 
       - uses: googleapis/release-please-action@v5
@@ -87,8 +97,16 @@ jobs:
         if: ${{ steps.classify.outputs.snapshot_only == 'true' && steps.release.outputs.release_created != 'true' }}
         env:
           GH_TOKEN: ${{ steps.release-token.outputs.token }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
+          # The classification holds only for this push; if main moved on, the
+          # run for the newer push decides.
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          if [ "$main_sha" != "$HEAD_SHA" ]; then
+            echo "::notice::main moved to ${main_sha} after ${HEAD_SHA}; leaving auto-merge to that run"
+            exit 0
+          fi
           number="$(gh pr list -R "$GITHUB_REPOSITORY" --head "$RELEASE_BRANCH" --state open --json number --jq '.[0].number // empty')"
           if [ -z "$number" ]; then
             echo "::notice::no open release pull request"
