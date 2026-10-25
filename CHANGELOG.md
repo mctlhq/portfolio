@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.1.48](https://github.com/mctlhq/portfolio/compare/0.1.47...0.1.48) (2026-10-25)
+
+
+### Features
+
+* **agents:** issue-174-docs-weekly-refresh-md-says-a-human-merg ([9f1c691](https://github.com/mctlhq/portfolio/commit/9f1c691cca1d6c8fe6aa25d78ee43d9b09609080))
+
+
+### Bug Fixes
+
+* **metrics:** weekly snapshot 2026-10-25 ([ddcad86](https://github.com/mctlhq/portfolio/commit/ddcad862490ae77caf23aa0e43f8be495359add1))
+* **metrics:** weekly snapshot 2026-10-25 ([fea55ca](https://github.com/mctlhq/portfolio/commit/fea55cafb997276c0f5247564e94033cf59ab06b))
+
+
+### Documentation
+
+* **agents:** issue-174-docs-weekly-refresh-md-says-a-human-merg ([d4393b4](https://github.com/mctlhq/portfolio/commit/d4393b4eb14ee077c966282185f0cd2f4afe63b4))
+
 ## [0.1.47](https://github.com/mctlhq/portfolio/compare/0.1.46...0.1.47) (2026-10-25)
 
 
