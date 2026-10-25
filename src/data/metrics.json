@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-10-25T08:45:56.197Z",
+  "generated_at": "2026-10-25T10:01:30.709Z",
   "sources": {
     "github": {
-      "collected_at": "2026-10-25T08:45:56.197Z",
+      "collected_at": "2026-10-25T10:01:30.709Z",
       "method": "gh api: repos of org mctlhq; commits and releases per repository via the REST API",
       "repos": 21,
-      "commits": 19524,
-      "releases": 1061,
+      "commits": 19543,
+      "releases": 1064,
       "per_repo": {
         "mctlhq/.github": {
           "commits": 398,
@@ -39,10 +39,10 @@
           "last_commit_at": "2026-10-23T14:08:48Z"
         },
         "mctlhq/mctl-api": {
-          "commits": 1659,
-          "releases": 201,
+          "commits": 1664,
+          "releases": 202,
           "first_commit_at": "2026-03-10T21:50:00Z",
-          "last_commit_at": "2026-10-25T00:09:00Z"
+          "last_commit_at": "2026-10-25T09:56:10Z"
         },
         "mctlhq/mctl-claude-remote": {
           "commits": 195,
@@ -69,10 +69,10 @@
           "last_commit_at": "2026-10-24T11:54:38Z"
         },
         "mctlhq/mctl-gitops": {
-          "commits": 9346,
+          "commits": 9352,
           "releases": 6,
           "first_commit_at": "2026-03-15T19:20:54Z",
-          "last_commit_at": "2026-10-25T08:36:59Z"
+          "last_commit_at": "2026-10-25T09:58:44Z"
         },
         "mctlhq/mctl-loyalty": {
           "commits": 77,
@@ -117,10 +117,10 @@
           "last_commit_at": "2026-10-23T16:12:36Z"
         },
         "mctlhq/portfolio": {
-          "commits": 301,
-          "releases": 48,
+          "commits": 309,
+          "releases": 50,
           "first_commit_at": "2026-09-10T22:43:00Z",
-          "last_commit_at": "2026-10-25T08:36:22Z"
+          "last_commit_at": "2026-10-25T09:37:14Z"
         },
         "mctlhq/projects-mcp": {
           "commits": 111,
@@ -137,7 +137,7 @@
       }
     },
     "mctl": {
-      "collected_at": "2026-10-25T08:45:56.197Z",
+      "collected_at": "2026-10-25T10:01:30.709Z",
       "method": "count of platform-gitops/services/*/*/values.yaml (the set mctl_list_services reads) and of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops",
       "services": 28,
       "devloop_proposals": 981,
