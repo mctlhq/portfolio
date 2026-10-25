@@ -8,6 +8,15 @@ permissions:
   contents: write
   pull-requests: write
 
+# Serialized so a late run cannot act on a release PR a newer push already
+# reclassified; a newer queued run supersedes an older queued one.
+concurrency:
+  group: release-please-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_BRANCH: release-please--branches--main--components--portfolio
+
 jobs:
   release-please:
     runs-on: ubuntu-latest
@@ -28,12 +37,88 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
+      # Snapshot-only releases ship themselves. A release whose unreleased
+      # changes on main are only the weekly src/data/metrics.json snapshot
+      # (plus .github/** wiring, which never reaches the image) has nothing for
+      # a human to decide, so its release PR gets auto-merge once the required
+      # `build` check and the Claude review approve it. Anything else keeps the
+      # release PR human. This runs before release-please updates the PR, so a
+      # non-snapshot commit landing on main revokes auto-merge first; a failed
+      # or unreadable compare counts as "not snapshot-only", never as clean.
+      - name: Classify unreleased changes
+        id: classify
+        env:
+          GH_TOKEN: ${{ steps.release-token.outputs.token }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -uo pipefail
+          verdict() {
+            echo "snapshot_only=$1" >> "$GITHUB_OUTPUT"
+            echo "::notice::snapshot_only=$1: $2"
+            exit 0
+          }
+          version="$(gh api "repos/${GITHUB_REPOSITORY}/contents/.release-please-manifest.json?ref=${HEAD_SHA}" --jq '.content' | base64 -d | jq -er '.["."]')" \
+            || verdict false "could not read the released version from the manifest"
+          compare="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${version}...${HEAD_SHA}")" \
+            || verdict false "could not compare ${version}...${HEAD_SHA}"
+          status="$(jq -er '.status' <<<"$compare")" || verdict false "malformed compare response"
+          [ "$status" = "ahead" ] || verdict false "main is '${status}' relative to ${version}, not strictly ahead"
+          count="$(jq -er '.files | length' <<<"$compare")" || verdict false "malformed compare response"
+          [ "$count" -gt 0 ] && [ "$count" -lt 300 ] || verdict false "compare lists ${count} files (empty or truncated)"
+          # A rename lists the new path in .filename and the old one in
+          # .previous_filename; both must be snapshot or wiring paths.
+          other="$(jq -r '.files[] | .filename, (.previous_filename // empty) | select(. != "src/data/metrics.json" and (startswith(".github/") | not))' <<<"$compare")"
+          [ -z "$other" ] || verdict false "unreleased changes outside the snapshot: $(echo "$other" | tr '\n' ' ')"
+          jq -e 'any(.files[]; .filename == "src/data/metrics.json")' <<<"$compare" >/dev/null \
+            || verdict false "no snapshot among the unreleased changes"
+          verdict true "only the snapshot and .github/** changed since ${version}"
+
+      - name: Revoke auto-merge on a non-snapshot release
+        if: ${{ steps.classify.outputs.snapshot_only != 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.release-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          number="$(gh pr list -R "$GITHUB_REPOSITORY" --head "$RELEASE_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          [ -n "$number" ] || exit 0
+          auto="$(gh pr view "$number" -R "$GITHUB_REPOSITORY" --json autoMergeRequest --jq '.autoMergeRequest != null')"
+          if [ "$auto" = "true" ]; then
+            gh pr merge "$number" -R "$GITHUB_REPOSITORY" --disable-auto
+          fi
+
       - uses: googleapis/release-please-action@v5
         id: release
         with:
           token: ${{ steps.release-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      - name: Enable auto-merge on a snapshot-only release
+        if: ${{ steps.classify.outputs.snapshot_only == 'true' && steps.release.outputs.release_created != 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.release-token.outputs.token }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # The classification holds only for this push; if main moved on, the
+          # run for the newer push decides.
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          if [ "$main_sha" != "$HEAD_SHA" ]; then
+            echo "::notice::main moved to ${main_sha} after ${HEAD_SHA}; leaving auto-merge to that run"
+            exit 0
+          fi
+          number="$(gh pr list -R "$GITHUB_REPOSITORY" --head "$RELEASE_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if [ -z "$number" ]; then
+            echo "::notice::no open release pull request"
+            exit 0
+          fi
+          files="$(gh pr view "$number" -R "$GITHUB_REPOSITORY" --json files --jq '.files[].path')"
+          extra="$(grep -vxE 'CHANGELOG\.md|\.release-please-manifest\.json|package\.json|package-lock\.json' <<<"$files" || true)"
+          if [ -n "$extra" ]; then
+            echo "::warning::release PR #${number} touches more than the release files, leaving it for a human: $(echo "$extra" | tr '\n' ' ')"
+            exit 0
+          fi
+          gh pr merge "$number" -R "$GITHUB_REPOSITORY" --auto --merge
 
       # Deploy the way every other onboarded mctlhq service does: hand the tag
       # to mctl-gitops, which builds ghcr.io/mctlhq/portfolio from this repo's
