@@ -32,8 +32,17 @@ force-updated by the workflow) as `fix(metrics): weekly snapshot YYYY-MM-DD`,
 opens a pull request if none is open, and enables auto-merge with a merge
 commit. Auto-merge completes only after the required `build` check and an
 approving review; a requested-changes review holds it. release-please then
-opens a patch release pull request, which a human still merges, so the deploy
-decision stays manual. The pull request is not a DevLoop cycle and adds no
+opens a patch release pull request. If nothing has
+changed since the last release except `src/data/metrics.json` and
+`.github/**`, and the release pull request touches only `CHANGELOG.md`,
+`.release-please-manifest.json`, `package.json` and `package-lock.json`,
+`.github/workflows/release-please.yml` enables auto-merge on it with a merge
+commit. It still waits for the `build` check and an approving review, and
+merging it tags and deploys the release with no human step. Every other
+release keeps a human merge, and the workflow revokes auto-merge on the open
+release pull request before release-please updates it. A check that cannot
+be read, or returns a malformed, empty or truncated answer, counts as not
+snapshot-only, so that release stays manual. The pull request is not a DevLoop cycle and adds no
 journal entry.
 
 If the snapshot fails, nothing is pushed and the drift step does not run.
