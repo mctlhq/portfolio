@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.49](https://github.com/mctlhq/portfolio/compare/0.1.48...0.1.49) (2026-10-25)
+
+
+### Bug Fixes
+
+* **journal:** close cycle 174 ([ffc6da6](https://github.com/mctlhq/portfolio/commit/ffc6da68f79c76c3c55aba06a9c699e65d7dc6fb))
+* **journal:** close cycle 174 ([37542e4](https://github.com/mctlhq/portfolio/commit/37542e48a592dc1e2394da1b8aeffeff9ccd3b79))
+
 ## [0.1.48](https://github.com/mctlhq/portfolio/compare/0.1.47...0.1.48) (2026-10-25)
 
 
