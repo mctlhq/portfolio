@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.51](https://github.com/mctlhq/portfolio/compare/0.1.50...0.1.51) (2026-10-28)
+
+
+### Dependencies
+
+* bump @astrojs/check from 0.9.10 to 0.9.12 ([3e2c107](https://github.com/mctlhq/portfolio/commit/3e2c107be40b1ded739ebb8840af160238d2228d))
+* bump astro from 7.3.5 to 7.4.2 ([672bccd](https://github.com/mctlhq/portfolio/commit/672bccdf2cd8a5f8bb9873b93881d85049209dde))
+* bump nginxinc/nginx-unprivileged from `378d0c3` to `b5047b9` ([e02098f](https://github.com/mctlhq/portfolio/commit/e02098f853b1d646dec394a521624e7fbfcf57bd))
+
 ## [0.1.50](https://github.com/mctlhq/portfolio/compare/0.1.49...0.1.50) (2026-10-25)
 
 
