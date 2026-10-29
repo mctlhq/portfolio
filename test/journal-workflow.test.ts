@@ -30,7 +30,7 @@ test('journal-closure.yml declares a concurrency group serializing runs for this
 });
 
 test('journal-closure.yml mints a token with the same pinned App-token action, scoped to portfolio, contents and pull-requests write', () => {
-  assert.match(workflow, /actions\/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3\.2\.0/);
+  assert.match(workflow, /actions\/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3\.3\.0/);
   assert.match(workflow, /repositories:\s*portfolio/);
   assert.match(workflow, /permission-contents:\s*write/);
   assert.match(workflow, /permission-pull-requests:\s*write/);
