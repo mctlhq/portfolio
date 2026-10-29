@@ -26,3 +26,12 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "deps"
+    ignore:
+      # Never propose a Node major for the base image: Dependabot follows the
+      # newest tag, including odd non-LTS lines (#119 proposed 25-alpine, a
+      # line that was already EOL). Moving between LTS lines (24 -> 26 -> 28)
+      # is a deliberate change made in one PR together with `node-version`
+      # in the workflows. Minor, patch and digest updates within the current
+      # line still come through.
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
