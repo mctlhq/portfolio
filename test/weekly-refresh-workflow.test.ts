@@ -43,9 +43,9 @@ test('declares a non-cancelling concurrency group', () => {
   );
 });
 
-test('checks out main without persisted credentials, node 24, npm ci', () => {
+test('checks out main without persisted credentials, node 26, npm ci', () => {
   assert.match(workflow, /ref: main\s*\n\s*persist-credentials: false/);
-  assert.match(workflow, /node-version: 24/);
+  assert.match(workflow, /node-version: 26/);
   assert.match(workflow, /npm ci --no-audit --no-fund/);
 });
 
