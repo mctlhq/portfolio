@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.52](https://github.com/mctlhq/portfolio/compare/0.1.51...0.1.52) (2026-10-29)
+
+
+### Dependencies
+
+* move the build image and CI to Node 26 (LTS) ([0147cad](https://github.com/mctlhq/portfolio/commit/0147cadd13f9e5c37802f6ee585ce38b3659b627))
+
 ## [0.1.51](https://github.com/mctlhq/portfolio/compare/0.1.50...0.1.51) (2026-10-28)
 
 
