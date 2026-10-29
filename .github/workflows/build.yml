@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - run: npm ci --no-audit --no-fund
 
@@ -55,7 +55,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       - name: Run container and check response headers
         run: |

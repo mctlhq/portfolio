@@ -35,7 +35,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: 26
 
       # Same pinned GitHub App token pattern as release-please.yml, scoped to
       # this repository only, with contents and pull-requests write so the
