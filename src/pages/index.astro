@@ -20,7 +20,7 @@ const contactFocusTabIndex = -1;
 
 <Base
   title={ui.homeTitle.en}
-  description="Platform engineering with AI on proven open source. Dmitrii Mashkov builds and runs an internal developer platform where agents ship and humans hold the gates."
+  description={ui.homeDescription.en}
 >
   <span class="eyebrow"><Lang en={ui.heroEyebrow.en} ru={ui.heroEyebrow.ru} /></span>
   <h1 class="hero-name"><Lang en={ui.heroName.en} ru={ui.heroName.ru} /></h1>
@@ -87,7 +87,7 @@ const contactFocusTabIndex = -1;
       {ui.contactItems.en.map((item, index) => (
         <li>
           <Lang en={item.label} ru={ui.contactItems.ru[index].label} />:{' '}
-          <a href={item.href}><Lang en={item.text} ru={item.text} /></a>
+          <a href={item.href}><Lang en={item.text} ru={ui.contactItems.ru[index].text} /></a>
         </li>
       ))}
     </ul>

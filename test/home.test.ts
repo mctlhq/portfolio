@@ -103,13 +103,12 @@ test('the hero name renders through <Lang> bound to ui.heroName, with no literal
     'expected <h1 class="hero-name"> to wrap a <Lang en={ui.heroName.en} ru={ui.heroName.ru} /> element',
   );
 
-  // The <Base description="..."> attribute is untouched, out-of-scope prose
-  // (see requirements.md / design.md: "the description prop ... does not
-  // trip this") and is the one place in the template still allowed to spell
-  // the name out, since <meta description> is a single string, not a
-  // toggled pair. Strip only that attribute's value before checking that no
-  // other part of the template holds the name as a literal.
-  const withoutDescription = template.replace(/description="[^"]*"/, 'description=""');
+  // The description now comes from the dictionary (issue #195), so no
+  // description string literal remains in the template and the name must not
+  // appear as a literal anywhere in it.
+  assert.ok(template.includes('description={ui.homeDescription.en}'), 'expected description={ui.homeDescription.en}');
+  assert.doesNotMatch(template, /description="/, 'the template must not hold a description literal');
+  const withoutDescription = template;
   assert.doesNotMatch(withoutDescription, /Dmitrii Mashkov/, 'the template must not hold the name as a literal string');
   assert.doesNotMatch(withoutDescription, /Дмитрий Машков/, 'the template must not hold the name as a literal string');
 });
@@ -332,12 +331,45 @@ test('dist/index.html carries contactIntro and each of the four contactItems tex
   for (let i = 0; i < ui.contactItems.en.length; i += 1) {
     assert.ok(hasEnSpan(indexHtml, ui.contactItems.en[i].label), `missing EN contactItems[${i}].label`);
     assert.ok(hasRuSpan(indexHtml, ui.contactItems.ru[i].label), `missing RU contactItems[${i}].label`);
-    // contactItems.text is identical across languages (Appendix A.9) and is
-    // rendered through <Lang en={text} ru={text} />, so it must appear
-    // inside both an l en and an l ru element with the same value.
+    // contactItems.text is rendered through <Lang en={en.text} ru={ru.text} />;
+    // it is identical across languages except for Telegram (issue #195).
     assert.ok(hasEnSpan(indexHtml, ui.contactItems.en[i].text), `missing EN contactItems[${i}].text`);
-    assert.ok(hasRuSpan(indexHtml, ui.contactItems.en[i].text), `missing RU contactItems[${i}].text`);
+    assert.ok(hasRuSpan(indexHtml, ui.contactItems.ru[i].text), `missing RU contactItems[${i}].text`);
   }
+  const decoded = decodeHtmlEntities(indexHtml);
+  assert.ok(
+    decoded.includes('<span class="l en">Dmitrii Mashkov on Telegram — @dmitriimashkov</span>'),
+    'missing EN Telegram contact span',
+  );
+  assert.ok(
+    decoded.includes('<span class="l ru" lang="ru">Дмитрий Машков в Telegram — @dmitriimashkov</span>'),
+    'missing RU Telegram contact span',
+  );
+  assert.equal(
+    decoded.split('href="https://t.me/dmitriimashkov"').length - 1,
+    1,
+    'expected exactly one anchor to https://t.me/dmitriimashkov',
+  );
+});
+
+function headMatches(html: string, re: RegExp): string[] {
+  return [...html.matchAll(re)].map((m) => decodeHtmlEntities(m[1]));
+}
+
+test('dist/index.html carries exactly one title, description, OG and Twitter title/description with the home copy', async () => {
+  const { indexHtml } = await builtTree();
+  const title = 'Dmitrii Mashkov — Platform Engineering & AI';
+  assert.equal(ui.homeTitle.en, title);
+  const meta = (attr: string, key: string) =>
+    new RegExp(`<meta\\s+${attr}="${key}"\\s+content="([^"]*)"|<meta\\s+content="([^"]*)"\\s+${attr}="${key}"`, 'g');
+  const metaValues = (attr: string, key: string) =>
+    [...indexHtml.matchAll(meta(attr, key))].map((m) => decodeHtmlEntities(m[1] ?? m[2]));
+  assert.deepEqual(headMatches(indexHtml, /<title>([^<]*)<\/title>/g), [title]);
+  assert.deepEqual(metaValues('property', 'og:title'), [title]);
+  assert.deepEqual(metaValues('name', 'twitter:title'), [title]);
+  assert.deepEqual(metaValues('name', 'description'), [ui.homeDescription.en]);
+  assert.deepEqual(metaValues('property', 'og:description'), [ui.homeDescription.en]);
+  assert.deepEqual(metaValues('name', 'twitter:description'), [ui.homeDescription.en]);
 });
 
 test('dist/index.html renders every one of the four contactItems as an <a href> equal to its href, with visible text equal to its text', async () => {
@@ -375,6 +407,7 @@ test('dist/index.html carries exactly one application/ld+json block, which JSON.
   const person = parsed['@graph'][0];
   assert.equal(person['@type'], 'Person');
   assert.equal(person.name, 'Dmitrii Mashkov');
+  assert.equal(person.alternateName, 'Дмитрий Машков');
   assert.equal(person.url, 'https://dmitriimashkov.com/');
   assert.equal(person.jobTitle, 'Senior platform engineer');
   assert.equal(person.email, 'mailto:hello@dmitriimashkov.com');
@@ -383,13 +416,14 @@ test('dist/index.html carries exactly one application/ld+json block, which JSON.
     'https://github.com/mctlhq',
     'https://t.me/dmitriimashkov',
   ]);
-  assert.deepEqual(Object.keys(person).sort(), ['@type', 'email', 'jobTitle', 'name', 'sameAs', 'url'].sort());
+  assert.deepEqual(Object.keys(person).sort(), ['@type', 'alternateName', 'email', 'jobTitle', 'name', 'sameAs', 'url'].sort());
 
   const site = parsed['@graph'][1];
   assert.equal(site['@type'], 'WebSite');
   assert.equal(site.name, 'Dmitrii Mashkov');
   assert.equal(site.url, 'https://dmitriimashkov.com/');
   assert.equal(site.inLanguage, 'en');
+  assert.equal('alternateName' in site, false);
   assert.deepEqual(Object.keys(site).sort(), ['@type', 'inLanguage', 'name', 'url'].sort());
 });
 
