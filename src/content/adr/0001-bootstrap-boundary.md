@@ -32,8 +32,8 @@ Humans create and edit only the wiring: the repository itself, README.md, AGENTS
 </div>
 
 <div class="l ru" lang="ru">
+
 Человек создаёт и правит только обвязку: сам репозиторий, README.md, AGENTS.md, LICENSE, .gitignore, конфигурацию и манифест release-please, настройки репозитория, секреты, метки, правила ветвления и три файла, которые охраняют сам цикл, — .github/workflows/claude-review.yml, .github/workflows/release-please.yml и .github/dependabot.yml. Все остальные файлы — проект Astro, Dockerfile, nginx.conf, контент, журнал, ADR, скрипты и все прочие воркфлоу в .github/workflows, в том числе build.yml и agent-trailer-check.yml, — появляются через цикл DevLoop, а любое действие по развёртыванию выполняется инструментами mctl MCP.
-Человек создаёт и правит только обвязку: сам репозиторий, README.md, AGENTS.md, LICENSE, .gitignore, .github/**, конфигурацию и манифест release-please, настройки репозитория, секреты, метки и правила ветвления. Все остальные файлы — проект Astro, Dockerfile, nginx.conf, контент, журнал, ADR, скрипты — появляются через цикл DevLoop, а любое действие по развёртыванию выполняется инструментами mctl MCP.
 
 </div>
 
