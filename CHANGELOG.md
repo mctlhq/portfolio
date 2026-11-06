@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.56](https://github.com/mctlhq/portfolio/compare/0.1.55...0.1.56) (2026-11-06)
+
+
+### Bug Fixes
+
+* **branding:** add raster apple-touch-icon and favicon.ico ([84d9df6](https://github.com/mctlhq/portfolio/commit/84d9df6654c3cc82955e2c0ce03784ac61978a4b))
+* **branding:** add raster apple-touch-icon and favicon.ico ([a840768](https://github.com/mctlhq/portfolio/commit/a840768ac6a2dbffb9565309fffd8d03fc76d3af))
+* **journal:** close cycle 200 ([9c69369](https://github.com/mctlhq/portfolio/commit/9c69369755f6d8f48848115cec07e3334a31f69a))
+* **journal:** close cycle 200 ([43d3d89](https://github.com/mctlhq/portfolio/commit/43d3d89f9d3f4cd872f663d4a11c97cd9d3c32be))
+
 ## [0.1.55](https://github.com/mctlhq/portfolio/compare/0.1.54...0.1.55) (2026-11-06)
 
 
