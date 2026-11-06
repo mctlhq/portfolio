@@ -27,13 +27,13 @@ This repository exists to be evidence that the mctl DevLoop can build and run a 
 
 <div class="l en">
 
-Humans create and edit only the wiring: the repository itself, README.md, AGENTS.md, LICENSE, .gitignore, .github/**, the release-please configuration and manifest, repository settings, secrets, labels and the branch ruleset. Every other file — the Astro project, Dockerfile, nginx.conf, content, journal, ADRs, scripts — arrives through a DevLoop cycle, and every deployment action goes through the mctl MCP tools.
+Humans create and edit only the wiring: the repository itself, README.md, AGENTS.md, LICENSE, .gitignore, the release-please configuration and manifest, repository settings, secrets, labels, the branch ruleset, and the three files that gate the loop itself — .github/workflows/claude-review.yml, .github/workflows/release-please.yml and .github/dependabot.yml. Every other file — the Astro project, Dockerfile, nginx.conf, content, journal, ADRs, scripts and every other workflow under .github/workflows, among them build.yml and agent-trailer-check.yml — arrives through a DevLoop cycle, and every deployment action goes through the mctl MCP tools.
 
 </div>
 
 <div class="l ru" lang="ru">
 
-Человек создаёт и правит только обвязку: сам репозиторий, README.md, AGENTS.md, LICENSE, .gitignore, .github/**, конфигурацию и манифест release-please, настройки репозитория, секреты, метки и правила ветвления. Все остальные файлы — проект Astro, Dockerfile, nginx.conf, контент, журнал, ADR, скрипты — появляются через цикл DevLoop, а любое действие по развёртыванию выполняется инструментами mctl MCP.
+Человек создаёт и правит только обвязку: сам репозиторий, README.md, AGENTS.md, LICENSE, .gitignore, конфигурацию и манифест release-please, настройки репозитория, секреты, метки, правила ветвления и три файла, которые охраняют сам цикл, — .github/workflows/claude-review.yml, .github/workflows/release-please.yml и .github/dependabot.yml. Все остальные файлы — проект Astro, Dockerfile, nginx.conf, контент, журнал, ADR, скрипты и все прочие воркфлоу в .github/workflows, в том числе build.yml и agent-trailer-check.yml, — появляются через цикл DevLoop, а любое действие по развёртыванию выполняется инструментами mctl MCP.
 
 </div>
 
