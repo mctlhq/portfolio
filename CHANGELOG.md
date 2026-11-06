@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.54](https://github.com/mctlhq/portfolio/compare/0.1.53...0.1.54) (2026-11-06)
+
+
+### Features
+
+* **agents:** issue-195-improve-home-search-snippet-and-bilingua ([c55eab2](https://github.com/mctlhq/portfolio/commit/c55eab211ad2e7c5e96c2fe1d3cc669e3ca700e8))
+* **agents:** issue-195-improve-home-search-snippet-and-bilingua ([f669616](https://github.com/mctlhq/portfolio/commit/f6696168de52a5196749409dc78c409deed65b05))
+
 ## [0.1.53](https://github.com/mctlhq/portfolio/compare/0.1.52...0.1.53) (2026-11-01)
 
 
