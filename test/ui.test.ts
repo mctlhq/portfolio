@@ -163,9 +163,22 @@ test('heroName is a real bilingual pair, and homeTitle stays the single Latin <t
   assert.equal(ui.heroName.ru, 'Дмитрий Машков');
   assert.notEqual(ui.heroName.en, ui.heroName.ru, 'heroName.en and heroName.ru must not be collapsed to one string');
 
-  assert.equal(ui.homeTitle.en, 'Dmitrii Mashkov');
-  assert.equal(ui.homeTitle.ru, 'Dmitrii Mashkov');
+  assert.equal(ui.homeTitle.en, 'Dmitrii Mashkov — Platform Engineering & AI');
+  assert.equal(ui.homeTitle.ru, 'Dmitrii Mashkov — Platform Engineering & AI');
   assert.equal(ui.homeTitle.en, ui.homeTitle.ru);
+  assert.doesNotMatch(ui.homeTitle.en, /[\u0400-\u04FF]/);
+  assert.doesNotMatch(ui.homeTitle.ru, /[\u0400-\u04FF]/);
+});
+
+test('homeDescription carries the exact EN and RU copy', () => {
+  assert.equal(
+    ui.homeDescription.en,
+    'Platform engineering, Kubernetes, GitOps and AI delivery by Dmitrii Mashkov. Explore projects and engineering notes, or get in touch on Telegram.',
+  );
+  assert.equal(
+    ui.homeDescription.ru,
+    'Дмитрий Машков: платформенная инженерия, Kubernetes, GitOps и AI. Проекты, инженерные заметки и контакт в Telegram.',
+  );
 });
 
 // -- Q15 (issue #98): the nine new keys, character for character ------------
@@ -249,16 +262,17 @@ test('contactItems carries its exact four { label, href, text } entries per lang
     { label: 'Email', href: 'mailto:hello@dmitriimashkov.com', text: 'hello@dmitriimashkov.com' },
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/dmitriimashkov', text: 'linkedin.com/in/dmitriimashkov' },
     { label: 'GitHub', href: 'https://github.com/mctlhq', text: 'github.com/mctlhq' },
-    { label: 'Telegram', href: 'https://t.me/dmitriimashkov', text: '@dmitriimashkov' },
+    { label: 'Telegram', href: 'https://t.me/dmitriimashkov', text: 'Dmitrii Mashkov on Telegram — @dmitriimashkov' },
   ]);
   assert.deepEqual(ui.contactItems.ru, [
     { label: 'Почта', href: 'mailto:hello@dmitriimashkov.com', text: 'hello@dmitriimashkov.com' },
     { label: 'LinkedIn', href: 'https://www.linkedin.com/in/dmitriimashkov', text: 'linkedin.com/in/dmitriimashkov' },
     { label: 'GitHub', href: 'https://github.com/mctlhq', text: 'github.com/mctlhq' },
-    { label: 'Telegram', href: 'https://t.me/dmitriimashkov', text: '@dmitriimashkov' },
+    { label: 'Telegram', href: 'https://t.me/dmitriimashkov', text: 'Дмитрий Машков в Telegram — @dmitriimashkov' },
   ]);
   for (let i = 0; i < ui.contactItems.en.length; i += 1) {
     assert.equal(ui.contactItems.en[i].href, ui.contactItems.ru[i].href, `contactItems[${i}].href must match across languages`);
+    if (ui.contactItems.en[i].label === 'Telegram') continue; // translated descriptive text (issue #195)
     assert.equal(ui.contactItems.en[i].text, ui.contactItems.ru[i].text, `contactItems[${i}].text must match across languages`);
   }
 });

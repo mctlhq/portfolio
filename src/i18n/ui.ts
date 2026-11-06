@@ -64,9 +64,20 @@ export const ui = {
   // heroName is the prose pair rendered in the hero (Latin on the English
   // side, Cyrillic on the Russian side). homeTitle is the single-string
   // <title> value and stays Latin on both sides -- a browser tab is a
-  // filing label, not prose, and <title> can hold only one string.
+  // filing label, not prose, and <title> can hold only one string. It now
+  // also names the role (issue #195) but is still one Latin string.
   heroName: { en: 'Dmitrii Mashkov', ru: 'Дмитрий Машков' },
-  homeTitle: { en: 'Dmitrii Mashkov', ru: 'Dmitrii Mashkov' },
+  homeTitle: {
+    en: 'Dmitrii Mashkov — Platform Engineering & AI',
+    ru: 'Dmitrii Mashkov — Platform Engineering & AI',
+  },
+  // homeDescription: only .en is server-rendered into <head> (description,
+  // OG and Twitter); .ru is the dictionary translation. There is no dynamic
+  // head metadata and no Russian route.
+  homeDescription: {
+    en: 'Platform engineering, Kubernetes, GitOps and AI delivery by Dmitrii Mashkov. Explore projects and engineering notes, or get in touch on Telegram.',
+    ru: 'Дмитрий Машков: платформенная инженерия, Kubernetes, GitOps и AI. Проекты, инженерные заметки и контакт в Telegram.',
+  },
 
   // heroEyebrow (Q15, issue #98): the eyebrow line rendered directly above
   // the hero <h1>, stating role and seniority so a screener can decide in
@@ -154,8 +165,9 @@ export const ui = {
 
   // contactHeading / contactIntro / contactItems (Q15, A.7/A.8/A.9): the
   // visible contact section, replacing the hidden detailsContactSummary
-  // disclosure. href and text are identical across languages by design
-  // (see design.md); only label is rendered as a <Lang> pair.
+  // disclosure. href is identical across languages by design (see design.md);
+  // text is identical too except for the Telegram entry, which is translated
+  // descriptive text (issue #195). label and text are rendered as <Lang> pairs.
   contactHeading: { en: 'Get in touch', ru: 'Связаться' },
   contactIntro: {
     en: 'Fully remote, Central European hours. Open to relocation in the EU. Email is the fastest way through.',
@@ -166,13 +178,13 @@ export const ui = {
       { label: 'Email', href: 'mailto:hello@dmitriimashkov.com', text: 'hello@dmitriimashkov.com' },
       { label: 'LinkedIn', href: 'https://www.linkedin.com/in/dmitriimashkov', text: 'linkedin.com/in/dmitriimashkov' },
       { label: 'GitHub', href: 'https://github.com/mctlhq', text: 'github.com/mctlhq' },
-      { label: 'Telegram', href: 'https://t.me/dmitriimashkov', text: '@dmitriimashkov' },
+      { label: 'Telegram', href: 'https://t.me/dmitriimashkov', text: 'Dmitrii Mashkov on Telegram — @dmitriimashkov' },
     ],
     ru: [
       { label: 'Почта', href: 'mailto:hello@dmitriimashkov.com', text: 'hello@dmitriimashkov.com' },
       { label: 'LinkedIn', href: 'https://www.linkedin.com/in/dmitriimashkov', text: 'linkedin.com/in/dmitriimashkov' },
       { label: 'GitHub', href: 'https://github.com/mctlhq', text: 'github.com/mctlhq' },
-      { label: 'Telegram', href: 'https://t.me/dmitriimashkov', text: '@dmitriimashkov' },
+      { label: 'Telegram', href: 'https://t.me/dmitriimashkov', text: 'Дмитрий Машков в Telegram — @dmitriimashkov' },
     ],
   },
 

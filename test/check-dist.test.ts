@@ -203,6 +203,7 @@ const VALID_HOME_GRAPH = {
     {
       '@type': 'Person',
       name: 'Dmitrii Mashkov',
+      alternateName: 'Дмитрий Машков',
       url: 'https://dmitriimashkov.com/',
       jobTitle: 'Senior platform engineer',
       email: 'mailto:hello@dmitriimashkov.com',
@@ -255,7 +256,7 @@ async function makeHomeJsonLdFixture(
   await mkdir(path.join(tmp, 'dist'), { recursive: true });
   await writeFile(
     path.join(tmp, 'dist/index.html'),
-    '<!doctype html><html><head><title>Dmitrii Mashkov</title>' +
+    '<!doctype html><html><head><title>Dmitrii Mashkov — Platform Engineering &amp; AI</title>' +
       headExtra +
       '</head><body>' +
       '<h1 class="hero-name"><span class="l en">Dmitrii Mashkov</span><span class="l ru" lang="ru">Дмитрий Машков</span></h1>' +
@@ -371,6 +372,32 @@ test('checkHomePage: a Person node missing jobTitle is reported, naming jobTitle
     const result = runCheckDist(tmp);
     assert.match(result.stderr, /Person node keys are/);
     assert.match(result.stderr, /jobTitle/);
+    assertNoOtherHomePageProblems(result.stderr);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: a Person node missing alternateName is reported, naming the key list', async () => {
+  const graph = JSON.parse(JSON.stringify(VALID_HOME_GRAPH));
+  delete graph['@graph'][0].alternateName;
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(graph));
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /Person node keys are/);
+    assert.match(result.stderr, /alternateName/);
+  } finally {
+    await rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('checkHomePage: a wrong Person.alternateName is reported, naming Person.alternateName', async () => {
+  const graph = JSON.parse(JSON.stringify(VALID_HOME_GRAPH));
+  graph['@graph'][0].alternateName = 'Dmitry Mashkov';
+  const tmp = await makeHomeJsonLdFixture(ldJsonScript(graph));
+  try {
+    const result = runCheckDist(tmp);
+    assert.match(result.stderr, /Person\.alternateName is/);
     assertNoOtherHomePageProblems(result.stderr);
   } finally {
     await rm(tmp, { recursive: true, force: true });

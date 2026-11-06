@@ -244,10 +244,10 @@ async function checkHomePage() {
   }
 
   const titleMatch = html.match(/<title>([^<]*)<\/title>/);
-  const titleText = titleMatch ? titleMatch[1] : null;
-  if (titleText !== 'Dmitrii Mashkov') {
+  const titleText = titleMatch ? titleMatch[1].replaceAll('&amp;', '&') : null;
+  if (titleText !== HOME_TITLE) {
     problems.push(
-      `check-dist: <title> in ${path.relative(ROOT, indexPath)} is "${titleText ?? '(missing)'}", expected exactly "Dmitrii Mashkov"`,
+      `check-dist: <title> in ${path.relative(ROOT, indexPath)} is "${titleText ?? '(missing)'}", expected exactly "${HOME_TITLE}"`,
     );
   }
   if (titleText && /[\u0400-\u04ff]/.test(titleText)) {
@@ -299,7 +299,8 @@ async function checkHomePage() {
   return problems;
 }
 
-const HOME_PERSON_KEYS = ['@type', 'name', 'url', 'jobTitle', 'email', 'sameAs'];
+const HOME_TITLE = 'Dmitrii Mashkov — Platform Engineering & AI';
+const HOME_PERSON_KEYS = ['@type', 'name', 'alternateName', 'url', 'jobTitle', 'email', 'sameAs'];
 const HOME_WEBSITE_KEYS = ['@type', 'name', 'url', 'inLanguage'];
 const HOME_SAME_AS = [
   'https://www.linkedin.com/in/dmitriimashkov',
@@ -310,8 +311,8 @@ const HOME_SAME_AS = [
 /**
  * Checks the `Person`/`WebSite` JSON-LD graph on dist/index.html (issue #98,
  * Q15, Appendix A.11): exactly one `application/ld+json` block, it parses,
- * its `@graph` carries a `Person` node with exactly the five named fields
- * (plus `@type`) and the three ordered `sameAs` entries, and a `WebSite`
+ * its `@graph` carries a `Person` node with exactly the six named fields
+ * (plus `@type`), including the Cyrillic `alternateName`, and the three ordered `sameAs` entries, and a `WebSite`
  * node with exactly its three named fields (plus `@type`). Mirrors
  * checkJsonLd()'s shape for the journal/ADR BreadcrumbList, but home-page
  * specific: this is the one route whose graph never carries a
@@ -348,6 +349,9 @@ function checkHomeJsonLd(html, rel) {
   }
   if (person.name !== 'Dmitrii Mashkov') {
     problems.push(`check-dist: ${rel} Person.name is "${person.name}", expected "Dmitrii Mashkov"`);
+  }
+  if (person.alternateName !== 'Дмитрий Машков') {
+    problems.push(`check-dist: ${rel} Person.alternateName is "${person.alternateName}", expected "Дмитрий Машков"`);
   }
   if (person.url !== 'https://dmitriimashkov.com/') {
     problems.push(`check-dist: ${rel} Person.url is "${person.url}", expected "https://dmitriimashkov.com/"`);

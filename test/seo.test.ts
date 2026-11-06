@@ -80,11 +80,12 @@ test('homeJsonLd returns a @graph with exactly two nodes: Person then WebSite', 
   assert.equal(result['@graph'][1]['@type'], 'WebSite');
 });
 
-test('homeJsonLd Person node carries exactly the six Appendix A.11 fields with their exact values', () => {
+test('homeJsonLd Person node carries exactly the seven Appendix A.11 fields with their exact values', () => {
   const result = homeJsonLd() as HomeGraph;
   const person = result['@graph'][0];
-  assert.deepEqual(Object.keys(person).sort(), ['@type', 'email', 'jobTitle', 'name', 'sameAs', 'url'].sort());
+  assert.deepEqual(Object.keys(person).sort(), ['@type', 'alternateName', 'email', 'jobTitle', 'name', 'sameAs', 'url'].sort());
   assert.equal(person.name, 'Dmitrii Mashkov');
+  assert.equal(person.alternateName, 'Дмитрий Машков');
   assert.equal(person.url, 'https://dmitriimashkov.com/');
   assert.equal(person.jobTitle, 'Senior platform engineer');
   assert.equal(person.email, 'mailto:hello@dmitriimashkov.com');
