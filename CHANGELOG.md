@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.55](https://github.com/mctlhq/portfolio/compare/0.1.54...0.1.55) (2026-11-06)
+
+
+### Features
+
+* **agents:** issue-200-add-the-agent-trailer-check-to-portfolio ([5e8a1d4](https://github.com/mctlhq/portfolio/commit/5e8a1d4ba068c462a270dab1cadf2d4af5bd356a))
+
+
+### Bug Fixes
+
+* **agents:** address P1/P2 codex findings on issue-200-add-the-agent-trailer-check-to-portfolio ([e27ab1b](https://github.com/mctlhq/portfolio/commit/e27ab1bba214c435d92f9eb20004f5501f528738))
+* **journal:** close cycle 195 ([9d06746](https://github.com/mctlhq/portfolio/commit/9d067462cdb6adcbb5170785199f238ad36b2aac))
+* **journal:** close cycle 195 ([5970ef5](https://github.com/mctlhq/portfolio/commit/5970ef501a9d9552b02c59902045bdca4411864f))
+
 ## [0.1.54](https://github.com/mctlhq/portfolio/compare/0.1.53...0.1.54) (2026-11-06)
 
 
