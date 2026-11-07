@@ -20,6 +20,9 @@ env:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       # The default GITHUB_TOKEN cannot open the release PR: "Allow GitHub
       # Actions to create and approve pull requests" is off at the org level.
@@ -120,31 +123,42 @@ jobs:
           fi
           gh pr merge "$number" -R "$GITHUB_REPOSITORY" --auto --merge
 
-      # Deploy the way every other onboarded mctlhq service does: hand the tag
-      # to mctl-gitops, which builds ghcr.io/mctlhq/portfolio from this repo's
-      # Dockerfile and commits the new image.tag to
-      # platform-gitops/services/labs/portfolio/values.yaml for ArgoCD.
-      #
-      # Gated on the MCTL_ONBOARDED repository variable: before the service is
-      # onboarded through mctl_deploy_service there is no values.yaml to bump,
-      # so a dispatch would push an image and then fail. The first release only
-      # creates the tag; the operator onboards from that tag and then sets
-      # MCTL_ONBOARDED=true so every later release deploys itself.
-      - name: Generate Platform App token
-        if: ${{ steps.release.outputs.release_created == 'true' && vars.MCTL_ONBOARDED == 'true' }}
+  # Deploy the way every other onboarded mctlhq service does: hand the tag
+  # to mctl-gitops, which builds ghcr.io/mctlhq/portfolio from this repo's
+  # Dockerfile and commits the new image.tag to
+  # platform-gitops/services/labs/portfolio/values.yaml for ArgoCD.
+  #
+  # Gated on the MCTL_ONBOARDED repository variable: before the service is
+  # onboarded through mctl_deploy_service there is no values.yaml to bump,
+  # so a dispatch would push an image and then fail. The first release only
+  # creates the tag; the operator onboards from that tag and then sets
+  # MCTL_ONBOARDED=true so every later release deploys itself.
+  #
+  # Separate job so the dispatch App key (environment secret) is only ever
+  # visible to first-party pinned steps, never to release-please-action or the
+  # classify scripts. The environment is restricted to main: on any other ref
+  # the key resolves empty and the mint step fails, with no fallback.
+  dispatch:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' && vars.MCTL_ONBOARDED == 'true' }}
+    runs-on: ubuntu-latest
+    environment: app-dispatch
+    permissions: {}
+    steps:
+      - name: Generate dispatch token
         id: app
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          client-id: ${{ vars.AGENTS_APP_CLIENT_ID }}
-          private-key: ${{ secrets.AGENTS_APP_PRIVATE_KEY }}
+          client-id: ${{ vars.DISPATCH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DISPATCH_APP_PRIVATE_KEY }}
           owner: mctlhq
           repositories: mctl-gitops
+          permission-actions: write
 
       - name: Dispatch centralized release-deploy
-        if: ${{ steps.release.outputs.release_created == 'true' && vars.MCTL_ONBOARDED == 'true' }}
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
-          TAG: ${{ steps.release.outputs.tag_name }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
         run: |
           gh workflow run release-deploy.yaml \
             --repo mctlhq/mctl-gitops \
@@ -156,6 +170,13 @@ jobs:
             -f team_name=labs \
             -f component_name=portfolio
 
+  note-skipped-dispatch:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' && vars.MCTL_ONBOARDED != 'true' }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
       - name: Note skipped dispatch
-        if: ${{ steps.release.outputs.release_created == 'true' && vars.MCTL_ONBOARDED != 'true' }}
-        run: echo "::notice::Release ${{ steps.release.outputs.tag_name }} tagged; deploy dispatch skipped because MCTL_ONBOARDED is not 'true' (service not onboarded yet)."
+        env:
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: echo "::notice::Release ${TAG} tagged; deploy dispatch skipped because MCTL_ONBOARDED is not 'true' (service not onboarded yet)."
