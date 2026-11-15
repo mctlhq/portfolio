@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-11-08T10:02:35.318Z",
+  "generated_at": "2026-11-15T10:01:37.185Z",
   "sources": {
     "github": {
-      "collected_at": "2026-11-08T10:02:35.318Z",
+      "collected_at": "2026-11-15T10:01:37.185Z",
       "method": "gh api: repos of org mctlhq; commits and releases per repository via the REST API",
-      "repos": 23,
-      "commits": 24070,
-      "releases": 1297,
+      "repos": 24,
+      "commits": 26012,
+      "releases": 1361,
       "per_repo": {
         "mctlhq/.github": {
-          "commits": 588,
+          "commits": 640,
           "releases": 1,
           "first_commit_at": "2026-03-15T20:36:29Z",
-          "last_commit_at": "2026-11-07T17:33:15Z"
+          "last_commit_at": "2026-11-15T08:26:05Z"
         },
         "mctlhq/bridge-step0-sandbox": {
           "commits": 7,
@@ -21,64 +21,70 @@
           "last_commit_at": "2026-11-06T21:24:29Z"
         },
         "mctlhq/mctl-academy": {
-          "commits": 857,
-          "releases": 75,
+          "commits": 1098,
+          "releases": 94,
           "first_commit_at": "2026-08-05T23:46:59Z",
-          "last_commit_at": "2026-11-07T22:42:22Z"
+          "last_commit_at": "2026-11-15T08:17:42Z"
         },
         "mctlhq/mctl-agent": {
-          "commits": 442,
-          "releases": 60,
+          "commits": 471,
+          "releases": 65,
           "first_commit_at": "2026-03-09T18:37:31Z",
-          "last_commit_at": "2026-11-07T22:53:19Z"
+          "last_commit_at": "2026-11-14T16:49:07Z"
         },
         "mctlhq/mctl-agents": {
-          "commits": 2118,
-          "releases": 172,
+          "commits": 2175,
+          "releases": 173,
           "first_commit_at": "2026-04-27T07:00:08Z",
-          "last_commit_at": "2026-11-08T01:01:33Z"
+          "last_commit_at": "2026-11-14T16:13:58Z"
         },
         "mctlhq/mctl-alice": {
-          "commits": 357,
-          "releases": 57,
+          "commits": 379,
+          "releases": 61,
           "first_commit_at": "2026-09-19T22:32:36Z",
-          "last_commit_at": "2026-11-07T18:23:36Z"
+          "last_commit_at": "2026-11-15T00:35:24Z"
         },
         "mctlhq/mctl-api": {
-          "commits": 1961,
-          "releases": 242,
+          "commits": 2219,
+          "releases": 250,
           "first_commit_at": "2026-03-10T21:50:00Z",
-          "last_commit_at": "2026-11-08T00:12:16Z"
+          "last_commit_at": "2026-11-15T00:23:47Z"
         },
         "mctlhq/mctl-claude-remote": {
-          "commits": 373,
-          "releases": 63,
+          "commits": 432,
+          "releases": 70,
           "first_commit_at": "2026-05-21T06:51:11Z",
-          "last_commit_at": "2026-11-08T09:40:37Z"
+          "last_commit_at": "2026-11-13T20:40:49Z"
         },
         "mctlhq/mctl-coolify-mcp": {
-          "commits": 608,
+          "commits": 609,
           "releases": 0,
           "first_commit_at": "2025-03-05T12:09:33Z",
-          "last_commit_at": "2026-11-07T22:42:28Z"
+          "last_commit_at": "2026-11-14T03:12:24Z"
         },
         "mctlhq/mctl-design": {
-          "commits": 399,
-          "releases": 11,
+          "commits": 417,
+          "releases": 14,
           "first_commit_at": "2026-05-16T10:20:17Z",
-          "last_commit_at": "2026-11-08T01:34:55Z"
+          "last_commit_at": "2026-11-14T07:54:47Z"
         },
         "mctlhq/mctl-docs": {
-          "commits": 395,
-          "releases": 65,
+          "commits": 409,
+          "releases": 68,
           "first_commit_at": "2026-03-28T18:22:18Z",
-          "last_commit_at": "2026-11-07T21:39:03Z"
+          "last_commit_at": "2026-11-14T23:47:39Z"
         },
         "mctlhq/mctl-gitops": {
-          "commits": 11264,
+          "commits": 12248,
           "releases": 6,
           "first_commit_at": "2026-03-15T19:20:54Z",
-          "last_commit_at": "2026-11-08T10:02:19Z"
+          "last_commit_at": "2026-11-15T08:39:39Z"
+        },
+        "mctlhq/mctl-glovo": {
+          "commits": 8,
+          "releases": 0,
+          "first_commit_at": "2026-11-14T17:22:01Z",
+          "last_commit_at": "2026-11-15T07:55:13Z"
         },
         "mctlhq/mctl-loyalty": {
           "commits": 105,
@@ -93,10 +99,10 @@
           "last_commit_at": "2026-11-06T21:05:23Z"
         },
         "mctlhq/mctl-portal": {
-          "commits": 478,
-          "releases": 74,
+          "commits": 497,
+          "releases": 77,
           "first_commit_at": "2026-03-10T21:45:30Z",
-          "last_commit_at": "2026-11-07T23:01:18Z"
+          "last_commit_at": "2026-11-14T17:41:19Z"
         },
         "mctlhq/mctl-rules": {
           "commits": 19,
@@ -111,16 +117,16 @@
           "last_commit_at": "2026-11-07T18:23:41Z"
         },
         "mctlhq/mctl-telegram": {
-          "commits": 2475,
-          "releases": 223,
+          "commits": 2622,
+          "releases": 228,
           "first_commit_at": "2026-05-12T23:24:46Z",
-          "last_commit_at": "2026-11-08T09:56:03Z"
+          "last_commit_at": "2026-11-15T00:59:00Z"
         },
         "mctlhq/mctl-web": {
-          "commits": 604,
-          "releases": 85,
+          "commits": 622,
+          "releases": 88,
           "first_commit_at": "2026-02-15T22:56:28Z",
-          "last_commit_at": "2026-11-07T18:23:21Z"
+          "last_commit_at": "2026-11-14T23:47:25Z"
         },
         "mctlhq/newton-mcp-gateway": {
           "commits": 62,
@@ -129,10 +135,10 @@
           "last_commit_at": "2026-11-06T10:19:51Z"
         },
         "mctlhq/portfolio": {
-          "commits": 358,
-          "releases": 57,
+          "commits": 362,
+          "releases": 58,
           "first_commit_at": "2026-09-10T22:43:00Z",
-          "last_commit_at": "2026-11-07T21:53:37Z"
+          "last_commit_at": "2026-11-08T22:31:13Z"
         },
         "mctlhq/projects-mcp": {
           "commits": 127,
@@ -141,18 +147,18 @@
           "last_commit_at": "2026-11-06T10:19:22Z"
         },
         "mctlhq/seerrsense": {
-          "commits": 241,
-          "releases": 34,
+          "commits": 252,
+          "releases": 36,
           "first_commit_at": "2026-09-06T20:49:34Z",
-          "last_commit_at": "2026-11-07T21:53:42Z"
+          "last_commit_at": "2026-11-08T18:12:46Z"
         }
       }
     },
     "mctl": {
-      "collected_at": "2026-11-08T10:02:35.318Z",
+      "collected_at": "2026-11-15T10:01:37.185Z",
       "method": "count of platform-gitops/services/*/*/values.yaml (the set mctl_list_services reads) and of platform-gitops/agents-state/*/proposals directories in mctlhq/mctl-gitops",
       "services": 31,
-      "devloop_proposals": 1194,
+      "devloop_proposals": 1294,
       "stale": false
     }
   }
