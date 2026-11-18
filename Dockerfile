@@ -15,7 +15,7 @@ RUN HASHES="$(cat /app/csp-script-src.txt)" \
 # root filesystem (base-service step-2 defaults). The numeric USER lets the
 # kubelet verify runAsNonRoot. The CSP substitution happens in the builder
 # stage so this stage needs no file writes as root.
-FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
+FROM nginx/nginx-unprivileged:1.31.9-alpine@sha256:60214a103e6f38e953ff957f34b1f2e97a9db801ab2df3821da955d0fe6cadd6
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/security-headers.rendered.conf /etc/nginx/security-headers.conf
 COPY --from=builder /app/dist/ /usr/share/nginx/html/
