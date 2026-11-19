@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.59](https://github.com/mctlhq/portfolio/compare/0.1.58...0.1.59) (2026-11-19)
+
+
+### Bug Fixes
+
+* **docker:** move base to nginx/nginx-unprivileged 1.31.9 ([40918cd](https://github.com/mctlhq/portfolio/commit/40918cdeb389b4e00118717826fe7e1e16fed1ce))
+* **docker:** move base to nginx/nginx-unprivileged 1.31.9 ([fdfefde](https://github.com/mctlhq/portfolio/commit/fdfefde7d157e8a1ee06bf01217db1816f7df157))
+
 ## [0.1.58](https://github.com/mctlhq/portfolio/compare/0.1.57...0.1.58) (2026-11-15)
 
 
