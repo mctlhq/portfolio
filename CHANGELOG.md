@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.60](https://github.com/mctlhq/portfolio/compare/0.1.59...0.1.60) (2026-11-22)
+
+
+### Bug Fixes
+
+* **metrics:** weekly snapshot 2026-11-22 ([3b182c5](https://github.com/mctlhq/portfolio/commit/3b182c57e2ab7a25de1e5c37c3ef366eb8e79c8d))
+* **metrics:** weekly snapshot 2026-11-22 ([b28c72e](https://github.com/mctlhq/portfolio/commit/b28c72e7517fda05fac25d4ec66cfb46e5e98fe0))
+
 ## [0.1.59](https://github.com/mctlhq/portfolio/compare/0.1.58...0.1.59) (2026-11-19)
 
 
